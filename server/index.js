@@ -1,6 +1,12 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors'); // Required for React frontend communication
 const { processMessageWithAI } = require('./ai');
+
+// Import database initializer and REST API routes
+const initializeDatabase = require('./config/initDB');
+const authRoutes = require('./routes/auth');
+const eventRoutes = require('./routes/events');
 
 const credentials = {
     apiKey: process.env.AT_API_KEY,
@@ -11,8 +17,16 @@ const sms = AfricasTalking.SMS;
 const voice = AfricasTalking.VOICE;
 
 const app = express();
+app.use(cors()); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Initialize Cloud PostgreSQL Database Schema
+initializeDatabase();
+
+// Mount REST API Endpoints
+app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
 
 let tasks = [
     { id: 1, description: "Check main lobby sound system", completed: false },
