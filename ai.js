@@ -3,24 +3,17 @@ const OpenAI = require('openai');
 
 const provider = process.env.AI_PROVIDER || 'ollama';
 
-let aiClient;
-let modelName;
+let ollamaClient;
 
 if (provider === 'gemini') {
-    aiClient = new OpenAI({
-        apiKey: process.env.GEMINI_API_KEY,
-        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
-    });
-    modelName = "gemini-1.5-flash";
-    console.log("☁️ AI Mode Active: Cloud Gemini");
+    console.log("☁️ AI Mode Active: Cloud Gemini (Native API - 3.6 Flash)");
 } else {
-    // Local Ollama with a strict timeout so it never hangs indefinitely
-    aiClient = new OpenAI({
+    // We only need the OpenAI SDK for the local Ollama connection now
+    ollamaClient = new OpenAI({
         apiKey: "ollama",
         baseURL: "http://localhost:11434/v1",
-        timeout: 6000 // 6 second max timeout for local generation
+        timeout: 6000
     });
-    modelName = "llama3";
     console.log("🦙 AI Mode Active: Local Llama 3");
 }
 
@@ -50,25 +43,52 @@ async function processMessageWithAI(userMessage) {
 
     try {
         console.log(`🤖 Processing message with ${provider}: "${userMessage}"`);
+        let replyText = "";
 
-        const response = await aiClient.chat.completions.create({
-            model: modelName,
-            messages: [
-                { 
-                    role: "system", 
-                    content: `You are a helpful event assistant for the Women in Tech Hackathon. Use these facts to answer: ${EVENT_KNOWLEDGE_BASE}. Keep your answer short and direct. If you don't know, say you don't know.`
-                },
-                { role: "user", content: userMessage }
-            ]
-        });
+        if (provider === 'gemini') {
+            // Updated to the highly recommended 3.6-flash model
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ 
+                            text: `You are a helpful event assistant for the Women in Tech Hackathon. Use these facts to answer: ${EVENT_KNOWLEDGE_BASE}. Keep your answer short and direct. If you don't know, say you don't know.\n\nUser query: ${userMessage}` 
+                        }]
+                    }]
+                })
+            });
 
-        const reply = response.choices[0].message.content.trim();
-        return { isEmergency: false, reply };
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+            
+            replyText = data.candidates[0].content.parts[0].text.trim();
+
+        } else {
+            // Local Llama 3 call
+            const response = await ollamaClient.chat.completions.create({
+                model: "llama3",
+                messages: [
+                    { 
+                        role: "system", 
+                        content: `You are a helpful event assistant for the Women in Tech Hackathon. Use these facts to answer: ${EVENT_KNOWLEDGE_BASE}. Keep your answer short and direct. If you don't know, say you don't know.`
+                    },
+                    { role: "user", content: userMessage }
+                ]
+            });
+            replyText = response.choices[0].message.content.trim();
+        }
+
+        return { isEmergency: false, reply: replyText };
 
     } catch (error) {
-        console.warn(`⚠️ AI Timeout or Error (${provider}). Using instant fallback response.`);
+        console.error(`❌ DETAILED AI ERROR (${provider}):`, error.message || error);
         
-        // Instant smart keyword fallback if local AI takes too long
         let fallbackReply = "Welcome to the Women in Tech Hackathon! Registration is at the Main Lobby.";
         if (lowerMsg.includes('wifi') || lowerMsg.includes('password')) {
             fallbackReply = "The Wi-Fi password is 'HackTheFuture'.";
