@@ -1,14 +1,12 @@
 require('dotenv').config();
 const OpenAI = require('openai');
 
-// Check the environment variable (defaults to 'ollama' if not specified)
 const provider = process.env.AI_PROVIDER || 'ollama';
 
 let aiClient;
 let modelName;
 
 if (provider === 'gemini') {
-    // Configuration for Cloud Gemini
     aiClient = new OpenAI({
         apiKey: process.env.GEMINI_API_KEY,
         baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -16,10 +14,11 @@ if (provider === 'gemini') {
     modelName = "gemini-1.5-flash";
     console.log("☁️ AI Mode Active: Cloud Gemini");
 } else {
-    // Configuration for Local Llama 3 via Ollama
+    // Local Ollama with a strict timeout so it never hangs indefinitely
     aiClient = new OpenAI({
         apiKey: "ollama",
-        baseURL: "http://localhost:11434/v1"
+        baseURL: "http://localhost:11434/v1",
+        timeout: 6000 // 6 second max timeout for local generation
     });
     modelName = "llama3";
     console.log("🦙 AI Mode Active: Local Llama 3");
@@ -36,7 +35,6 @@ const EVENT_KNOWLEDGE_BASE = `
 async function processMessageWithAI(userMessage) {
     const lowerMsg = userMessage.toLowerCase();
     
-    // Safety check for emergencies first (rules before AI)
     const isEmergency = lowerMsg.includes('help') || 
                         lowerMsg.includes('collapsed') || 
                         lowerMsg.includes('injury') || 
@@ -55,30 +53,34 @@ async function processMessageWithAI(userMessage) {
 
         const response = await aiClient.chat.completions.create({
             model: modelName,
-            response_format: { type: "json_object" },
             messages: [
                 { 
                     role: "system", 
-                    content: `You are the AI Event Assistant. Answer the user's query using ONLY these facts: ${EVENT_KNOWLEDGE_BASE}. 
-                    If the user asks something not in the facts, say you don't know.
-                    
-                    Respond strictly in this JSON format:
-                    {
-                        "isEmergency": false,
-                        "reply": "your text response"
-                    }`
+                    content: `You are a helpful event assistant for the Women in Tech Hackathon. Use these facts to answer: ${EVENT_KNOWLEDGE_BASE}. Keep your answer short and direct. If you don't know, say you don't know.`
                 },
                 { role: "user", content: userMessage }
             ]
         });
 
-        return JSON.parse(response.choices[0].message.content);
+        const reply = response.choices[0].message.content.trim();
+        return { isEmergency: false, reply };
 
     } catch (error) {
-        console.error(`❌ AI Error (${provider}):`, error.message || error);
+        console.warn(`⚠️ AI Timeout or Error (${provider}). Using instant fallback response.`);
+        
+        // Instant smart keyword fallback if local AI takes too long
+        let fallbackReply = "Welcome to the Women in Tech Hackathon! Registration is at the Main Lobby.";
+        if (lowerMsg.includes('wifi') || lowerMsg.includes('password')) {
+            fallbackReply = "The Wi-Fi password is 'HackTheFuture'.";
+        } else if (lowerMsg.includes('lunch') || lowerMsg.includes('food')) {
+            fallbackReply = "Lunch is served at 1:00 PM in the Courtyard.";
+        } else if (lowerMsg.includes('hall b') || lowerMsg.includes('where')) {
+            fallbackReply = "Hall B is on the 2nd floor, opposite the elevators.";
+        }
+
         return { 
             isEmergency: false, 
-            reply: "Welcome to the Women in Tech Hackathon! Registration is at the Main Lobby and Wi-Fi is 'HackTheFuture'." 
+            reply: fallbackReply
         };
     }
 }
