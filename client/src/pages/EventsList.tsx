@@ -44,7 +44,7 @@ export default function EventsList() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {events.map((event) => (
             <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-              <div className="p-6 flex-grow">
+              <div className="p-6 grow">
                 <div className="flex justify-between items-start mb-4">
                   <h2 className="text-xl font-bold line-clamp-2">{event.name}</h2>
                   <span className={`text-xs px-2 py-1 rounded-full uppercase font-semibold ${
