@@ -11,7 +11,8 @@ if (provider === 'gemini') {
     // We only need the OpenAI SDK for the local Ollama connection now
     ollamaClient = new OpenAI({
         apiKey: "ollama",
-        baseURL: "http://localhost:11434/v1",
+        // Falls back to localhost, but allows a remote URL if deployed
+        baseURL: process.env.OLLAMA_URL || "http://localhost:11434/v1",
         timeout: 6000
     });
     console.log("🦙 AI Mode Active: Local Llama 3");
@@ -46,7 +47,7 @@ async function processMessageWithAI(userMessage) {
         let replyText = "";
 
         if (provider === 'gemini') {
-            // Updated to the highly recommended 3.6-flash model
+            // Using the recommended Gemini 3.6 Flash model for fast text parsing
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
             
             const response = await fetch(url, {
