@@ -9,6 +9,9 @@ import ManageAttendees from "./pages/ManageAttendees"
 import ManageSchedule from "./pages/ManageSchedule"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
+import ManageVenueLocations from "./pages/ManageVenueLocations"
+// ...
+
 
 function App() {
   return (
@@ -23,6 +26,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/events/:id/manage" element={<ProtectedRoute><ManageAttendees /></ProtectedRoute>} />
         <Route path="/events/:id/schedule" element={<ProtectedRoute><ManageSchedule /></ProtectedRoute>} />
+        <Route path="/events/:id/locations" element={<ProtectedRoute><ManageVenueLocations /></ProtectedRoute>} />
       </Routes>
     </>
   )

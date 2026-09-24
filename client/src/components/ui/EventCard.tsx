@@ -1,28 +1,35 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
-import { MapPin, Calendar, Users, Clock, Link as LinkIcon, Check } from "lucide-react"
-import type { Event } from "../../types/event"
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  MapPin,
+  Calendar,
+  Users,
+  Clock,
+  Link as LinkIcon,
+  Check,
+} from "lucide-react";
+import type { Event } from "../../types/event";
 
 interface EventCardProps {
-  event: Event
+  event: Event;
 }
 
 function EventCard({ event }: EventCardProps) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const statusColors = {
     upcoming: "bg-blue-100 text-blue-700",
     ongoing: "bg-green-100 text-green-700",
     completed: "bg-gray-100 text-gray-600",
     cancelled: "bg-red-100 text-red-700",
-  }
+  };
 
   function handleCopyLink() {
-    const url = `${window.location.origin}/events/${event.id}`
-    navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const url = `${window.location.origin}/events/${event.id}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -33,13 +40,19 @@ function EventCard({ event }: EventCardProps) {
       className="rounded-xl border border-gray-200 p-5 bg-white shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between mb-2">
-        <h3 className="font-heading font-semibold text-lg text-gray-900">{event.name}</h3>
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColors[event.status]}`}>
+        <h3 className="font-heading font-semibold text-lg text-gray-900">
+          {event.name}
+        </h3>
+        <span
+          className={`text-xs font-medium px-2 py-1 rounded-full ${statusColors[event.status]}`}
+        >
           {event.status}
         </span>
       </div>
       {event.description && (
-        <p className="text-sm text-gray-500 mb-3 line-clamp-2">{event.description}</p>
+        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+          {event.description}
+        </p>
       )}
       <div className="flex flex-col gap-1 text-sm text-gray-600 mb-4">
         {event.venue_name && (
@@ -69,6 +82,13 @@ function EventCard({ event }: EventCardProps) {
           <Clock className="w-4 h-4" />
           Manage Schedule
         </Link>
+        <Link
+          to={`/events/${event.id}/locations`}
+          className="flex items-center justify-center gap-2 w-full text-sm font-medium text-gray-600 border border-gray-200 rounded-lg py-2 hover:bg-gray-50 transition-colors"
+        >
+          <MapPin className="w-4 h-4" />
+          Manage Locations
+        </Link>
         <button
           onClick={handleCopyLink}
           className="flex items-center justify-center gap-2 w-full text-sm font-medium text-gray-600 border border-gray-200 rounded-lg py-2 hover:bg-gray-50 transition-colors"
@@ -87,7 +107,7 @@ function EventCard({ event }: EventCardProps) {
         </button>
       </div>
     </motion.div>
-  )
+  );
 }
 
-export default EventCard
+export default EventCard;
