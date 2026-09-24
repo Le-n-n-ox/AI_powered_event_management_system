@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors'); // Required for React frontend communication
 const { processMessageWithAI } = require('./ai');
+const { supabase } = require('./config/db');
 
 // Import database initializer and REST API routes
 const initializeDatabase = require('./config/initDB');
@@ -128,7 +129,56 @@ app.post('/webhook/incoming', async (req, res) => {
     }
 
     // 3. AI Processing & Emergency Call Escalation
-    const aiResult = await processMessageWithAI(cleanText);
+    const { data: attendee } = await supabase
+        .from('attendees')
+        .select('event_id')
+        .eq('phone_number', from)
+        .order('registered_at', { ascending: false })
+        .limit(1)
+        .single();
+
+    let knowledgeBase = "No event information available.";
+
+    if (attendee?.event_id) {
+        const { data: eventData } = await supabase
+            .from('events')
+            .select('name, venue_name, venue_address, start_date, end_date')
+            .eq('id', attendee.event_id)
+            .single();
+
+        const { data: scheduleData } = await supabase
+            .from('schedule_items')
+            .select('title, speaker, location, start_time, end_time')
+            .eq('event_id', attendee.event_id)
+            .order('start_time', { ascending: true });
+
+        const { data: venueData } = await supabase
+            .from('venue_locations')
+            .select('label, description')
+            .eq('event_id', attendee.event_id);
+
+        const scheduleText = (scheduleData || [])
+            .map(s => `- ${s.title}${s.speaker ? ` by ${s.speaker}` : ''} at ${new Date(s.start_time).toLocaleTimeString()}${s.location ? ` in ${s.location}` : ''}`)
+            .join('\n');
+
+        const venueText = (venueData || [])
+            .map(v => `- ${v.label}: ${v.description || 'No additional details'}`)
+            .join('\n');
+
+        knowledgeBase = `
+Event: ${eventData?.name || 'Unknown'}
+Venue: ${eventData?.venue_name || 'TBD'}, ${eventData?.venue_address || ''}
+Dates: ${eventData?.start_date} to ${eventData?.end_date}
+
+Schedule:
+${scheduleText || 'No schedule items yet.'}
+
+Venue Locations:
+${venueText || 'No venue locations added yet.'}
+`.trim();
+    }
+
+    const aiResult = await processMessageWithAI(cleanText, knowledgeBase);
     let replyMessage = aiResult.reply;
 
     if (aiResult.isEmergency) {

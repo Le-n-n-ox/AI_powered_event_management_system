@@ -15,6 +15,7 @@ function AddEventForm({ onEventAdded, onClose }: AddEventFormProps) {
   const [venueMapUrl, setVenueMapUrl] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [registrationDeadline, setRegistrationDeadline] = useState("");
   const [capacity, setCapacity] = useState("");
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
@@ -39,6 +40,7 @@ function AddEventForm({ onEventAdded, onClose }: AddEventFormProps) {
       venue_map_url: venueMapUrl || null,
       start_date: startDate,
       end_date: endDate,
+      registration_deadline: registrationDeadline || null,
       status: "upcoming",
       organizer_id: user?.id,
       capacity: capacity ? parseInt(capacity, 10) : null,
@@ -134,6 +136,13 @@ function AddEventForm({ onEventAdded, onClose }: AddEventFormProps) {
 
           <div className="border-t border-gray-100 pt-3 mt-1">
             <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Registration</p>
+            <label className="block text-xs text-gray-500 mb-1">Registration deadline (optional)</label>
+            <input
+              type="datetime-local"
+              value={registrationDeadline}
+              onChange={(e) => setRegistrationDeadline(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
             <input
               type="number"
               placeholder="Capacity (leave blank for unlimited)"

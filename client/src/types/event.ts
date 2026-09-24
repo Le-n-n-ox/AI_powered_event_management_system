@@ -26,6 +26,7 @@ export interface Attendee {
   payment_status: 'unpaid' | 'paid' | 'refunded';
   checked_in: boolean;
   registered_at: string;
+  registration_deadline?: string | null;
 }
 
 export interface ScheduleItem {
@@ -38,3 +39,12 @@ export interface ScheduleItem {
   end_time: string;
   created_at: string;
 }
+
+export interface VenueLocation {
+  id: string;
+  event_id: string;
+  label: string;
+  description?: string;
+  created_at: string;
+}
+
