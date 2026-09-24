@@ -12,6 +12,7 @@ interface ScheduleItem {
   start_time: string;
   location?: string;
   speaker?: string;
+  venue_map_url?: string;
 }
 
 export default function EventDetail() {

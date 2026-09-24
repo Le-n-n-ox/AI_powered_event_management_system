@@ -1,5 +1,5 @@
 export interface Event {
-  venue_map_url: import("react").JSX.Element;
+  venue_map_url?: string;
   id: string;
   organizer_id: string;
   name: string;
