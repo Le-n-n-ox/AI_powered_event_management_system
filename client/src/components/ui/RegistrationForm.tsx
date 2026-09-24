@@ -14,10 +14,30 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to format the phone number to +254
+  const formatPhoneNumber = (phone: string) => {
+    // Remove any accidental spaces
+    let cleanPhone = phone.trim().replace(/\s+/g, '');
+    
+    // Convert 07... or 01... to +254...
+    if (cleanPhone.startsWith('0')) {
+      return '+254' + cleanPhone.substring(1);
+    }
+    // If they typed 254 without the +
+    if (cleanPhone.startsWith('254')) {
+      return '+' + cleanPhone;
+    }
+    // Return as-is if it already starts with +
+    return cleanPhone;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+
+    // Format the phone number before sending to Supabase
+    const formattedPhone = formatPhoneNumber(phoneNumber);
 
     try {
       const { error: supabaseError } = await supabase
@@ -26,7 +46,7 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
           { 
             event_id: eventId, 
             full_name: fullName, 
-            phone_number: phoneNumber, 
+            phone_number: formattedPhone, 
             email: email || null 
           }
         ]);
@@ -55,7 +75,7 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
 
       <div>
         <label className="block text-sm font-medium mb-1">Phone Number (For SMS/AI Bot)</label>
-        <input required type="tel" className="w-full p-2 border rounded" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+        <input required type="tel" className="w-full p-2 border rounded" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="e.g. 0711223344" />
       </div>
 
       <div>

@@ -6,16 +6,16 @@ const provider = process.env.AI_PROVIDER || 'ollama';
 let ollamaClient;
 
 if (provider === 'gemini') {
-    console.log("☁️ AI Mode Active: Cloud Gemini (Native API - 3.6 Flash)");
+    console.log("☁️ AI Mode Active: Cloud Gemini (Native API - 3.5 Flash)");
 } else {
     // We only need the OpenAI SDK for the local Ollama connection now
     ollamaClient = new OpenAI({
         apiKey: "ollama",
         // Falls back to localhost, but allows a remote URL if deployed
         baseURL: process.env.OLLAMA_URL || "http://localhost:11434/v1",
-        timeout: 6000
+        timeout: 60000 // CHANGED: Increased to 60 seconds to prevent timeouts
     });
-    console.log("🦙 AI Mode Active: Local Llama 3");
+    console.log("🦙 AI Mode Active: Local Llama 3.2"); // CHANGED: Updated label
 }
 
 async function processMessageWithAI(userMessage, knowledgeBase) {
@@ -41,8 +41,8 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
         let replyText = "";
 
         if (provider === 'gemini') {
-            // Using the recommended Gemini 3.6 Flash model for fast text parsing
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+            // Using the recommended Gemini 3.5 Flash model for fast text parsing
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -66,7 +66,7 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
 
         } else {
             const response = await ollamaClient.chat.completions.create({
-                model: "llama3",
+                model: "llama3.2", // CHANGED: Now targeting Llama 3.2
                 messages: [
                     {
                         role: "system",
