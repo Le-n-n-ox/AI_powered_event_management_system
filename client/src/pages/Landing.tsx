@@ -50,7 +50,7 @@ function Landing() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="flex items-center justify-center gap-3"
+          className="flex flex-wrap items-center justify-center gap-3"
         >
           <Link
             to="/signup"
@@ -63,6 +63,12 @@ function Landing() {
             className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Log In
+          </Link>
+          <Link
+            to="/events"
+            className="px-6 py-3 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+          >
+            Browse Events →
           </Link>
         </motion.div>
       </section>

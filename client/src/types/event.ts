@@ -26,3 +26,14 @@ export interface Attendee {
   checked_in: boolean;
   registered_at: string;
 }
+
+export interface ScheduleItem {
+  id: string;
+  event_id: string;
+  title: string;
+  speaker?: string;
+  location?: string;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+}
