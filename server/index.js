@@ -1,8 +1,13 @@
 require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 const express = require('express');
 const cors = require('cors'); // Required for React frontend communication
 const { processMessageWithAI } = require('./ai');
-const { supabase } = require('./config/db');
 
 // Import database initializer and REST API routes
 const initializeDatabase = require('./config/initDB');
