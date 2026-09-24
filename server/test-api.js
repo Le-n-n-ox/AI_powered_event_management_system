@@ -1,6 +1,9 @@
 // test-api.js
+require('dotenv').config();
+
 async function testRoutes() {
-    const BASE_URL = 'http://localhost:3000/api';
+    // Uses the live Render URL if set in your .env, otherwise defaults to local 3000
+    const BASE_URL = (process.env.API_URL || 'http://localhost:3000') + '/api';
     
     // Use a unique email timestamp so we don't hit duplicate user errors if you run this multiple times
     const testEmail = `organizer${Date.now()}@tech.com`; 
@@ -10,10 +13,11 @@ async function testRoutes() {
     let eventId = null;
 
     console.log("🚀 Starting API Tests...\n");
+    console.log(`📡 Targeting: ${BASE_URL}\n`);
 
     try {
         // --- 1. TEST REGISTRATION ---
-        console.log(`1️⃣ Testing POST /api/auth/register...`);
+        console.log(`1️⃣ Testing POST /auth/register...`);
         const regRes = await fetch(`${BASE_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -32,7 +36,7 @@ async function testRoutes() {
         console.log("✅ Registration passed.\n");
 
         // --- 2. TEST LOGIN ---
-        console.log(`2️⃣ Testing POST /api/auth/login...`);
+        console.log(`2️⃣ Testing POST /auth/login...`);
         const loginRes = await fetch(`${BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -46,7 +50,7 @@ async function testRoutes() {
         console.log("✅ Login passed.\n");
 
         // --- 3. TEST CREATE EVENT ---
-        console.log(`3️⃣ Testing POST /api/events...`);
+        console.log(`3️⃣ Testing POST /events...`);
         const createEventRes = await fetch(`${BASE_URL}/events`, {
             method: 'POST',
             headers: { 
@@ -72,14 +76,14 @@ async function testRoutes() {
         console.log("✅ Event Creation passed.\n");
 
         // --- 4. TEST FETCH EVENTS ---
-        console.log(`4️⃣ Testing GET /api/events...`);
+        console.log(`4️⃣ Testing GET /events...`);
         const getEventsRes = await fetch(`${BASE_URL}/events`);
         const getEventsData = await getEventsRes.json();
         console.log(`Response: Found ${getEventsData.length} event(s).`);
         console.log("✅ Fetch Events passed.\n");
 
         // --- 5. TEST ATTENDEE REGISTRATION ---
-        console.log(`5️⃣ Testing POST /api/events/${eventId}/register...`);
+        console.log(`5️⃣ Testing POST /events/${eventId}/register...`);
         const attendeeRes = await fetch(`${BASE_URL}/events/${eventId}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

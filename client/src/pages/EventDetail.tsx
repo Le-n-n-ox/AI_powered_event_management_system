@@ -92,6 +92,20 @@ export default function EventDetail() {
               View on Google Maps →
             </a>
           )}
+          {(event.venue_address || event.venue_name) && (
+            <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">
+              <iframe
+                title="Event location map"
+                width="100%"
+                height="220"
+                style={{ border: 0 }}
+                loading="lazy"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(
+                  event.venue_address || event.venue_name
+                )}&output=embed`}
+              />
+            </div>
+          )}
           <hr className="my-3 border-gray-200" />
           <p className="font-medium text-gray-700">📅 {new Date(event.start_date).toLocaleString()}</p>
         </div>
