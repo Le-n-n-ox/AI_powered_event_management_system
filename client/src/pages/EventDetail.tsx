@@ -83,7 +83,7 @@ export default function EventDetail() {
           <p className="text-sm text-gray-500">{event.venue_address}</p>
           {event.venue_map_url && (
             <a
-              href={event.venue_map_url}
+              href={String(event.venue_map_url)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-indigo-600 hover:text-indigo-700 font-medium inline-block mt-1"
