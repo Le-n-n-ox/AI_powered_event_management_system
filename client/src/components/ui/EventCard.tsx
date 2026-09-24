@@ -19,11 +19,11 @@ interface EventCardProps {
 function EventCard({ event }: EventCardProps) {
   const [copied, setCopied] = useState(false);
 
-  const statusColors = {
-    upcoming: "bg-blue-100 text-blue-700",
-    ongoing: "bg-green-100 text-green-700",
-    completed: "bg-gray-100 text-gray-600",
-    cancelled: "bg-red-100 text-red-700",
+  const statusStyles = {
+    upcoming: { badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200", accent: "bg-blue-500" },
+    ongoing: { badge: "bg-green-50 text-green-700 ring-1 ring-green-200", accent: "bg-green-500" },
+    completed: { badge: "bg-gray-100 text-gray-600 ring-1 ring-gray-200", accent: "bg-gray-400" },
+    cancelled: { badge: "bg-red-50 text-red-700 ring-1 ring-red-200", accent: "bg-red-500" },
   };
 
   function handleCopyLink() {
@@ -33,88 +33,95 @@ function EventCard({ event }: EventCardProps) {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const style = statusStyles[event.status];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="rounded-xl border border-gray-200 p-5 bg-white shadow-sm hover:shadow-md transition-shadow"
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2 }}
+      className="relative rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
     >
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="font-heading font-semibold text-lg text-gray-900">
-          {event.name}
-        </h3>
-        <span
-          className={`text-xs font-medium px-2 py-1 rounded-full ${statusColors[event.status]}`}
-        >
-          {event.status}
-        </span>
-      </div>
-      {event.description && (
-        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-          {event.description}
-        </p>
-      )}
-      <div className="flex flex-col gap-1 text-sm text-gray-600 mb-1">
-        {event.venue_name && (
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            {event.venue_name}
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4" />
-          {new Date(event.start_date).toLocaleDateString()}
-          <span className="text-indigo-600 font-medium">
-            · Starts {getCountdown(event.start_date)}
+      {/* Status accent bar */}
+      <div className={`absolute top-0 left-0 w-1 h-full ${style.accent}`} />
+
+      <div className="p-5 pl-6">
+        <div className="flex items-start justify-between mb-2 gap-2">
+          <h3 className="font-heading font-semibold text-lg text-gray-900 leading-snug">
+            {event.name}
+          </h3>
+          <span
+            className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${style.badge}`}
+          >
+            {event.status}
           </span>
         </div>
-        {event.registration_deadline && (
-          <div className="flex items-center gap-2 text-amber-600">
-            <Clock className="w-4 h-4" />
-            Registration closes {getCountdown(event.registration_deadline)}
-          </div>
-        )}
-      </div>
 
-      <div className="flex flex-col gap-2 mt-4">
-        <Link
-          to={`/events/${event.id}/manage`}
-          className="flex items-center justify-center gap-2 w-full text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg py-2 hover:bg-indigo-50 transition-colors"
-        >
-          <Users className="w-4 h-4" />
-          Manage Attendees
-        </Link>
-        <Link
-          to={`/events/${event.id}/schedule`}
-          className="flex items-center justify-center gap-2 w-full text-sm font-medium text-gray-600 border border-gray-200 rounded-lg py-2 hover:bg-gray-50 transition-colors"
-        >
-          <Clock className="w-4 h-4" />
-          Manage Schedule
-        </Link>
-        <Link
-          to={`/events/${event.id}/locations`}
-          className="flex items-center justify-center gap-2 w-full text-sm font-medium text-gray-600 border border-gray-200 rounded-lg py-2 hover:bg-gray-50 transition-colors"
-        >
-          <MapPin className="w-4 h-4" />
-          Manage Locations
-        </Link>
-        <button
-          onClick={handleCopyLink}
-          className="flex items-center justify-center gap-2 w-full text-sm font-medium text-gray-600 border border-gray-200 rounded-lg py-2 hover:bg-gray-50 transition-colors"
-        >
-          {copied ? (
-            <>
-              <Check className="w-4 h-4 text-green-600" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <LinkIcon className="w-4 h-4" />
-              Copy Registration Link
-            </>
+        {event.description && (
+          <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed">
+            {event.description}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-1.5 text-sm mb-4 bg-gray-50 rounded-lg p-3">
+          {event.venue_name && (
+            <div className="flex items-center gap-2 text-gray-700">
+              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className="truncate">{event.venue_name}</span>
+            </div>
           )}
-        </button>
+          <div className="flex items-center gap-2 text-gray-700">
+            <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+            <span>{new Date(event.start_date).toLocaleDateString()}</span>
+            <span className="text-indigo-600 font-medium">
+              · {getCountdown(event.start_date)}
+            </span>
+          </div>
+          {event.registration_deadline && (
+            <div className="flex items-center gap-2 text-amber-700">
+              <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Registration closes {getCountdown(event.registration_deadline)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 pt-3 border-t border-gray-100">
+          <Link
+            to={`/events/${event.id}/manage`}
+            title="Manage Attendees"
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg py-2 hover:bg-indigo-100 transition-colors"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Attendees
+          </Link>
+          <Link
+            to={`/events/${event.id}/schedule`}
+            title="Manage Schedule"
+            className="flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors"
+          >
+            <Clock className="w-4 h-4" />
+          </Link>
+          <Link
+            to={`/events/${event.id}/locations`}
+            title="Manage Locations"
+            className="flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors"
+          >
+            <MapPin className="w-4 h-4" />
+          </Link>
+          <button
+            onClick={handleCopyLink}
+            title="Copy Registration Link"
+            className="flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-green-600" />
+            ) : (
+              <LinkIcon className="w-4 h-4" />
+            )}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
