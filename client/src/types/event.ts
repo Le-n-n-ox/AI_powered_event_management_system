@@ -1,5 +1,6 @@
 export interface Event {
   venue_map_url?: string;
+  registration_deadline?: string | null; // Added here
   id: string;
   organizer_id: string;
   name: string;
@@ -47,4 +48,3 @@ export interface VenueLocation {
   description?: string;
   created_at: string;
 }
-
