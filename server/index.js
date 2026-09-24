@@ -35,6 +35,13 @@ let tasks = [
     { id: 3, description: "Restock registration badges at Main Desk", completed: false }
 ];
 
+app.get('/', (req, res) => {
+    res.status(200).json({ 
+        status: 'online', 
+        message: 'Operations Engine API is running smoothly!' 
+    });
+});
+
 app.get('/webhook/incoming', (req, res) => {
     res.status(200).send('Webhook is active!');
 });
