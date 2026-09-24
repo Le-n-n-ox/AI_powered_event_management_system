@@ -3,10 +3,29 @@ import { Plus } from "lucide-react"
 import EventCard from "../components/ui/EventCard"
 import AddEventForm from "../components/ui/AddEventForm"
 import { useEvents } from "../hooks/useEvents"
+import { groupEventsByPeriod } from "../utils/dateHelpers"
+import type { Event } from "../types/event"
+
+function EventSection({ title, events }: { title: string; events: Event[] }) {
+  return (
+    <div className="mb-8">
+      <h2 className="font-heading text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        {title} <span className="text-gray-400 font-normal">({events.length})</span>
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {events.map((event) => (
+          <EventCard key={event.id} event={event} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function Dashboard() {
   const { events, loading, error, refetch } = useEvents()
   const [showForm, setShowForm] = useState(false)
+
+  const { groups, order } = groupEventsByPeriod(events)
 
   return (
     <div className="p-6">
@@ -27,11 +46,9 @@ function Dashboard() {
         <p className="text-gray-500">No events yet. Create one to get started.</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-      </div>
+      {order.map((key) => (
+        <EventSection key={key} title={key} events={groups[key]} />
+      ))}
 
       {showForm && (
         <AddEventForm

@@ -10,6 +10,7 @@ import {
   Check,
 } from "lucide-react";
 import type { Event } from "../../types/event";
+import { getCountdown } from "../../utils/dateHelpers";
 
 interface EventCardProps {
   event: Event;
@@ -54,7 +55,7 @@ function EventCard({ event }: EventCardProps) {
           {event.description}
         </p>
       )}
-      <div className="flex flex-col gap-1 text-sm text-gray-600 mb-4">
+      <div className="flex flex-col gap-1 text-sm text-gray-600 mb-1">
         {event.venue_name && (
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
@@ -64,10 +65,19 @@ function EventCard({ event }: EventCardProps) {
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4" />
           {new Date(event.start_date).toLocaleDateString()}
+          <span className="text-indigo-600 font-medium">
+            · Starts {getCountdown(event.start_date)}
+          </span>
         </div>
+        {event.registration_deadline && (
+          <div className="flex items-center gap-2 text-amber-600">
+            <Clock className="w-4 h-4" />
+            Registration closes {getCountdown(event.registration_deadline)}
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 mt-4">
         <Link
           to={`/events/${event.id}/manage`}
           className="flex items-center justify-center gap-2 w-full text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg py-2 hover:bg-indigo-50 transition-colors"
