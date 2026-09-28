@@ -3,19 +3,24 @@ const OpenAI = require('openai');
 
 const provider = process.env.AI_PROVIDER || 'ollama';
 
-let ollamaClient;
+let aiClient;
 
 if (provider === 'gemini') {
     console.log("☁️ AI Mode Active: Cloud Gemini (Native API - 3.5 Flash)");
-} else {
-    // We only need the OpenAI SDK for the local Ollama connection now
-    ollamaClient = new OpenAI({
-        apiKey: "ollama",
-        // Falls back to localhost, but allows a remote URL if deployed
-        baseURL: process.env.OLLAMA_URL || "http://localhost:11434/v1",
-        timeout: 60000 // CHANGED: Increased to 60 seconds to prevent timeouts
+} else if (provider === 'nvidia') {
+    aiClient = new OpenAI({
+        apiKey: process.env.NVIDIA_API_KEY,
+        baseURL: "https://integrate.api.nvidia.com/v1",
+        timeout: 60000
     });
-    console.log("🦙 AI Mode Active: Local Llama 3.2"); // CHANGED: Updated label
+    console.log("🟢 AI Mode Active: Cloud NVIDIA NIM API");
+} else {
+    aiClient = new OpenAI({
+        apiKey: "ollama",
+        baseURL: process.env.OLLAMA_URL || "http://localhost:11434/v1",
+        timeout: 60000 
+    });
+    console.log("🦙 AI Mode Active: Local Llama 3.2"); 
 }
 
 async function processMessageWithAI(userMessage, knowledgeBase) {
@@ -37,11 +42,10 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
     const knowledge = knowledgeBase || "No event information available.";
 
     try {
-        console.log(`🤖 Processing message with ${provider}: "${userMessage}"`);
+        console.log(`🤖 Processing message with \({provider}: "\){userMessage}"`);
         let replyText = "";
 
         if (provider === 'gemini') {
-            // Using the recommended Gemini 3.5 Flash model for fast text parsing
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
             const response = await fetch(url, {
@@ -50,7 +54,7 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
-                            text: `You are a helpful event assistant. Use these facts to answer: ${knowledge}. Keep your answer short and direct. If you don't know, say you don't know.\n\nUser query: ${userMessage}`
+                            text: `You are a helpful event assistant. Use these facts to answer: \({knowledge}. Keep your answer short and direct. If you don't know, say you don't know.\n\nUser query:\){userMessage}`
                         }]
                     }]
                 })
@@ -64,9 +68,22 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
 
             replyText = data.candidates[0].content.parts[0].text.trim();
 
+        } else if (provider === 'nvidia') {
+            const response = await aiClient.chat.completions.create({
+                model: process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct", 
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a helpful event assistant. Use these facts to answer: ${knowledge}. Keep your answer short and direct. If you don't know, say you don't know.`
+                    },
+                    { role: "user", content: userMessage }
+                ]
+            });
+            replyText = response.choices[0].message.content.trim();
+            
         } else {
-            const response = await ollamaClient.chat.completions.create({
-                model: "llama3.2", // CHANGED: Now targeting Llama 3.2
+            const response = await aiClient.chat.completions.create({
+                model: "llama3.2", 
                 messages: [
                     {
                         role: "system",
