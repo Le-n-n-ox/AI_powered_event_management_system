@@ -5,12 +5,11 @@
   --font-heading: "Sora", sans-serif;
   --font-body: "Inter", sans-serif;
 
-  --color-background: #f8fafc;
+  /* --color-background and --color-border are defined in @theme inline below */
   --color-surface: #ffffff;
   --color-surface-muted: #f8fafc;
   --color-surface-strong: #e2e8f0;
   --color-surface-alt: #eef2ff;
-  --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
   --color-text: #0f172a;
   --color-text-muted: #475569;
@@ -64,16 +63,6 @@
   --color-surface-translucent: rgba(255, 255, 255, 0.9);
 }
 
-body {
-  font-family: var(--font-body);
-  background: var(--color-background);
-  color: var(--color-text);
-}
-
-h1, h2, h3 {
-  font-family: var(--font-heading);
-}
-
 @theme inline {
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -100,24 +89,24 @@ h1, h2, h3 {
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2ff;
+  --secondary-foreground: #312e81;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eef2ff;
+  --accent-foreground: #312e81;
+  --destructive: #b91c1c;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #4f46e5;
   --radius: 0.625rem;
 }
 
@@ -127,5 +116,11 @@ h1, h2, h3 {
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
   }
 }

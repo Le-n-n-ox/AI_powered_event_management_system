@@ -1,11 +1,25 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPinned, CalendarDays, UsersRound, AlarmClock, SquarePen, Link as LinkIcon, Check } from "lucide-react";
+import {
+  MapPinned,
+  CalendarDays,
+  UsersRound,
+  AlarmClock,
+  SquarePen,
+  Link as LinkIcon,
+  Check,
+} from "lucide-react";
 import type { Event } from "../../types/event";
 import { getCountdown } from "../../utils/dateHelpers";
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -13,34 +27,60 @@ interface EventCardProps {
   event: Event;
 }
 
+interface StatusStyle {
+  variant: "default" | "secondary" | "destructive";
+  badge: string;
+  bar: string;
+}
+
+const STATUS_STYLES: { [key: string]: StatusStyle } = {
+  upcoming: {
+    variant: "default",
+    badge: "bg-info-bg text-info border-info-border hover:bg-info-bg",
+    bar: "bg-info",
+  },
+  ongoing: {
+    variant: "default",
+    badge: "bg-success-bg text-success border-success-border hover:bg-success-bg",
+    bar: "bg-success",
+  },
+  cancelled: {
+    variant: "destructive",
+    badge: "",
+    bar: "bg-danger",
+  },
+  completed: {
+    variant: "secondary",
+    badge: "",
+    bar: "bg-border-strong",
+  },
+};
+
+const ICON_BTN = "text-text-soft hover:text-text hover:bg-surface-muted";
+
 export default function EventCard({ event }: EventCardProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
   const isPastEvent = new Date(event.end_date) < new Date();
+  const isCancelled = event.status === "cancelled";
+  const showAsPast = isPastEvent && !isCancelled;
 
-  const getStatusStyles = (status: string) => {
-    switch (status) {
-      case "upcoming":
-        return { variant: "default" as const, className: "bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200" };
-      case "ongoing":
-        return { variant: "default" as const, className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200" };
-      case "cancelled":
-        return { variant: "destructive" as const, className: "" };
-      case "completed":
-      default:
-        return { variant: "secondary" as const, className: "" };
-    }
-  };
+  const style = showAsPast
+    ? STATUS_STYLES.completed
+    : STATUS_STYLES[event.status] ?? STATUS_STYLES.completed;
+  const statusLabel = showAsPast ? "past" : event.status;
 
-  function handleCopyLink() {
+  async function handleCopyLink() {
     const url = `${window.location.origin}/events/${event.id}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
   }
-
-  const statusStyle = getStatusStyles(event.status);
 
   return (
     <motion.div
@@ -48,51 +88,51 @@ export default function EventCard({ event }: EventCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
+      className={`h-full ${showAsPast ? "opacity-80 hover:opacity-100" : ""}`}
     >
-      <Card className="h-full flex flex-col overflow-hidden relative border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white">
-        
-        <div className={`absolute top-0 left-0 w-full h-1 ${
-          event.status === 'ongoing' ? 'bg-emerald-500' : 
-          event.status === 'cancelled' ? 'bg-red-500' : 
-          event.status === 'upcoming' ? 'bg-blue-500' : 'bg-slate-300'
-        }`} />
+      <Card className="h-full relative shadow-sm hover:shadow-md ring-border hover:ring-brand-border transition-all bg-surface">
+        <div className={`absolute top-0 left-0 w-full h-1 ${style.bar}`} />
 
-        <CardHeader className="pb-3 pt-6">
+        <CardHeader className="pt-1">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-lg leading-snug text-slate-900">
+            <CardTitle className="font-heading text-lg leading-snug text-text">
               {event.name}
             </CardTitle>
-            <Badge 
-              variant={statusStyle.variant} 
-              className={`capitalize shrink-0 ${statusStyle.className}`}
+            <Badge
+              variant={style.variant}
+              className={`capitalize shrink-0 ${style.badge}`}
             >
-              {event.status}
+              {statusLabel}
             </Badge>
           </div>
           {event.description && (
-            <p className="text-sm text-slate-500 line-clamp-2 mt-2">
+            <p className="text-sm text-text-soft line-clamp-2 mt-2">
               {event.description}
             </p>
           )}
         </CardHeader>
 
-        <CardContent className="flex-1 pb-4">
-          <div className="flex flex-col gap-2 text-sm bg-slate-50 rounded-lg p-3 border border-slate-100">
+        <CardContent className="flex-1">
+          <div className="flex flex-col gap-2 text-sm bg-surface-muted rounded-lg p-3 border border-border">
             {event.venue_name && (
-              <div className="flex items-center gap-2 text-slate-600">
-                <MapPinned className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-2 text-text-muted">
+                <MapPinned className="w-4 h-4 text-text-soft shrink-0" />
                 <span className="truncate">{event.venue_name}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 text-slate-600">
-              <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-2 text-text-muted">
+              <CalendarDays className="w-4 h-4 text-text-soft shrink-0" />
               <span>{new Date(event.start_date).toLocaleDateString()}</span>
-              <span className="text-indigo-600 font-medium ml-auto text-xs">
-                {getCountdown(event.start_date)}
+              <span
+                className={`font-medium ml-auto text-xs ${
+                  isPastEvent ? "text-text-soft" : "text-brand"
+                }`}
+              >
+                {isPastEvent ? "Ended" : getCountdown(event.start_date)}
               </span>
             </div>
-            {event.registration_deadline && (
-              <div className="flex items-center gap-2 text-amber-600 mt-1">
+            {event.registration_deadline && !isPastEvent && (
+              <div className="flex items-center gap-2 text-warning mt-1">
                 <AlarmClock className="w-4 h-4 shrink-0" />
                 <span className="text-xs font-medium">
                   Closes {getCountdown(event.registration_deadline)}
@@ -102,8 +142,12 @@ export default function EventCard({ event }: EventCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1 bg-slate-50/50">
-          <Button asChild variant="secondary" className="flex-1 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100">
+        <CardFooter className="justify-between gap-1 border-border bg-surface-muted/50">
+          <Button
+            asChild
+            variant="secondary"
+            className="flex-1 text-brand-strong bg-surface-alt hover:bg-brand-soft border border-brand-border"
+          >
             <Link to={`/events/${event.id}/manage`}>
               <UsersRound className="w-4 h-4 mr-1.5" />
               Attendees
@@ -112,37 +156,67 @@ export default function EventCard({ event }: EventCardProps) {
 
           <div className="flex items-center gap-1">
             {!isPastEvent && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-slate-500 hover:text-slate-900"
-                onClick={() => navigate("/organizer/events/edit", { state: { event } })}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={ICON_BTN}
+                onClick={() =>
+                  navigate("/organizer/events/edit", { state: { event } })
+                }
                 title="Edit Event"
+                aria-label="Edit Event"
               >
                 <SquarePen className="w-4 h-4" />
               </Button>
             )}
-            
-            <Button asChild variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900" title="Manage Schedule">
-              <Link to={`/events/${event.id}/schedule`}>
+
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={ICON_BTN}
+              title="Manage Schedule"
+            >
+              <Link
+                to={`/events/${event.id}/schedule`}
+                aria-label="Manage Schedule"
+              >
                 <AlarmClock className="w-4 h-4" />
               </Link>
             </Button>
-            
-            <Button asChild variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900" title="Manage Locations">
-              <Link to={`/events/${event.id}/locations`}>
+
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={ICON_BTN}
+              title="Manage Locations"
+            >
+              <Link
+                to={`/events/${event.id}/locations`}
+                aria-label="Manage Locations"
+              >
                 <MapPinned className="w-4 h-4" />
               </Link>
             </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={copied ? "text-emerald-600 hover:text-emerald-700" : "text-slate-500 hover:text-slate-900"}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className={
+                copied
+                  ? "text-success hover:text-success hover:bg-success-bg"
+                  : ICON_BTN
+              }
               onClick={handleCopyLink}
               title="Copy Registration Link"
+              aria-label="Copy Registration Link"
             >
-              {copied ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
+              {copied ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <LinkIcon className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </CardFooter>
