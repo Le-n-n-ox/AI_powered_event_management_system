@@ -7,6 +7,7 @@ function Navbar() {
   const [session, setSession] = useState<any>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
+  const [isScrolled, setIsScrolled] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
@@ -18,7 +19,13 @@ function Navbar() {
       setSession(session)
     })
 
-    return () => subscription.unsubscribe()
+    const handleScroll = () => setIsScrolled(window.scrollY > 20)
+    window.addEventListener("scroll", handleScroll)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener("scroll", handleScroll)
+    }
   }, [])
 
   useEffect(() => {
@@ -33,7 +40,9 @@ function Navbar() {
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200">
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+      isScrolled ? "bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm" : "bg-transparent border-transparent"
+    }`}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           <Link
@@ -91,7 +100,7 @@ function Navbar() {
                 </Link>
                 <Link
                   to="/signup"
-                  className="ml-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition-colors"
+                  className="text-sm font-medium bg-indigo-600 text-white px-5 py-2 rounded-full hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-200 transition-all active:scale-95"
                 >
                   Sign Up
                 </Link>
