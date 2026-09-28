@@ -4,14 +4,22 @@ interface Props {
   inputCls: string;
 }
 
-export default function RegistrationSection({ data, updateData, inputCls }: Props) {
+export default function RegistrationSection({
+  data,
+  updateData,
+  inputCls,
+}: Props) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-gray-900">Tickets & Registration</h3>
-      
+    <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
+      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+        Tickets & Registration
+      </h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Registration Deadline</label>
+          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+            Registration Deadline
+          </label>
           <input
             type="datetime-local"
             value={data.registrationDeadline}
@@ -20,7 +28,9 @@ export default function RegistrationSection({ data, updateData, inputCls }: Prop
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Capacity (Max Attendees)</label>
+          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+            Capacity (Max Attendees)
+          </label>
           <input
             type="number"
             placeholder="Leave blank for unlimited"
@@ -33,22 +43,22 @@ export default function RegistrationSection({ data, updateData, inputCls }: Prop
       </div>
 
       <div className="flex flex-col gap-3 mt-2">
-        <label className="flex items-center gap-3 text-sm text-gray-700 cursor-pointer">
+        <label className="flex items-center gap-3 text-sm text-[var(--color-text-muted)] cursor-pointer">
           <input
             type="checkbox"
             checked={data.requiresApproval}
             onChange={(e) => updateData("requiresApproval", e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-brand)] focus:ring-[var(--color-focus)]"
           />
           Require organizer approval to register
         </label>
 
-        <label className="flex items-center gap-3 text-sm text-gray-700 cursor-pointer">
+        <label className="flex items-center gap-3 text-sm text-[var(--color-text-muted)] cursor-pointer">
           <input
             type="checkbox"
             checked={data.isPaid}
             onChange={(e) => updateData("isPaid", e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-brand)] focus:ring-[var(--color-focus)]"
           />
           This is a paid event
         </label>
@@ -56,7 +66,9 @@ export default function RegistrationSection({ data, updateData, inputCls }: Prop
 
       {data.isPaid && (
         <div className="mt-2 animate-in fade-in slide-in-from-top-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ticket Price (KES)</label>
+          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+            Ticket Price (KES)
+          </label>
           <input
             type="number"
             placeholder="e.g. 1500"

@@ -23,10 +23,26 @@ export default function EventCard({ event }: EventCardProps) {
   const [copied, setCopied] = useState(false);
 
   const statusStyles = {
-    upcoming: { badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200", accent: "bg-blue-500" },
-    ongoing: { badge: "bg-green-50 text-green-700 ring-1 ring-green-200", accent: "bg-green-500" },
-    completed: { badge: "bg-gray-100 text-gray-600 ring-1 ring-gray-200", accent: "bg-gray-400" },
-    cancelled: { badge: "bg-red-50 text-red-700 ring-1 ring-red-200", accent: "bg-red-500" },
+    upcoming: {
+      badge:
+        "bg-[var(--color-info-bg)] text-[var(--color-info)] ring-1 ring-[var(--color-info-border)]",
+      accent: "bg-[var(--color-info)]",
+    },
+    ongoing: {
+      badge:
+        "bg-[var(--color-success-bg)] text-[var(--color-success)] ring-1 ring-[var(--color-success-border)]",
+      accent: "bg-[var(--color-success)]",
+    },
+    completed: {
+      badge:
+        "bg-[var(--color-surface-muted)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]",
+      accent: "bg-[var(--color-text-soft)]",
+    },
+    cancelled: {
+      badge:
+        "bg-[var(--color-danger-bg)] text-[var(--color-danger)] ring-1 ring-[var(--color-danger-border)]",
+      accent: "bg-[var(--color-danger)]",
+    },
   };
 
   function handleCopyLink() {
@@ -38,7 +54,7 @@ export default function EventCard({ event }: EventCardProps) {
 
   const style = statusStyles[event.status];
   const iconBtn =
-    "flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors";
+    "flex items-center justify-center w-9 h-9 text-[var(--color-text-soft)] rounded-lg hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] transition-colors";
 
   return (
     <motion.div
@@ -46,13 +62,13 @@ export default function EventCard({ event }: EventCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2 }}
-      className="relative rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
+      className="relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
     >
       <div className={`absolute top-0 left-0 w-1 h-full ${style.accent}`} />
 
       <div className="p-5 pl-6">
         <div className="flex items-start justify-between mb-2 gap-2">
-          <h3 className="font-heading font-semibold text-lg text-gray-900 leading-snug">
+          <h3 className="font-heading font-semibold text-lg text-[var(--color-text)] leading-snug">
             {event.name}
           </h3>
           <span
@@ -63,61 +79,77 @@ export default function EventCard({ event }: EventCardProps) {
         </div>
 
         {event.description && (
-          <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed">
+          <p className="text-sm text-[var(--color-text-muted)] mb-4 line-clamp-2 leading-relaxed">
             {event.description}
           </p>
         )}
 
-        <div className="flex flex-col gap-1.5 text-sm mb-4 bg-gray-50 rounded-lg p-3">
+        <div className="flex flex-col gap-1.5 text-sm mb-4 bg-[var(--color-surface-muted)] rounded-lg p-3">
           {event.venue_name && (
-            <div className="flex items-center gap-2 text-gray-700">
-              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
+              <MapPin className="w-4 h-4 text-[var(--color-text-soft)] shrink-0" />
               <span className="truncate">{event.venue_name}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-gray-700">
-            <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+          <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
+            <Calendar className="w-4 h-4 text-[var(--color-text-soft)] shrink-0" />
             <span>{new Date(event.start_date).toLocaleDateString()}</span>
-            <span className="text-indigo-600 font-medium">
+            <span className="text-[var(--color-brand)] font-medium">
               · {getCountdown(event.start_date)}
             </span>
           </div>
           {event.registration_deadline && (
-            <div className="flex items-center gap-2 text-amber-700">
-              <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>Registration closes {getCountdown(event.registration_deadline)}</span>
+            <div className="flex items-center gap-2 text-[var(--color-warning)]">
+              <Clock className="w-4 h-4 text-[var(--color-warning)] shrink-0" />
+              <span>
+                Registration closes {getCountdown(event.registration_deadline)}
+              </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 pt-3 border-t border-gray-100">
+        <div className="flex items-center gap-1.5 pt-3 border-t border-[var(--color-border)]">
           <Link
             to={`/events/${event.id}/manage`}
             title="Manage Attendees"
-            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg py-2 hover:bg-indigo-100 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--color-brand)] bg-[var(--color-brand-soft)] rounded-lg py-2 hover:bg-[var(--color-brand-soft)] transition-colors"
           >
             <Users className="w-3.5 h-3.5" />
             Attendees
           </Link>
 
           {/* 3. Updated Edit Button to route directly to our new EventFormPage with the event data */}
-          <button 
-            onClick={() => navigate('/organizer/events/edit', { state: { event } })} 
-            title="Edit Event" 
+          <button
+            onClick={() =>
+              navigate("/organizer/events/edit", { state: { event } })
+            }
+            title="Edit Event"
             className={iconBtn}
           >
             <Pencil className="w-4 h-4" />
           </button>
 
-          <Link to={`/events/${event.id}/schedule`} title="Manage Schedule" className={iconBtn}>
+          <Link
+            to={`/events/${event.id}/schedule`}
+            title="Manage Schedule"
+            className={iconBtn}
+          >
             <Clock className="w-4 h-4" />
           </Link>
-          <Link to={`/events/${event.id}/locations`} title="Manage Locations" className={iconBtn}>
+          <Link
+            to={`/events/${event.id}/locations`}
+            title="Manage Locations"
+            className={iconBtn}
+          >
             <MapPin className="w-4 h-4" />
           </Link>
-          <button onClick={handleCopyLink} title="Copy Registration Link" className={iconBtn}>
+          <button
+            onClick={handleCopyLink}
+            title="Copy Registration Link"
+            className={iconBtn}
+          >
             {copied ? (
-              <Check className="w-4 h-4 text-green-600" />
+              <Check className="w-4 h-4 text-[var(--color-success)]" />
             ) : (
               <LinkIcon className="w-4 h-4" />
             )}

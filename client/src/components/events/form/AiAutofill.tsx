@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Sparkles, FileText, Loader2, UploadCloud } from "lucide-react";
+import { Sparkles, Loader2, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface AiAutofillProps {
@@ -27,10 +27,11 @@ export default function AiAutofill({ onDataExtracted }: AiAutofillProps) {
 
       // --- SIMULATED AI DELAY FOR TESTING ---
       await new Promise((resolve) => setTimeout(resolve, 2500));
-      
+
       const mockExtractedData = {
         name: "Nairobi Tech Summit 2026",
-        description: "The premier technology conference in East Africa focusing on AI and Web3.",
+        description:
+          "The premier technology conference in East Africa focusing on AI and Web3.",
         venueName: "KICC",
         venueAddress: "Harambee Avenue, Nairobi",
         startDate: "2026-10-15T09:00",
@@ -50,21 +51,20 @@ export default function AiAutofill({ onDataExtracted }: AiAutofillProps) {
   };
 
   return (
-    <div className="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-1 border border-indigo-100 shadow-sm">
-      <div className="bg-white/60 backdrop-blur-sm rounded-lg p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-        
+    <div className="mb-8 bg-[linear-gradient(90deg,var(--color-brand-soft),var(--color-surface-translucent))] rounded-xl p-1 border border-[var(--color-border)] shadow-sm">
+      <div className="bg-[var(--color-surface)]/70 backdrop-blur-sm rounded-lg p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-100 p-2.5 rounded-lg text-indigo-600">
+          <div className="bg-[var(--color-brand-soft)] p-2.5 rounded-lg text-[var(--color-brand)]">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[var(--color-text)] flex items-center gap-2">
               Magic Auto-Fill
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text text-xs uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-indigo-50">
+              <span className="text-[var(--color-brand)] text-xs uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-[var(--color-brand-soft)]">
                 AI Powered
               </span>
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-[var(--color-text-soft)] mt-0.5">
               Upload a poster, PDF, or agenda. We'll fill the form for you.
             </p>
           </div>
@@ -78,12 +78,12 @@ export default function AiAutofill({ onDataExtracted }: AiAutofillProps) {
             accept=".pdf,image/*,.txt,.doc,.docx"
             className="hidden"
           />
-          
+
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-100/50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[var(--color-brand)] bg-[var(--color-brand-soft)] hover:bg-[var(--color-surface-alt)] border border-[var(--color-border)] rounded-lg transition-colors disabled:opacity-50"
           >
             {isProcessing ? (
               <>
@@ -99,14 +99,14 @@ export default function AiAutofill({ onDataExtracted }: AiAutofillProps) {
           </button>
         </div>
       </div>
-      
+
       <AnimatePresence>
         {error && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }} 
-            animate={{ opacity: 1, height: "auto" }} 
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="px-5 pb-3 text-xs text-red-500"
+            className="px-5 pb-3 text-xs text-[var(--color-danger)]"
           >
             {error}
           </motion.div>

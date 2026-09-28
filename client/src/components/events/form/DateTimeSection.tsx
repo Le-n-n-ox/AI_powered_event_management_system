@@ -6,12 +6,16 @@ interface Props {
 
 export default function DateTimeSection({ data, updateData, inputCls }: Props) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-gray-900">Date & Time</h3>
-      
+    <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
+      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+        Date & Time
+      </h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+            Start Date & Time
+          </label>
           <input
             type="datetime-local"
             value={data.startDate}
@@ -21,7 +25,9 @@ export default function DateTimeSection({ data, updateData, inputCls }: Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+            End Date & Time
+          </label>
           <input
             type="datetime-local"
             value={data.endDate}

@@ -64,8 +64,17 @@ export default function EventDetail() {
   }, [id]);
 
   if (loading)
-    return <div className="p-10 text-center">Loading event details...</div>;
-  if (!event) return <div className="p-10 text-center">Event not found.</div>;
+    return (
+      <div className="p-10 text-center text-[var(--color-text-muted)]">
+        Loading event details...
+      </div>
+    );
+  if (!event)
+    return (
+      <div className="p-10 text-center text-[var(--color-text-muted)]">
+        Event not found.
+      </div>
+    );
 
   const spotsLeft = event.capacity ? event.capacity - attendeeCount : null;
   const isFull = spotsLeft !== null && spotsLeft <= 0;
@@ -76,23 +85,25 @@ export default function EventDetail() {
       <div>
         <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
 
-        <div className="bg-gray-50 p-4 rounded-md mb-4 border border-gray-100">
-          <p className="font-medium text-gray-700 mb-2">
+        <div className="bg-[var(--color-surface-muted)] p-4 rounded-md mb-4 border border-[var(--color-border)]">
+          <p className="font-medium text-[var(--color-text-muted)] mb-2">
             📍 {event.venue_name}
           </p>
-          <p className="text-sm text-gray-500">{event.venue_address}</p>
+          <p className="text-sm text-[var(--color-text-soft)]">
+            {event.venue_address}
+          </p>
           {event.venue_map_url && (
             <a
               href={String(event.venue_map_url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium inline-block mt-1"
+              className="text-sm text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] font-medium inline-block mt-1"
             >
               View on Google Maps →
             </a>
           )}
           {(event.venue_address || event.venue_name) && (
-            <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">
+            <div className="mt-3 rounded-lg overflow-hidden border border-[var(--color-border)]">
               <iframe
                 title="Event location map"
                 width="100%"
@@ -105,8 +116,8 @@ export default function EventDetail() {
               />
             </div>
           )}
-          <hr className="my-3 border-gray-200" />
-          <p className="font-medium text-gray-700">
+          <hr className="my-3 border-[var(--color-border)]" />
+          <p className="font-medium text-[var(--color-text-muted)]">
             📅 {new Date(event.start_date).toLocaleString()}
           </p>
         </div>
@@ -115,48 +126,50 @@ export default function EventDetail() {
           {event.capacity && (
             <span
               className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                isFull ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                isFull
+                  ? "bg-[var(--color-danger-bg)] text-[var(--color-danger)]"
+                  : "bg-[var(--color-info-bg)] text-[var(--color-info)]"
               }`}
             >
               {isFull ? "Fully Booked" : `${spotsLeft} spots left`}
             </span>
           )}
           {event.requires_approval && (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[var(--color-warning-bg)] text-[var(--color-warning)]">
               Approval Required
             </span>
           )}
           {event.is_paid ? (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[var(--color-success-bg)] text-[var(--color-success)]">
               KES {event.ticket_price}
             </span>
           ) : (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]">
               Free
             </span>
           )}
         </div>
 
-        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+        <p className="text-[var(--color-text-muted)] leading-relaxed whitespace-pre-wrap">
           {event.description}
         </p>
 
         {/* Schedule Section Integrated Here */}
         {scheduleItems.length > 0 && (
           <div className="mt-8">
-            <h2 className="font-heading text-lg font-bold text-gray-900 mb-3">
+            <h2 className="font-heading text-lg font-bold text-[var(--color-text)] mb-3">
               Schedule
             </h2>
             <div className="flex flex-col gap-2">
               {scheduleItems.map((item) => (
                 <div
                   key={item.id}
-                  className="border border-gray-100 rounded-lg p-3 bg-gray-50"
+                  className="border border-[var(--color-border)] rounded-lg p-3 bg-[var(--color-surface-muted)]"
                 >
-                  <p className="font-medium text-gray-800 text-sm">
+                  <p className="font-medium text-[var(--color-text)] text-sm">
                     {item.title}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--color-text-soft)] mt-1">
                     {new Date(item.start_time).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -174,7 +187,7 @@ export default function EventDetail() {
       {/* Right: Registration */}
       <div>
         {isRegistered ? (
-          <div className="bg-green-50 border border-green-200 text-green-800 p-8 rounded-lg text-center">
+          <div className="bg-[var(--color-success-bg)] border border-[var(--color-success-border)] text-[var(--color-success)] p-8 rounded-lg text-center">
             <h3 className="text-2xl font-bold mb-2">
               {event.requires_approval
                 ? "Request submitted ✅"
@@ -187,7 +200,7 @@ export default function EventDetail() {
             </p>
           </div>
         ) : isFull ? (
-          <div className="bg-red-50 border border-red-200 text-red-800 p-8 rounded-lg text-center">
+          <div className="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] text-[var(--color-danger)] p-8 rounded-lg text-center">
             <h3 className="text-xl font-bold mb-2">Event Full</h3>
             <p>This event has reached its capacity. Registration is closed.</p>
           </div>
