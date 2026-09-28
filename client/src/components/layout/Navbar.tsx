@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "../../components/ui/button";
 
 function Navbar() {
   const [session, setSession] = useState<any>(null);

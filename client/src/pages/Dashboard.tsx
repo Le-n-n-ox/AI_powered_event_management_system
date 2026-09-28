@@ -5,7 +5,7 @@ import { useEvents } from "../hooks/useEvents";
 import { useAuth } from "../context/AuthContext";
 import { groupEventsByPeriod } from "../utils/dateHelpers";
 import type { Event } from "../types/event";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button"; // <-- Updated path here!
 
 import AdminDashboard from "./admin/AdminDashboard";
 

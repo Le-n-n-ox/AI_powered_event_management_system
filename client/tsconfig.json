@@ -6,11 +6,8 @@
     "module": "ESNext",
     "skipLibCheck": true,
 
-    // ... other existing settings ...
-
     "strict": true,
 
-    // Make sure there is a comma on the line above before adding these!
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

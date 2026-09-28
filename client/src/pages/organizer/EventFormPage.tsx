@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import type { Event } from "../../types/event";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 
 // Import our sub-components
 import BasicInfoSection from "../../components/events/form/BasicInfoSection";
