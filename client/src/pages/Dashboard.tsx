@@ -1,12 +1,21 @@
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, ShieldCheck } from "lucide-react"
 import EventCard from "../components/ui/EventCard"
 import AddEventForm from "../components/ui/AddEventForm"
 import { useEvents } from "../hooks/useEvents"
+import { useAuth } from "../context/AuthContext"
 import { groupEventsByPeriod } from "../utils/dateHelpers"
 import type { Event } from "../types/event"
 
-function EventSection({ title, events }: { title: string; events: Event[] }) {
+function EventSection({
+  title,
+  events,
+  onEdit,
+}: {
+  title: string
+  events: Event[]
+  onEdit: (event: Event) => void
+}) {
   return (
     <div className="mb-8">
       <h2 className="font-heading text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -14,7 +23,7 @@ function EventSection({ title, events }: { title: string; events: Event[] }) {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {events.map((event) => (
-          <EventCard key={event.id} event={event} />
+          <EventCard key={event.id} event={event} onEdit={onEdit} />
         ))}
       </div>
     </div>
@@ -23,14 +32,31 @@ function EventSection({ title, events }: { title: string; events: Event[] }) {
 
 function Dashboard() {
   const { events, loading, error, refetch } = useEvents()
+  const { isAdmin } = useAuth()
   const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState<Event | null>(null)
 
   const { groups, order } = groupEventsByPeriod(events)
 
+  function closeForm() {
+    setShowForm(false)
+    setEditing(null)
+  }
+
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-heading text-2xl font-bold text-gray-900">Organizer Dashboard</h1>
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-gray-900">
+            {isAdmin ? "Admin Dashboard" : "My Events"}
+          </h1>
+          {isAdmin && (
+            <p className="flex items-center gap-1 text-xs font-medium text-indigo-600 mt-1">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Viewing all organizers' events
+            </p>
+          )}
+        </div>
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
@@ -47,13 +73,15 @@ function Dashboard() {
       )}
 
       {order.map((key) => (
-        <EventSection key={key} title={key} events={groups[key]} />
+        <EventSection key={key} title={key} events={groups[key]} onEdit={setEditing} />
       ))}
 
-      {showForm && (
+      {(showForm || editing) && (
         <AddEventForm
-          onEventAdded={refetch}
-          onClose={() => setShowForm(false)}
+          key={editing?.id ?? "new"}
+          event={editing}
+          onSaved={refetch}
+          onClose={closeForm}
         />
       )}
     </div>

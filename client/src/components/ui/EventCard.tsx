@@ -6,6 +6,7 @@ import {
   Calendar,
   Users,
   Clock,
+  Pencil,
   Link as LinkIcon,
   Check,
 } from "lucide-react";
@@ -14,9 +15,10 @@ import { getCountdown } from "../../utils/dateHelpers";
 
 interface EventCardProps {
   event: Event;
+  onEdit?: (event: Event) => void;
 }
 
-function EventCard({ event }: EventCardProps) {
+function EventCard({ event, onEdit }: EventCardProps) {
   const [copied, setCopied] = useState(false);
 
   const statusStyles = {
@@ -34,6 +36,8 @@ function EventCard({ event }: EventCardProps) {
   }
 
   const style = statusStyles[event.status];
+  const iconBtn =
+    "flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors";
 
   return (
     <motion.div
@@ -43,7 +47,6 @@ function EventCard({ event }: EventCardProps) {
       transition={{ duration: 0.2 }}
       className="relative rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
     >
-      {/* Status accent bar */}
       <div className={`absolute top-0 left-0 w-1 h-full ${style.accent}`} />
 
       <div className="p-5 pl-6">
@@ -86,7 +89,6 @@ function EventCard({ event }: EventCardProps) {
           )}
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-1.5 pt-3 border-t border-gray-100">
           <Link
             to={`/events/${event.id}/manage`}
@@ -96,25 +98,18 @@ function EventCard({ event }: EventCardProps) {
             <Users className="w-3.5 h-3.5" />
             Attendees
           </Link>
-          <Link
-            to={`/events/${event.id}/schedule`}
-            title="Manage Schedule"
-            className="flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors"
-          >
+          {onEdit && (
+            <button onClick={() => onEdit(event)} title="Edit Event" className={iconBtn}>
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+          <Link to={`/events/${event.id}/schedule`} title="Manage Schedule" className={iconBtn}>
             <Clock className="w-4 h-4" />
           </Link>
-          <Link
-            to={`/events/${event.id}/locations`}
-            title="Manage Locations"
-            className="flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors"
-          >
+          <Link to={`/events/${event.id}/locations`} title="Manage Locations" className={iconBtn}>
             <MapPin className="w-4 h-4" />
           </Link>
-          <button
-            onClick={handleCopyLink}
-            title="Copy Registration Link"
-            className="flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors"
-          >
+          <button onClick={handleCopyLink} title="Copy Registration Link" className={iconBtn}>
             {copied ? (
               <Check className="w-4 h-4 text-green-600" />
             ) : (
