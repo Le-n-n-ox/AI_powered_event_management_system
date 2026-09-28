@@ -143,11 +143,15 @@ app.post('/webhook/incoming', async (req, res) => {
     // 3. AI Processing & Emergency Call Escalation
     const { data: attendee } = await supabase
         .from('attendees')
-        .select('event_id')
+        .select('*')
         .eq('phone_number', from)
         .order('registered_at', { ascending: false })
         .limit(1)
         .single();
+
+    // Use the name given at registration (column name may differ, so check the common ones)
+    const fullName = attendee?.name || attendee?.attendee_name || attendee?.full_name || null;
+    const attendeeName = fullName ? fullName.trim().split(' ')[0] : null;
 
     let knowledgeBase = "No event information available.";
 
@@ -190,7 +194,8 @@ ${venueText || 'No venue locations added yet.'}
 `.trim();
     }
 
-    const aiResult = await processMessageWithAI(cleanText, knowledgeBase);
+    console.log("🧠 Knowledge base sent to AI:\n", knowledgeBase);
+    const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName);
     let replyMessage = aiResult.reply;
 
     if (aiResult.isEmergency) {
@@ -212,7 +217,7 @@ ${venueText || 'No venue locations added yet.'}
             }
         }
 
-        replyMessage = `🚨 EMERGENCY LOGGED: Floor security has been dispatched via phone call and SMS alert.`;
+        replyMessage = `🚨 EMERGENCY LOGGED${attendeeName ? `, ${attendeeName}` : ''}: Floor security has been dispatched via phone call and SMS alert.`;
     }
 
     try {
