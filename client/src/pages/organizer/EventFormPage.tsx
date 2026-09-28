@@ -11,6 +11,7 @@ import VenueSection from "../../components/events/form/VenueSection";
 import DateTimeSection from "../../components/events/form/DateTimeSection";
 import RegistrationSection from "../../components/events/form/RegistrationSection";
 import AiAutofill from "../../components/events/form/AiAutofill";
+import KnowledgeSection from "../../components/events/form/KnowledgeSection";
 
 const inputCls = "border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors";
 
@@ -45,6 +46,8 @@ export default function EventFormPage() {
     requiresApproval: event?.requires_approval ?? false,
     isPaid: event?.is_paid ?? false,
     ticketPrice: event?.ticket_price ? String(event.ticket_price) : "",
+    // Full text of uploaded documents, so the SMS assistant can answer from them
+    knowledgeText: event?.knowledge_text ?? "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -59,6 +62,10 @@ export default function EventFormPage() {
     setFormData((prev) => ({
       ...prev,
       ...extractedData,
+      // Append extracted document text instead of overwriting what the organizer typed
+      knowledgeText: extractedData?.knowledgeText
+        ? [prev.knowledgeText, extractedData.knowledgeText].filter(Boolean).join("\n\n")
+        : prev.knowledgeText,
     }));
   };
 
@@ -88,6 +95,7 @@ export default function EventFormPage() {
       requires_approval: formData.requiresApproval,
       is_paid: formData.isPaid,
       ticket_price: formData.isPaid && formData.ticketPrice ? parseFloat(formData.ticketPrice) : null,
+      knowledge_text: formData.knowledgeText || null,
     };
 
     const { error: dbError } = isEdit
@@ -129,6 +137,7 @@ export default function EventFormPage() {
           <DateTimeSection data={formData} updateData={updateData} inputCls={inputCls} />
           <VenueSection data={formData} updateData={updateData} inputCls={inputCls} />
           <RegistrationSection data={formData} updateData={updateData} inputCls={inputCls} />
+          <KnowledgeSection data={formData} updateData={updateData} inputCls={inputCls} />
 
           {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100 text-sm">

@@ -8,8 +8,6 @@ import {
   ShieldAlert,
   Ban,
   CheckCircle,
-  Search,
-  MoreVertical,
 } from "lucide-react";
 
 // Mock data to build the UI before we wire up Supabase

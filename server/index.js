@@ -9,10 +9,6 @@ const express = require('express');
 const cors = require('cors'); // Required for React frontend communication
 const { processMessageWithAI } = require('./ai');
 
-// Import database initializer and REST API routes
-const initializeDatabase = require('./config/initDB');
-const authRoutes = require('./routes/auth');
-const eventRoutes = require('./routes/events');
 
 const credentials = {
     apiKey: process.env.AT_API_KEY,
@@ -27,18 +23,19 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize Cloud PostgreSQL Database Schema
-initializeDatabase();
 
-// Mount REST API Endpoints
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventRoutes);
 
 let tasks = [
     { id: 1, description: "Check main lobby sound system", completed: false },
     { id: 2, description: "Deliver water bottles to Hall B speakers", completed: false },
     { id: 3, description: "Restock registration badges at Main Desk", completed: false }
 ];
+
+// Attendees are in Nairobi, but the server (e.g. Render) runs in UTC.
+// Without this, a 9am event shows up to the AI as "6am".
+const EVENT_TZ = process.env.EVENT_TIMEZONE || 'Africa/Nairobi';
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-KE', { timeZone: EVENT_TZ, dateStyle: 'medium', timeStyle: 'short' }) : 'TBD';
+const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-KE', { timeZone: EVENT_TZ, timeStyle: 'short' }) : 'TBD';
 
 app.get('/', (req, res) => {
     res.status(200).json({ 
@@ -141,57 +138,80 @@ app.post('/webhook/incoming', async (req, res) => {
     }
 
     // 3. AI Processing & Emergency Call Escalation
-    const { data: attendee } = await supabase
+    // Fetch ALL registrations for this phone number
+    const { data: attendeeRecords } = await supabase
         .from('attendees')
         .select('*')
-        .eq('phone_number', from)
-        .order('registered_at', { ascending: false })
-        .limit(1)
-        .single();
+        .eq('phone_number', from);
 
-    // Use the name given at registration (column name may differ, so check the common ones)
-    const fullName = attendee?.name || attendee?.attendee_name || attendee?.full_name || null;
+    // Grab the name from their most recent registration
+    const latestRecord = attendeeRecords && attendeeRecords.length > 0 
+        ? attendeeRecords.sort((a, b) => new Date(b.registered_at) - new Date(a.registered_at))[0] 
+        : null;
+        
+    const fullName = latestRecord?.name || latestRecord?.attendee_name || latestRecord?.full_name || null;
     const attendeeName = fullName ? fullName.trim().split(' ')[0] : null;
 
     let knowledgeBase = "No event information available.";
 
-    if (attendee?.event_id) {
-        const { data: eventData } = await supabase
+    if (attendeeRecords && attendeeRecords.length > 0) {
+        // Extract all unique event IDs they are registered for
+        const eventIds = [...new Set(attendeeRecords.map(record => record.event_id))];
+
+        // Fetch all data for ALL their events at once using .in()
+        const { data: eventsData } = await supabase
             .from('events')
-            .select('name, venue_name, venue_address, start_date, end_date')
-            .eq('id', attendee.event_id)
-            .single();
+            .select('*')
+            .in('id', eventIds);
 
         const { data: scheduleData } = await supabase
             .from('schedule_items')
-            .select('title, speaker, location, start_time, end_time')
-            .eq('event_id', attendee.event_id)
+            .select('event_id, title, speaker, location, start_time, end_time')
+            .in('event_id', eventIds)
             .order('start_time', { ascending: true });
 
         const { data: venueData } = await supabase
             .from('venue_locations')
-            .select('label, description')
-            .eq('event_id', attendee.event_id);
+            .select('event_id, label, description')
+            .in('event_id', eventIds);
 
-        const scheduleText = (scheduleData || [])
-            .map(s => `- ${s.title}${s.speaker ? ` by ${s.speaker}` : ''} at ${new Date(s.start_time).toLocaleTimeString()}${s.location ? ` in ${s.location}` : ''}`)
-            .join('\n');
+        // Build a combined knowledge base
+        knowledgeBase = (eventsData || []).map(event => {
+            const eventSchedule = (scheduleData || []).filter(s => s.event_id === event.id)
+                    .map(s => `- ${s.title}${s.speaker ? ` by ${s.speaker}` : ''} at ${fmtTime(s.start_time)}${s.location ? ` in ${s.location}` : ''}`)
+                .join('\n');
 
-        const venueText = (venueData || [])
-            .map(v => `- ${v.label}: ${v.description || 'No additional details'}`)
-            .join('\n');
+            const eventVenues = (venueData || []).filter(v => v.event_id === event.id)
+                    .map(v => `- ${v.label}: ${v.description || 'No additional details'}`)
+                .join('\n');
 
-        knowledgeBase = `
-Event: ${eventData?.name || 'Unknown'}
-Venue: ${eventData?.venue_name || 'TBD'}, ${eventData?.venue_address || ''}
-Dates: ${eventData?.start_date} to ${eventData?.end_date}
+            const priceText = event.is_paid ? `Paid event, ticket price ${event.ticket_price ?? 'TBD'}` : 'Free event';
+
+            return `
+--- EVENT: ${event.name || 'Unknown'} ---
+About: ${event.description || 'No description provided.'}
+Venue: ${event.venue_name || 'TBD'}${event.venue_address ? `, ${event.venue_address}` : ''}
+Starts: ${fmtDateTime(event.start_date)}
+Ends: ${fmtDateTime(event.end_date)}
+Registration deadline: ${event.registration_deadline ? fmtDateTime(event.registration_deadline) : 'None stated'}
+Capacity: ${event.capacity ?? 'Not stated'}
+Tickets: ${priceText}
 
 Schedule:
-${scheduleText || 'No schedule items yet.'}
+${eventSchedule || 'No schedule items yet.'}
 
 Venue Locations:
-${venueText || 'No venue locations added yet.'}
+${eventVenues || 'No venue locations added yet.'}
+
+Organizer's uploaded documents (agenda, FAQ, rules, etc.):
+${event.knowledge_text || 'None uploaded.'}
 `.trim();
+        }).join('\n\n');
+
+        // If registered for multiple events, append a strict routing instruction for the AI
+        if (eventsData && eventsData.length > 1) {
+            knowledgeBase = `[CRITICAL SYSTEM INSTRUCTION: The attendee is registered for MULTIPLE events. If their question is vague (e.g., "where is parking?" or "what time is lunch?"), you MUST politely ask them which event they are asking about. If they specify the event, answer using that specific event's details.]\n\n` + knowledgeBase;
+        }
     }
 
     console.log("🧠 Knowledge base sent to AI:\n", knowledgeBase);

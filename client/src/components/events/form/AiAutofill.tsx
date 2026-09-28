@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Sparkles, FileText, Loader2, UploadCloud } from "lucide-react";
+import { Sparkles, Loader2, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface AiAutofillProps {
