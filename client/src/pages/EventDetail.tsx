@@ -1,9 +1,9 @@
 // client/src/pages/EventDetail.tsx
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import RegistrationForm from '../components/ui/RegistrationForm';
-import type { Event } from '../types/event';
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import RegistrationForm from "../components/ui/RegistrationForm";
+import type { Event } from "../types/event";
 
 // Added interface for schedule items
 interface ScheduleItem {
@@ -26,37 +26,33 @@ export default function EventDetail() {
   useEffect(() => {
     async function fetchEvent() {
       if (!id) return;
-      
+
       // Fetch Event Details
       const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
+        .from("events")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (eventError) {
-        console.error('Error fetching event:', eventError);
+        console.error("Error fetching event:", eventError);
       } else {
         setEvent(eventData);
       }
 
       // Fetch Attendee Count
-      const { count } = await supabase
-        .from('attendees')
-        .select('*', { count: 'exact', head: true })
-        .eq('event_id', id);
-
-      setAttendeeCount(count || 0);
+      const { data: count } = await supabase.rpc("attendee_count", { eid: id });
+      setAttendeeCount(count ?? 0);
 
       // Fetch Schedule Items (assuming the table is named 'schedule_items')
       const { data: scheduleData, error: scheduleError } = await supabase
-        .from('schedule_items')
-        .select('*')
-        .eq('event_id', id)
-        .order('start_time', { ascending: true });
+        .from("schedule_items")
+        .select("*")
+        .eq("event_id", id)
+        .order("start_time", { ascending: true });
 
       if (scheduleError) {
-        console.error('Error fetching schedule:', scheduleError);
+        console.error("Error fetching schedule:", scheduleError);
       } else if (scheduleData) {
         setScheduleItems(scheduleData);
       }
@@ -67,7 +63,8 @@ export default function EventDetail() {
     fetchEvent();
   }, [id]);
 
-  if (loading) return <div className="p-10 text-center">Loading event details...</div>;
+  if (loading)
+    return <div className="p-10 text-center">Loading event details...</div>;
   if (!event) return <div className="p-10 text-center">Event not found.</div>;
 
   const spotsLeft = event.capacity ? event.capacity - attendeeCount : null;
@@ -80,7 +77,9 @@ export default function EventDetail() {
         <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
 
         <div className="bg-gray-50 p-4 rounded-md mb-4 border border-gray-100">
-          <p className="font-medium text-gray-700 mb-2">📍 {event.venue_name}</p>
+          <p className="font-medium text-gray-700 mb-2">
+            📍 {event.venue_name}
+          </p>
           <p className="text-sm text-gray-500">{event.venue_address}</p>
           {event.venue_map_url && (
             <a
@@ -101,21 +100,25 @@ export default function EventDetail() {
                 style={{ border: 0 }}
                 loading="lazy"
                 src={`https://www.google.com/maps?q=${encodeURIComponent(
-                  event.venue_address || event.venue_name
+                  event.venue_address || event.venue_name,
                 )}&output=embed`}
               />
             </div>
           )}
           <hr className="my-3 border-gray-200" />
-          <p className="font-medium text-gray-700">📅 {new Date(event.start_date).toLocaleString()}</p>
+          <p className="font-medium text-gray-700">
+            📅 {new Date(event.start_date).toLocaleString()}
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
           {event.capacity && (
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-              isFull ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-            }`}>
-              {isFull ? 'Fully Booked' : `${spotsLeft} spots left`}
+            <span
+              className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                isFull ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {isFull ? "Fully Booked" : `${spotsLeft} spots left`}
             </span>
           )}
           {event.requires_approval && (
@@ -134,18 +137,30 @@ export default function EventDetail() {
           )}
         </div>
 
-        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{event.description}</p>
+        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {event.description}
+        </p>
 
         {/* Schedule Section Integrated Here */}
         {scheduleItems.length > 0 && (
           <div className="mt-8">
-            <h2 className="font-heading text-lg font-bold text-gray-900 mb-3">Schedule</h2>
+            <h2 className="font-heading text-lg font-bold text-gray-900 mb-3">
+              Schedule
+            </h2>
             <div className="flex flex-col gap-2">
               {scheduleItems.map((item) => (
-                <div key={item.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
-                  <p className="font-medium text-gray-800 text-sm">{item.title}</p>
+                <div
+                  key={item.id}
+                  className="border border-gray-100 rounded-lg p-3 bg-gray-50"
+                >
+                  <p className="font-medium text-gray-800 text-sm">
+                    {item.title}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {new Date(item.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(item.start_time).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                     {item.location && ` · ${item.location}`}
                     {item.speaker && ` · ${item.speaker}`}
                   </p>
@@ -161,7 +176,9 @@ export default function EventDetail() {
         {isRegistered ? (
           <div className="bg-green-50 border border-green-200 text-green-800 p-8 rounded-lg text-center">
             <h3 className="text-2xl font-bold mb-2">
-              {event.requires_approval ? "Request submitted ✅" : "You're on the list! ✅"}
+              {event.requires_approval
+                ? "Request submitted ✅"
+                : "You're on the list! ✅"}
             </h3>
             <p>
               {event.requires_approval
@@ -175,7 +192,10 @@ export default function EventDetail() {
             <p>This event has reached its capacity. Registration is closed.</p>
           </div>
         ) : (
-          <RegistrationForm eventId={event.id} onSuccess={() => setIsRegistered(true)} />
+          <RegistrationForm
+            eventId={event.id}
+            onSuccess={() => setIsRegistered(true)}
+          />
         )}
       </div>
     </div>

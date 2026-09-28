@@ -9,7 +9,7 @@ export interface Event {
   venue_address: string;
   start_date: string;
   end_date: string;
-  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  status: "upcoming" | "ongoing" | "completed" | "cancelled";
   requires_approval: boolean;
   is_paid: boolean;
   ticket_price: number;
@@ -23,11 +23,15 @@ export interface Attendee {
   full_name: string;
   phone_number: string;
   email?: string;
-  status: 'pending' | 'approved' | 'waitlisted' | 'rejected';
-  payment_status: 'unpaid' | 'paid' | 'refunded';
+  status: "pending" | "approved" | "waitlisted" | "rejected";
+  payment_status: "unpaid" | "paid" | "refunded";
   checked_in: boolean;
   registered_at: string;
   registration_deadline?: string | null;
+  organization?: string;
+  job_title?: string;
+  dietary_notes?: string;
+  referral_source?: string;
 }
 
 export interface ScheduleItem {
