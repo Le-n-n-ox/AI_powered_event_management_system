@@ -1,7 +1,6 @@
-import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Plus, ShieldCheck } from "lucide-react"
 import EventCard from "../components/ui/EventCard"
-import AddEventForm from "../components/ui/AddEventForm"
 import { useEvents } from "../hooks/useEvents"
 import { useAuth } from "../context/AuthContext"
 import { groupEventsByPeriod } from "../utils/dateHelpers"
@@ -10,11 +9,9 @@ import type { Event } from "../types/event"
 function EventSection({
   title,
   events,
-  onEdit,
 }: {
   title: string
   events: Event[]
-  onEdit: (event: Event) => void
 }) {
   return (
     <div className="mb-8">
@@ -23,7 +20,7 @@ function EventSection({
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {events.map((event) => (
-          <EventCard key={event.id} event={event} onEdit={onEdit} />
+          <EventCard key={event.id} event={event} />
         ))}
       </div>
     </div>
@@ -31,17 +28,11 @@ function EventSection({
 }
 
 function Dashboard() {
-  const { events, loading, error, refetch } = useEvents()
+  const { events, loading, error } = useEvents()
   const { isAdmin } = useAuth()
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Event | null>(null)
+  const navigate = useNavigate()
 
   const { groups, order } = groupEventsByPeriod(events)
-
-  function closeForm() {
-    setShowForm(false)
-    setEditing(null)
-  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -58,8 +49,8 @@ function Dashboard() {
           )}
         </div>
         <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+          onClick={() => navigate("/organizer/events/new")}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Event
@@ -73,17 +64,8 @@ function Dashboard() {
       )}
 
       {order.map((key) => (
-        <EventSection key={key} title={key} events={groups[key]} onEdit={setEditing} />
+        <EventSection key={key} title={key} events={groups[key]} />
       ))}
-
-      {(showForm || editing) && (
-        <AddEventForm
-          key={editing?.id ?? "new"}
-          event={editing}
-          onSaved={refetch}
-          onClose={closeForm}
-        />
-      )}
     </div>
   )
 }
