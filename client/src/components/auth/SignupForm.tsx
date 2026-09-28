@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { User, Phone, Mail, Lock, KeyRound } from "lucide-react"
+import { User, Phone, Mail, Lock, KeyRound, Eye, EyeOff } from "lucide-react" // 1. Added Eye and EyeOff
 import { useAuth } from "../../context/AuthContext"
 import { formatPhoneNumber } from "../../utils/phone"
 import { VARIANTS } from "./authVariants"
@@ -25,6 +25,10 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  
+  // 2. Added states for both password fields
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -93,23 +97,47 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <Field
-        label="Password"
-        icon={Lock}
-        type="password"
-        required
-        minLength={6}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <Field
-        label="Confirm password"
-        icon={Lock}
-        type="password"
-        required
-        value={confirm}
-        onChange={(e) => setConfirm(e.target.value)}
-      />
+      
+      {/* 3. Wrapped Main Password field */}
+      <div className="relative">
+        <Field
+          label="Password"
+          icon={Lock}
+          type={showPassword ? "text" : "password"}
+          required
+          minLength={6}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 focus:outline-none"
+          title={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+
+      {/* 4. Wrapped Confirm Password field */}
+      <div className="relative">
+        <Field
+          label="Confirm password"
+          icon={Lock}
+          type={showConfirmPassword ? "text" : "password"}
+          required
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 focus:outline-none"
+          title={showConfirmPassword ? "Hide password" : "Show password"}
+        >
+          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
 
       {variant === "admin" && (
         <Field

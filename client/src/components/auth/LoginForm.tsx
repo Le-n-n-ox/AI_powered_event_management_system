@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Mail, Lock } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff } from "lucide-react" // 1. Added Eye and EyeOff
 import { useAuth } from "../../context/AuthContext"
 import { VARIANTS } from "./authVariants"
 import type { AuthVariant } from "./authVariants"
@@ -17,6 +17,7 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
   const navigate = useNavigate()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false) // 2. Added state for password visibility
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -46,14 +47,26 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <Field
-        label="Password"
-        icon={Lock}
-        type="password"
-        required
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      
+      {/* 3. Wrapped Field in a relative div and added the toggle button */}
+      <div className="relative">
+        <Field
+          label="Password"
+          icon={Lock}
+          type={showPassword ? "text" : "password"} // Dynamic type
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 focus:outline-none"
+          title={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
 
       <ErrorBanner message={error} />
 
