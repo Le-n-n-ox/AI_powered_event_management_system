@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // 1. Added useNavigate
 import { motion } from "framer-motion";
 import {
   MapPin,
@@ -15,10 +15,11 @@ import { getCountdown } from "../../utils/dateHelpers";
 
 interface EventCardProps {
   event: Event;
-  onEdit?: (event: Event) => void;
+  // onEdit can be removed since we use router state now, or kept optional if used elsewhere
 }
 
-function EventCard({ event, onEdit }: EventCardProps) {
+export default function EventCard({ event }: EventCardProps) {
+  const navigate = useNavigate(); // 2. Initialize navigation hook
   const [copied, setCopied] = useState(false);
 
   const statusStyles = {
@@ -98,11 +99,16 @@ function EventCard({ event, onEdit }: EventCardProps) {
             <Users className="w-3.5 h-3.5" />
             Attendees
           </Link>
-          {onEdit && (
-            <button onClick={() => onEdit(event)} title="Edit Event" className={iconBtn}>
-              <Pencil className="w-4 h-4" />
-            </button>
-          )}
+
+          {/* 3. Updated Edit Button to route directly to our new EventFormPage with the event data */}
+          <button 
+            onClick={() => navigate('/organizer/events/edit', { state: { event } })} 
+            title="Edit Event" 
+            className={iconBtn}
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+
           <Link to={`/events/${event.id}/schedule`} title="Manage Schedule" className={iconBtn}>
             <Clock className="w-4 h-4" />
           </Link>
@@ -121,5 +127,3 @@ function EventCard({ event, onEdit }: EventCardProps) {
     </motion.div>
   );
 }
-
-export default EventCard;
