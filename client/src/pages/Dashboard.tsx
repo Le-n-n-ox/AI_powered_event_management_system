@@ -1,19 +1,20 @@
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { CirclePlus } from "lucide-react";
 import EventCard from "../components/ui/EventCard";
 import { useEvents } from "../hooks/useEvents";
 import { useAuth } from "../context/AuthContext";
 import { groupEventsByPeriod } from "../utils/dateHelpers";
 import type { Event } from "../types/event";
+import { Button } from "@/components/ui/button";
 
 import AdminDashboard from "./admin/AdminDashboard";
 
 function EventSection({ title, events }: { title: string; events: Event[] }) {
   return (
     <div className="mb-8">
-      <h2 className="font-heading text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wide mb-3">
+      <h2 className="font-heading text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
         {title}{" "}
-        <span className="text-[var(--color-text-soft)] font-normal">
+        <span className="text-slate-400 font-normal">
           ({events.length})
         </span>
       </h2>
@@ -31,7 +32,7 @@ function Dashboard() {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // 2. If the logged-in user is an Admin, load the Admin Portal instead!
+  // If the logged-in user is an Admin, load the Admin Portal instead!
   if (isAdmin) {
     return <AdminDashboard />;
   }
@@ -39,28 +40,28 @@ function Dashboard() {
   const { groups, order } = groupEventsByPeriod(events);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto bg-[var(--color-background)] min-h-screen">
+    <div className="p-6 max-w-6xl mx-auto bg-slate-50 min-h-screen">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[var(--color-text)]">
+          <h1 className="font-heading text-2xl font-bold text-slate-900">
             My Events
           </h1>
         </div>
-        <button
+        <Button
           onClick={() => navigate("/organizer/events/new")}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--color-text-on-dark)] bg-[var(--color-brand)] rounded-lg hover:bg-[var(--color-brand-hover)] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition-colors"
         >
-          <Plus className="w-4 h-4" />
+          <CirclePlus className="w-4 h-4" />
           New Event
-        </button>
+        </Button>
       </div>
 
       {loading && (
-        <p className="text-[var(--color-text-muted)]">Loading events…</p>
+        <p className="text-slate-500">Loading events…</p>
       )}
-      {error && <p className="text-[var(--color-error)]">Error: {error}</p>}
+      {error && <p className="text-red-600">Error: {error}</p>}
       {!loading && !error && events.length === 0 && (
-        <p className="text-[var(--color-text-muted)]">
+        <p className="text-slate-500">
           No events yet. Create one to get started.
         </p>
       )}

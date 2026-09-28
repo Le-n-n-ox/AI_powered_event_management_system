@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 function Navbar() {
   const [session, setSession] = useState<any>(null);
@@ -45,18 +47,18 @@ function Navbar() {
     <nav
       className={`fixed top-0 w-full z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-[var(--color-panel-admin)]/95 backdrop-blur-md border-b border-[var(--color-panel-admin-hover)] shadow-lg shadow-[var(--color-shadow-soft)]"
-          : "bg-[var(--color-panel-admin)] border-b border-[var(--color-panel-admin-hover)]"
+          ? "bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-lg shadow-slate-950/20"
+          : "bg-slate-900 border-b border-slate-800"
       }`}
     >
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           <Link
             to="/"
-            className="flex items-center gap-2 font-heading font-bold text-lg text-[var(--color-text-on-dark)] hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 font-heading font-bold text-lg text-white hover:opacity-90 transition-opacity"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--color-brand)] shadow-sm">
-              <CalendarDays className="w-4.5 h-4.5 text-[var(--color-text-on-dark)]" />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 shadow-sm">
+              <CalendarDays className="w-4.5 h-4.5 text-white" />
             </div>
             EventOS
           </Link>
@@ -66,8 +68,8 @@ function Navbar() {
               to="/events"
               className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors ${
                 isActive("/events")
-                  ? "text-[var(--color-text-on-dark)] bg-[var(--color-panel-admin-hover)] border border-[var(--color-border-strong)]"
-                  : "text-[var(--color-text-soft)] hover:text-[var(--color-text-on-dark)] hover:bg-[var(--color-panel-admin-hover)]"
+                  ? "text-white bg-slate-800 border border-slate-700"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
               Find Events
@@ -79,33 +81,34 @@ function Navbar() {
                   to="/dashboard"
                   className={`flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg transition-colors ${
                     isActive("/dashboard")
-                      ? "text-[var(--color-text-on-dark)] bg-[var(--color-panel-admin-hover)] border border-[var(--color-border-strong)]"
-                      : "text-[var(--color-text-soft)] hover:text-[var(--color-text-on-dark)] hover:bg-[var(--color-panel-admin-hover)]"
+                      ? "text-white bg-slate-800 border border-slate-700"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800"
                   }`}
                 >
-                  <LayoutDashboard className="w-4 h-4 text-[var(--color-brand)]" />
+                  <LayoutDashboard className="w-4 h-4 text-indigo-400" />
                   Dashboard
                 </Link>
-                <div className="w-px h-6 bg-[var(--color-border-strong)] mx-2" />
-                <button
+                <div className="w-px h-6 bg-slate-700 mx-2" />
+                <Button
+                  variant="ghost"
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[var(--color-text-soft)] rounded-lg hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)] transition-colors"
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-400 rounded-lg hover:text-red-400 hover:bg-red-950/50 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
-                </button>
+                </Button>
               </>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="px-3.5 py-2 text-sm font-medium text-[var(--color-text-soft)] rounded-lg hover:text-[var(--color-text-on-dark)] hover:bg-[var(--color-panel-admin-hover)] transition-colors"
+                  className="px-3.5 py-2 text-sm font-medium text-slate-400 rounded-lg hover:text-white hover:bg-slate-800 transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/signup"
-                  className="text-sm font-medium bg-[var(--color-brand)] text-[var(--color-text-on-dark)] px-5 py-2 rounded-full hover:bg-[var(--color-brand-hover)] shadow-sm hover:shadow-[var(--color-shadow-brand)] transition-all active:scale-95"
+                  className="text-sm font-medium bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
                 >
                   Sign Up
                 </Link>
@@ -113,26 +116,33 @@ function Navbar() {
             )}
           </div>
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-[var(--color-text-soft)] hover:text-[var(--color-text-on-dark)] rounded-lg hover:bg-[var(--color-panel-admin-hover)] transition-colors"
+            className="md:hidden text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            aria-label={
+              mobileOpen ? "Close navigation menu" : "Open navigation menu"
+            }
+            aria-expanded={mobileOpen}
           >
             {mobileOpen ? (
               <X className="w-5 h-5" />
             ) : (
               <Menu className="w-5 h-5" />
             )}
-          </button>
+          </Button>
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden flex flex-col gap-1.5 pb-4 pt-2 border-t border-[var(--color-panel-admin-hover)]">
+          <Card className="md:hidden gap-0 overflow-visible rounded-none border-t border-slate-800 bg-transparent pb-4 pt-2 text-inherit ring-0">
+            <CardContent className="flex flex-col gap-1.5 px-0">
             <Link
               to="/events"
               className={`px-3 py-2.5 text-sm font-medium rounded-lg ${
                 isActive("/events")
-                  ? "text-[var(--color-text-on-dark)] bg-[var(--color-panel-admin-hover)]"
-                  : "text-[var(--color-text-soft)] hover:bg-[var(--color-panel-admin-hover)] hover:text-[var(--color-text-on-dark)]"
+                  ? "text-white bg-slate-800"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
               }`}
             >
               Find Events
@@ -144,38 +154,40 @@ function Navbar() {
                   to="/dashboard"
                   className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg ${
                     isActive("/dashboard")
-                      ? "text-[var(--color-text-on-dark)] bg-[var(--color-panel-admin-hover)]"
-                      : "text-[var(--color-text-soft)] hover:bg-[var(--color-panel-admin-hover)] hover:text-[var(--color-text-on-dark)]"
+                      ? "text-white bg-slate-800"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
                   }`}
                 >
-                  <LayoutDashboard className="w-4 h-4 text-[var(--color-brand)]" />
+                  <LayoutDashboard className="w-4 h-4 text-indigo-400" />
                   Dashboard
                 </Link>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-left text-[var(--color-text-soft)] rounded-lg hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]"
+                  className="flex items-center justify-start gap-2 px-3 py-2.5 text-sm font-medium text-left text-slate-400 rounded-lg hover:text-red-400 hover:bg-red-950/50"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
-                </button>
+                </Button>
               </>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="px-3 py-2.5 text-sm font-medium text-[var(--color-text-soft)] rounded-lg hover:bg-[var(--color-panel-admin-hover)] hover:text-[var(--color-text-on-dark)]"
+                  className="px-3 py-2.5 text-sm font-medium text-slate-400 rounded-lg hover:bg-slate-800 hover:text-white"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-3 py-2.5 text-sm font-medium text-[var(--color-text-on-dark)] bg-[var(--color-brand)] rounded-lg text-center hover:bg-[var(--color-brand-hover)]"
+                  className="px-3 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg text-center hover:bg-indigo-700"
                 >
                   Sign Up
                 </Link>
               </>
             )}
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </nav>

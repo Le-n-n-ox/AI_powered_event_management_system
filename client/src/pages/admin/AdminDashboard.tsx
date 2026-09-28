@@ -2,43 +2,42 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import UserManagement from "../../components/admin/UserManagement";
 import {
-  Users,
-  Calendar,
-  Activity,
-  ShieldAlert,
+  UsersRound,
+  CalendarDays,
+  LineChart,
+  TriangleAlert,
   Ban,
   CheckCircle,
 } from "lucide-react";
 
-// Mock data to build the UI before we wire up Supabase
 const STATS = [
   {
     label: "Total Users",
     value: "1,248",
-    icon: Users,
-    color: "text-[var(--color-info)]",
-    bg: "bg-[var(--color-info-bg)]",
+    icon: UsersRound,
+    color: "text-blue-700",
+    bg: "bg-blue-50",
   },
   {
     label: "Active Organizers",
     value: "42",
     icon: CheckCircle,
-    color: "text-[var(--color-success)]",
-    bg: "bg-[var(--color-success-bg)]",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
   },
   {
     label: "Upcoming Events",
     value: "156",
-    icon: Calendar,
-    color: "text-[var(--color-brand)]",
-    bg: "bg-[var(--color-brand-soft)]",
+    icon: CalendarDays,
+    color: "text-indigo-600",
+    bg: "bg-indigo-50",
   },
   {
     label: "Suspended Accounts",
     value: "3",
     icon: Ban,
-    color: "text-[var(--color-danger)]",
-    bg: "bg-[var(--color-danger-bg)]",
+    color: "text-red-600",
+    bg: "bg-red-50",
   },
 ];
 
@@ -48,19 +47,19 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-[var(--color-text)] tracking-tight">
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
               System Admin
             </h1>
-            <p className="text-[var(--color-text-muted)] mt-1">
+            <p className="text-slate-500 mt-1">
               Platform management and security overview.
             </p>
           </div>
 
-          <div className="flex bg-[var(--color-surface)] rounded-lg p-1 shadow-sm border border-[var(--color-border)]">
+          <div className="flex bg-white rounded-lg p-1 shadow-sm border border-slate-200">
             {(["overview", "users", "events", "logs"] as AdminTab[]).map(
               (tab) => (
                 <button
@@ -68,8 +67,8 @@ export default function AdminDashboard() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2 text-sm font-medium rounded-md capitalize transition-colors ${
                     activeTab === tab
-                      ? "bg-[var(--color-panel-admin)] text-[var(--color-text-on-dark)]"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]"
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                   }`}
                 >
                   {tab}
@@ -79,30 +78,28 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Tab Content Routing */}
         {activeTab === "overview" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            {/* Statistics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {STATS.map((stat, idx) => {
                 const Icon = stat.icon;
                 return (
                   <div
                     key={idx}
-                    className="bg-[var(--color-surface)] p-6 rounded-xl border border-[var(--color-border)] shadow-sm flex items-center gap-4"
+                    className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4"
                   >
                     <div className={`p-3 rounded-lg ${stat.bg} ${stat.color}`}>
                       <Icon size={24} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[var(--color-text-muted)]">
+                      <p className="text-sm font-medium text-slate-500">
                         {stat.label}
                       </p>
-                      <p className="text-2xl font-bold text-[var(--color-text)]">
+                      <p className="text-2xl font-bold text-slate-900">
                         {stat.value}
                       </p>
                     </div>
@@ -111,23 +108,22 @@ export default function AdminDashboard() {
               })}
             </div>
 
-            {/* Quick Actions & Recent Activity Preview */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-[var(--color-text)] mb-4 flex items-center gap-2">
-                  <Activity size={20} className="text-[var(--color-brand)]" />{" "}
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <LineChart size={20} className="text-indigo-600" />{" "}
                   System Health
                 </h3>
-                <div className="h-48 flex items-center justify-center border-2 border-dashed border-[var(--color-border)] rounded-lg text-[var(--color-text-soft)] text-sm">
+                <div className="h-48 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400 text-sm">
                   [Chart Placeholder: Registrations over time]
                 </div>
               </div>
 
-              <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-[var(--color-text)] mb-4 flex items-center gap-2">
-                  <ShieldAlert
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <TriangleAlert
                     size={20}
-                    className="text-[var(--color-warning)]"
+                    className="text-amber-600"
                   />{" "}
                   Needs Attention
                 </h3>
@@ -139,9 +135,9 @@ export default function AdminDashboard() {
                   ].map((alert, i) => (
                     <li
                       key={i}
-                      className="flex items-start gap-3 text-sm text-[var(--color-text-muted)] bg-[var(--color-warning-bg)] p-3 rounded-lg border border-[var(--color-warning-border)]"
+                      className="flex items-start gap-3 text-sm text-slate-600 bg-amber-50 p-3 rounded-lg border border-amber-200"
                     >
-                      <div className="w-2 h-2 rounded-full bg-[var(--color-warning)] mt-1.5 shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-amber-600 mt-1.5 shrink-0" />
                       {alert}
                     </li>
                   ))}
@@ -155,12 +151,12 @@ export default function AdminDashboard() {
 
         {activeTab === "events" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-sm p-12 text-center text-[var(--color-text-muted)]">
-              <Calendar
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center text-slate-500">
+              <CalendarDays
                 size={48}
-                className="mx-auto mb-4 text-[var(--color-border-strong)]"
+                className="mx-auto mb-4 text-slate-300"
               />
-              <h2 className="text-xl font-medium text-[var(--color-text)]">
+              <h2 className="text-xl font-medium text-slate-900">
                 Global Event Control
               </h2>
               <p className="mt-2">
@@ -173,12 +169,12 @@ export default function AdminDashboard() {
 
         {activeTab === "logs" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-sm p-12 text-center text-[var(--color-text-muted)]">
-              <Activity
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center text-slate-500">
+              <LineChart
                 size={48}
-                className="mx-auto mb-4 text-[var(--color-border-strong)]"
+                className="mx-auto mb-4 text-slate-300"
               />
-              <h2 className="text-xl font-medium text-[var(--color-text)]">
+              <h2 className="text-xl font-medium text-slate-900">
                 System Audit Logs
               </h2>
               <p className="mt-2">

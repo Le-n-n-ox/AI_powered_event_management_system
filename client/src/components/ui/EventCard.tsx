@@ -1,48 +1,36 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // 1. Added useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  MapPin,
-  Calendar,
-  Users,
-  Clock,
-  Pencil,
-  Link as LinkIcon,
-  Check,
-} from "lucide-react";
+import { MapPinned, CalendarDays, UsersRound, AlarmClock, SquarePen, Link as LinkIcon, Check } from "lucide-react";
 import type { Event } from "../../types/event";
 import { getCountdown } from "../../utils/dateHelpers";
 
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
 interface EventCardProps {
   event: Event;
-  // onEdit can be removed since we use router state now, or kept optional if used elsewhere
 }
 
 export default function EventCard({ event }: EventCardProps) {
-  const navigate = useNavigate(); // 2. Initialize navigation hook
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
-  const statusStyles = {
-    upcoming: {
-      badge:
-        "bg-[var(--color-info-bg)] text-[var(--color-info)] ring-1 ring-[var(--color-info-border)]",
-      accent: "bg-[var(--color-info)]",
-    },
-    ongoing: {
-      badge:
-        "bg-[var(--color-success-bg)] text-[var(--color-success)] ring-1 ring-[var(--color-success-border)]",
-      accent: "bg-[var(--color-success)]",
-    },
-    completed: {
-      badge:
-        "bg-[var(--color-surface-muted)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]",
-      accent: "bg-[var(--color-text-soft)]",
-    },
-    cancelled: {
-      badge:
-        "bg-[var(--color-danger-bg)] text-[var(--color-danger)] ring-1 ring-[var(--color-danger-border)]",
-      accent: "bg-[var(--color-danger)]",
-    },
+  const isPastEvent = new Date(event.end_date) < new Date();
+
+  const getStatusStyles = (status: string) => {
+    switch (status) {
+      case "upcoming":
+        return { variant: "default" as const, className: "bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200" };
+      case "ongoing":
+        return { variant: "default" as const, className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200" };
+      case "cancelled":
+        return { variant: "destructive" as const, className: "" };
+      case "completed":
+      default:
+        return { variant: "secondary" as const, className: "" };
+    }
   };
 
   function handleCopyLink() {
@@ -52,110 +40,113 @@ export default function EventCard({ event }: EventCardProps) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const style = statusStyles[event.status];
-  const iconBtn =
-    "flex items-center justify-center w-9 h-9 text-[var(--color-text-soft)] rounded-lg hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)] transition-colors";
+  const statusStyle = getStatusStyles(event.status);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
     >
-      <div className={`absolute top-0 left-0 w-1 h-full ${style.accent}`} />
+      <Card className="h-full flex flex-col overflow-hidden relative border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white">
+        
+        <div className={`absolute top-0 left-0 w-full h-1 ${
+          event.status === 'ongoing' ? 'bg-emerald-500' : 
+          event.status === 'cancelled' ? 'bg-red-500' : 
+          event.status === 'upcoming' ? 'bg-blue-500' : 'bg-slate-300'
+        }`} />
 
-      <div className="p-5 pl-6">
-        <div className="flex items-start justify-between mb-2 gap-2">
-          <h3 className="font-heading font-semibold text-lg text-[var(--color-text)] leading-snug">
-            {event.name}
-          </h3>
-          <span
-            className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${style.badge}`}
-          >
-            {event.status}
-          </span>
-        </div>
-
-        {event.description && (
-          <p className="text-sm text-[var(--color-text-muted)] mb-4 line-clamp-2 leading-relaxed">
-            {event.description}
-          </p>
-        )}
-
-        <div className="flex flex-col gap-1.5 text-sm mb-4 bg-[var(--color-surface-muted)] rounded-lg p-3">
-          {event.venue_name && (
-            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
-              <MapPin className="w-4 h-4 text-[var(--color-text-soft)] shrink-0" />
-              <span className="truncate">{event.venue_name}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
-            <Calendar className="w-4 h-4 text-[var(--color-text-soft)] shrink-0" />
-            <span>{new Date(event.start_date).toLocaleDateString()}</span>
-            <span className="text-[var(--color-brand)] font-medium">
-              · {getCountdown(event.start_date)}
-            </span>
+        <CardHeader className="pb-3 pt-6">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-lg leading-snug text-slate-900">
+              {event.name}
+            </CardTitle>
+            <Badge 
+              variant={statusStyle.variant} 
+              className={`capitalize shrink-0 ${statusStyle.className}`}
+            >
+              {event.status}
+            </Badge>
           </div>
-          {event.registration_deadline && (
-            <div className="flex items-center gap-2 text-[var(--color-warning)]">
-              <Clock className="w-4 h-4 text-[var(--color-warning)] shrink-0" />
-              <span>
-                Registration closes {getCountdown(event.registration_deadline)}
+          {event.description && (
+            <p className="text-sm text-slate-500 line-clamp-2 mt-2">
+              {event.description}
+            </p>
+          )}
+        </CardHeader>
+
+        <CardContent className="flex-1 pb-4">
+          <div className="flex flex-col gap-2 text-sm bg-slate-50 rounded-lg p-3 border border-slate-100">
+            {event.venue_name && (
+              <div className="flex items-center gap-2 text-slate-600">
+                <MapPinned className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="truncate">{event.venue_name}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-slate-600">
+              <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+              <span>{new Date(event.start_date).toLocaleDateString()}</span>
+              <span className="text-indigo-600 font-medium ml-auto text-xs">
+                {getCountdown(event.start_date)}
               </span>
             </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 pt-3 border-t border-[var(--color-border)]">
-          <Link
-            to={`/events/${event.id}/manage`}
-            title="Manage Attendees"
-            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-[var(--color-brand)] bg-[var(--color-brand-soft)] rounded-lg py-2 hover:bg-[var(--color-brand-soft)] transition-colors"
-          >
-            <Users className="w-3.5 h-3.5" />
-            Attendees
-          </Link>
-
-          {/* 3. Updated Edit Button to route directly to our new EventFormPage with the event data */}
-          <button
-            onClick={() =>
-              navigate("/organizer/events/edit", { state: { event } })
-            }
-            title="Edit Event"
-            className={iconBtn}
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-
-          <Link
-            to={`/events/${event.id}/schedule`}
-            title="Manage Schedule"
-            className={iconBtn}
-          >
-            <Clock className="w-4 h-4" />
-          </Link>
-          <Link
-            to={`/events/${event.id}/locations`}
-            title="Manage Locations"
-            className={iconBtn}
-          >
-            <MapPin className="w-4 h-4" />
-          </Link>
-          <button
-            onClick={handleCopyLink}
-            title="Copy Registration Link"
-            className={iconBtn}
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-[var(--color-success)]" />
-            ) : (
-              <LinkIcon className="w-4 h-4" />
+            {event.registration_deadline && (
+              <div className="flex items-center gap-2 text-amber-600 mt-1">
+                <AlarmClock className="w-4 h-4 shrink-0" />
+                <span className="text-xs font-medium">
+                  Closes {getCountdown(event.registration_deadline)}
+                </span>
+              </div>
             )}
-          </button>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1 bg-slate-50/50">
+          <Button asChild variant="secondary" className="flex-1 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100">
+            <Link to={`/events/${event.id}/manage`}>
+              <UsersRound className="w-4 h-4 mr-1.5" />
+              Attendees
+            </Link>
+          </Button>
+
+          <div className="flex items-center gap-1">
+            {!isPastEvent && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-slate-500 hover:text-slate-900"
+                onClick={() => navigate("/organizer/events/edit", { state: { event } })}
+                title="Edit Event"
+              >
+                <SquarePen className="w-4 h-4" />
+              </Button>
+            )}
+            
+            <Button asChild variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900" title="Manage Schedule">
+              <Link to={`/events/${event.id}/schedule`}>
+                <AlarmClock className="w-4 h-4" />
+              </Link>
+            </Button>
+            
+            <Button asChild variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900" title="Manage Locations">
+              <Link to={`/events/${event.id}/locations`}>
+                <MapPinned className="w-4 h-4" />
+              </Link>
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={copied ? "text-emerald-600 hover:text-emerald-700" : "text-slate-500 hover:text-slate-900"}
+              onClick={handleCopyLink}
+              title="Copy Registration Link"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
     </motion.div>
   );
 }

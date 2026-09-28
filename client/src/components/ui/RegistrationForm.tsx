@@ -1,15 +1,13 @@
-// client/src/components/ui/RegistrationForm.tsx
 import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  User,
-  Phone,
-  Mail,
-  Briefcase,
-  Utensils,
-  MessageCircle,
-} from "lucide-react";
+import { User, Phone, Mail, Briefcase, Utensils, MessageCircle, AlertCircle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+
+// Shadcn UI Components
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   eventId: string;
@@ -37,15 +35,10 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper function to format the phone number to +254
   const formatPhoneNumber = (phone: string) => {
     let cleanPhone = phone.trim().replace(/\s+/g, "");
-    if (cleanPhone.startsWith("0")) {
-      return "+254" + cleanPhone.substring(1);
-    }
-    if (cleanPhone.startsWith("254")) {
-      return "+" + cleanPhone;
-    }
+    if (cleanPhone.startsWith("0")) return "+254" + cleanPhone.substring(1);
+    if (cleanPhone.startsWith("254")) return "+" + cleanPhone;
     return cleanPhone;
   };
 
@@ -76,7 +69,6 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
       ]);
 
       if (supabaseError) throw supabaseError;
-
       onSuccess();
     } catch (err: any) {
       console.error("Registration error:", err);
@@ -87,175 +79,168 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
   };
 
   return (
-    <motion.form
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-4 bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)]"
     >
-      <div>
-        <h3 className="text-xl font-heading font-bold text-[var(--color-text)]">
-          Register for this Event
-        </h3>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          Fields marked with * are required.
-        </p>
-      </div>
+      <Card className="border-slate-200 shadow-sm bg-white">
+        <form onSubmit={handleSubmit}>
+          <CardHeader>
+            <CardTitle className="text-xl text-slate-900">Register for this Event</CardTitle>
+            <CardDescription>Fields marked with * are required.</CardDescription>
+          </CardHeader>
 
-      {error && (
-        <div className="text-[var(--color-danger)] text-sm p-3 bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] rounded-lg">
-          {error}
-        </div>
-      )}
+          <CardContent className="space-y-6">
+            {error && (
+              <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
 
-      <div className="border-t border-[var(--color-border)] pt-4">
-        <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase mb-3">
-          Your Details
-        </p>
+            {/* Section 1: Your Details */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2">
+                Your Details
+              </h4>
 
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-muted)] mb-1">
-              <User className="w-3.5 h-3.5 text-[var(--color-text-soft)]" />
-              Full Name *
-            </label>
-            <input
-              required
-              type="text"
-              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)]"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-          </div>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <User className="w-4 h-4 text-slate-400" /> Full Name *
+                  </label>
+                  <Input 
+                    required 
+                    value={fullName} 
+                    onChange={(e) => setFullName(e.target.value)} 
+                    placeholder="John Doe"
+                  />
+                </div>
 
-          <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-muted)] mb-1">
-              <Phone className="w-3.5 h-3.5 text-[var(--color-text-soft)]" />
-              Phone Number *{" "}
-              <span className="text-[var(--color-text-soft)] font-normal">
-                (for SMS updates)
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <Phone className="w-4 h-4 text-slate-400" /> Phone Number *
+                    <span className="text-slate-400 font-normal text-xs ml-1">(for SMS updates)</span>
+                  </label>
+                  <Input 
+                    required 
+                    type="tel"
+                    value={phoneNumber} 
+                    onChange={(e) => setPhoneNumber(e.target.value)} 
+                    placeholder="e.g. 0711223344"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <Mail className="w-4 h-4 text-slate-400" /> Email
+                    <span className="text-slate-400 font-normal text-xs ml-1">(optional)</span>
+                  </label>
+                  <Input 
+                    type="email"
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    placeholder="john@example.com"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Professional Info */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2">
+                Professional Info (Optional)
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <Briefcase className="w-4 h-4 text-slate-400" /> Organization
+                  </label>
+                  <Input 
+                    value={organization} 
+                    onChange={(e) => setOrganization(e.target.value)} 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    Job Title
+                  </label>
+                  <Input 
+                    value={jobTitle} 
+                    onChange={(e) => setJobTitle(e.target.value)} 
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Additional Info */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2">
+                Additional Info (Optional)
+              </h4>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <Utensils className="w-4 h-4 text-slate-400" /> Dietary or Accessibility Needs
+                  </label>
+                  {/* Using standard Shadcn Input classes for the textarea */}
+                  <textarea
+                    rows={2}
+                    className="flex w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={dietaryNotes}
+                    onChange={(e) => setDietaryNotes(e.target.value)}
+                    placeholder="e.g. Vegetarian, wheelchair access needed"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <MessageCircle className="w-4 h-4 text-slate-400" /> How did you hear about this event?
+                  </label>
+                  <Select value={referralSource} onValueChange={setReferralSource}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select an option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REFERRAL_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Terms Checkbox */}
+            <label className="flex items-start gap-2.5 text-sm text-slate-600 pt-2">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <span className="leading-snug">
+                I agree to receive SMS communication about this event and confirm the details above are accurate.
               </span>
             </label>
-            <input
-              required
-              type="tel"
-              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)]"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="e.g. 0711223344"
-            />
-          </div>
+          </CardContent>
 
-          <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-muted)] mb-1">
-              <Mail className="w-3.5 h-3.5 text-[var(--color-text-soft)]" />
-              Email{" "}
-              <span className="text-[var(--color-text-soft)] font-normal">
-                (optional)
-              </span>
-            </label>
-            <input
-              type="email"
-              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)]"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-[var(--color-border)] pt-4">
-        <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase mb-3">
-          Professional Info (Optional)
-        </p>
-
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-muted)] mb-1">
-              <Briefcase className="w-3.5 h-3.5 text-[var(--color-text-soft)]" />
-              Organization
-            </label>
-            <input
-              type="text"
-              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)]"
-              value={organization}
-              onChange={(e) => setOrganization(e.target.value)}
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
-              Job Title
-            </label>
-            <input
-              type="text"
-              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)]"
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-[var(--color-border)] pt-4">
-        <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase mb-3">
-          Additional Info (Optional)
-        </p>
-
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-muted)] mb-1">
-              <Utensils className="w-3.5 h-3.5 text-[var(--color-text-soft)]" />
-              Dietary or Accessibility Needs
-            </label>
-            <textarea
-              rows={2}
-              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)]"
-              value={dietaryNotes}
-              onChange={(e) => setDietaryNotes(e.target.value)}
-              placeholder="e.g. Vegetarian, wheelchair access needed"
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-muted)] mb-1">
-              <MessageCircle className="w-3.5 h-3.5 text-[var(--color-text-soft)]" />
-              How did you hear about this event?
-            </label>
-            <select
-              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] bg-[var(--color-surface)]"
-              value={referralSource}
-              onChange={(e) => setReferralSource(e.target.value)}
+          <CardFooter className="pt-4 border-t border-slate-100 bg-slate-50/50 rounded-b-xl">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting} 
+              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              <option value="">Select an option</option>
-              {REFERRAL_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <label className="flex items-start gap-2 text-sm text-[var(--color-text-muted)] border-t border-[var(--color-border)] pt-4">
-        <input
-          type="checkbox"
-          checked={agreedToTerms}
-          onChange={(e) => setAgreedToTerms(e.target.checked)}
-          className="mt-0.5 rounded border-[var(--color-border)] text-[var(--color-brand)] focus:ring-[var(--color-focus)]"
-        />
-        I agree to receive SMS communication about this event and confirm the
-        details above are accurate.
-      </label>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="mt-1 bg-[var(--color-brand)] text-[var(--color-text-on-dark)] py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-[var(--color-brand-hover)] disabled:opacity-50 transition-colors"
-      >
-        {isSubmitting ? "Registering…" : "Secure My Spot"}
-      </button>
-    </motion.form>
+              {isSubmitting ? "Registering…" : "Secure My Spot"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </motion.div>
   );
 }
