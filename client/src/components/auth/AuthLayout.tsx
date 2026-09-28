@@ -57,6 +57,8 @@ export const VARIANTS: Record<AuthVariant, VariantConfig> = {
 interface AuthLayoutProps {
   children: ReactNode
   variant?: AuthVariant 
+  title?: string     // <-- ADD THIS
+  subtitle?: string  // <-- ADD THIS
 }
 
 // 2. Actually create the AuthLayout component function
