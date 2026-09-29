@@ -10,14 +10,14 @@ export default function RegistrationSection({
   inputCls,
 }: Props) {
   return (
-    <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+    <div className="bg-(--color-surface) p-6 rounded-xl shadow-sm border border-(--color-border) flex flex-col gap-4">
+      <h3 className="text-lg font-semibold text-(--color-text)">
         Tickets & Registration
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+          <label className="block text-sm font-medium text-text-muted mb-1">
             Registration Deadline
           </label>
           <input
@@ -28,7 +28,7 @@ export default function RegistrationSection({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+          <label className="block text-sm font-medium text-text-muted mb-1">
             Capacity (Max Attendees)
           </label>
           <input
@@ -43,22 +43,22 @@ export default function RegistrationSection({
       </div>
 
       <div className="flex flex-col gap-3 mt-2">
-        <label className="flex items-center gap-3 text-sm text-[var(--color-text-muted)] cursor-pointer">
+        <label className="flex items-center gap-3 text-sm text-text-muted cursor-pointer">
           <input
             type="checkbox"
             checked={data.requiresApproval}
             onChange={(e) => updateData("requiresApproval", e.target.checked)}
-            className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-brand)] focus:ring-[var(--color-focus)]"
+            className="w-4 h-4 rounded border-(--color-border) text-(--color-brand) focus:ring-(--color-focus)"
           />
           Require organizer approval to register
         </label>
 
-        <label className="flex items-center gap-3 text-sm text-[var(--color-text-muted)] cursor-pointer">
+        <label className="flex items-center gap-3 text-sm text-text-muted cursor-pointer">
           <input
             type="checkbox"
             checked={data.isPaid}
             onChange={(e) => updateData("isPaid", e.target.checked)}
-            className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-brand)] focus:ring-[var(--color-focus)]"
+            className="w-4 h-4 rounded border-(--color-border) text-(--color-brand) focus:ring-(--color-focus)"
           />
           This is a paid event
         </label>
@@ -66,7 +66,7 @@ export default function RegistrationSection({
 
       {data.isPaid && (
         <div className="mt-2 animate-in fade-in slide-in-from-top-2">
-          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+          <label className="block text-sm font-medium text-text-muted mb-1">
             Ticket Price (KES)
           </label>
           <input

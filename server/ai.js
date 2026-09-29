@@ -113,4 +113,94 @@ User query: ${userMessage}`
     }
 }
 
-module.exports = { processMessageWithAI };
+
+// ---------------------------------------------------------------------
+// Event field extraction, for the organizer's "Magic Auto-Fill" upload.
+// Takes raw text from an uploaded file and asks the AI to pull out
+// structured event fields as JSON. Used by POST /api/extract-event.
+// ---------------------------------------------------------------------
+
+const EXTRACT_SYSTEM_PROMPT = `You extract event details from raw text (a poster, agenda or flyer, possibly messy).
+Respond with ONLY a JSON object, no markdown fences, no commentary, in exactly this shape:
+{
+  "name": string or null,
+  "description": string or null,
+  "venueName": string or null,
+  "venueAddress": string or null,
+  "startDate": string or null,
+  "endDate": string or null,
+  "isPaid": boolean,
+  "ticketPrice": string or null,
+  "capacity": string or null
+}
+Rules:
+- startDate and endDate MUST be in the exact format YYYY-MM-DDTHH:mm (24-hour, no timezone, no seconds). If no end time is stated, estimate a reasonable end (e.g. start + a few hours).
+- If a field truly cannot be determined from the text, use null (or false for isPaid).
+- Never invent a venue, date or price that isn't implied by the text.
+- ticketPrice and capacity are numbers as strings, digits only (no currency symbols, no commas).`;
+
+function stripJsonFences(raw) {
+    return raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+}
+
+async function extractEventFromText(rawText) {
+    const text = (rawText || '').slice(0, 20000); // guard against huge uploads
+    if (!text.trim()) {
+        throw new Error('No text provided to extract from.');
+    }
+
+    let raw;
+
+    if (provider === 'gemini') {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: `${EXTRACT_SYSTEM_PROMPT}\n\nText to extract from:\n${text}` }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        raw = data.candidates[0].content.parts[0].text;
+
+    } else {
+        const model = provider === 'nvidia'
+            ? (process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct')
+            : 'llama3.2';
+
+        const response = await aiClient.chat.completions.create({
+            model,
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: EXTRACT_SYSTEM_PROMPT },
+                { role: 'user', content: text }
+            ]
+        });
+        raw = response.choices[0].message.content;
+    }
+
+    let parsed;
+    try {
+        parsed = JSON.parse(stripJsonFences(raw));
+    } catch (e) {
+        console.error('❌ Extraction JSON parse failed. Raw output was:', raw);
+        throw new Error('The AI did not return valid JSON for extraction.');
+    }
+
+    // Always return every field, even if the model omitted one
+    return {
+        name: parsed.name ?? null,
+        description: parsed.description ?? null,
+        venueName: parsed.venueName ?? null,
+        venueAddress: parsed.venueAddress ?? null,
+        startDate: parsed.startDate ?? null,
+        endDate: parsed.endDate ?? null,
+        isPaid: !!parsed.isPaid,
+        ticketPrice: parsed.ticketPrice ?? null,
+        capacity: parsed.capacity ?? null,
+    };
+}
+
+module.exports = { processMessageWithAI, extractEventFromText };
