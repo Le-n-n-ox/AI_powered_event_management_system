@@ -32,57 +32,62 @@ function App() {
   return (
     <>
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        {/* Auth */}
-        <Route path="/login" element={<RoleSelect mode="login" />} />
-        <Route path="/signup" element={<RoleSelect mode="signup" />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/signup" element={<AdminSignup />} />
-        <Route path="/organizer/login" element={<OrganizerLogin />} />
-        <Route path="/organizer/signup" element={<OrganizerSignup />} />
-        <Route path="/attendee/login" element={<AttendeeLogin />} />
-        <Route path="/attendee/signup" element={<AttendeeSignup />} />
-        // Inside your Routes component:
-        <Route path="/organizer/events/new" element={<EventFormPage />} />
-        <Route path="/organizer/events/edit" element={<EventFormPage />} />
-        {/* Public */}
-        <Route path="/events" element={<EventsList />} />
-        <Route path="/events/:id" element={<EventDetail />} />
-        {/* Staff only */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/events/:id/manage"
-          element={
-            <Managed>
-              <ManageAttendees />
-            </Managed>
-          }
-        />
-        <Route
-          path="/events/:id/schedule"
-          element={
-            <Managed>
-              <ManageSchedule />
-            </Managed>
-          }
-        />
-        <Route
-          path="/events/:id/locations"
-          element={
-            <Managed>
-              <ManageVenueLocations />
-            </Managed>
-          }
-        />
-      </Routes>
+      <div className="pt-16"> {/* Global fix: pushes all page routes below the fixed navbar */}
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          {/* Auth */}
+          <Route path="/login" element={<RoleSelect mode="login" />} />
+          <Route path="/signup" element={<RoleSelect mode="signup" />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/signup" element={<AdminSignup />} />
+          <Route path="/organizer/login" element={<OrganizerLogin />} />
+          <Route path="/organizer/signup" element={<OrganizerSignup />} />
+          <Route path="/attendee/login" element={<AttendeeLogin />} />
+          <Route path="/attendee/signup" element={<AttendeeSignup />} />
+          
+          {/* Event Form Management */}
+          <Route path="/organizer/events/new" element={<EventFormPage />} />
+          <Route path="/organizer/events/edit" element={<EventFormPage />} />
+          
+          {/* Public */}
+          <Route path="/events" element={<EventsList />} />
+          <Route path="/events/:id" element={<EventDetail />} />
+          
+          {/* Staff only */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/events/:id/manage"
+            element={
+              <Managed>
+                <ManageAttendees />
+              </Managed>
+            }
+          />
+          <Route
+            path="/events/:id/schedule"
+            element={
+              <Managed>
+                <ManageSchedule />
+              </Managed>
+            }
+          />
+          <Route
+            path="/events/:id/locations"
+            element={
+              <Managed>
+                <ManageVenueLocations />
+              </Managed>
+            }
+          />
+        </Routes>
+      </div>
     </>
   );
 }

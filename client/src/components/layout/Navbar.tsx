@@ -1,70 +1,85 @@
-import { useEffect, useState } from "react"
-import { Link, useNavigate, useLocation } from "react-router-dom"
-import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react"
-import { supabase } from "../../lib/supabase"
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "../../lib/supabase";
+import { Button } from "@/components/ui/button";
+
+const FOCUS =
+  "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-panel-admin";
+
+const LINK_BASE =
+  "flex items-center gap-1.5 text-sm font-medium rounded-lg border transition-colors";
+const LINK_ACTIVE =
+  "text-text-on-dark bg-panel-admin-hover border-white/10";
+const LINK_IDLE =
+  "text-text-on-dark/60 border-transparent hover:text-text-on-dark hover:bg-panel-admin-hover";
+const LOGOUT =
+  "text-text-on-dark/60 hover:text-danger-border hover:bg-danger/20";
 
 function Navbar() {
-  const [session, setSession] = useState<any>(null)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const navigate = useNavigate()
-  const [isScrolled, setIsScrolled] = useState(false)
-  const location = useLocation()
+  const [session, setSession] = useState<Session | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
+      setSession(session);
+    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-    const handleScroll = () => setIsScrolled(window.scrollY > 20)
-    window.addEventListener("scroll", handleScroll)
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
-      subscription.unsubscribe()
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [])
+      subscription.unsubscribe();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   useEffect(() => {
-    setMobileOpen(false)
-  }, [location.pathname])
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate("/login")
-  }
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
-  const isActive = (path: string) => location.pathname === path
+  const isActive = (path: string) => location.pathname === path;
+  const linkClass = (path: string, pad: string) =>
+    `${LINK_BASE} ${pad} ${isActive(path) ? LINK_ACTIVE : LINK_IDLE} ${FOCUS}`;
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-      isScrolled ? "bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm" : "bg-transparent border-transparent"
-    }`}>
-      <div className="max-w-6xl mx-auto px-6">
+    <nav
+      className={`fixed top-0 w-full z-50 border-b border-white/10 transition-all duration-300 ${
+        isScrolled
+          ? "bg-panel-admin/95 backdrop-blur-md shadow-lg shadow-black/20"
+          : "bg-panel-admin"
+      }`}
+    >
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           <Link
             to="/"
-            className="flex items-center gap-2 font-heading font-bold text-lg text-gray-900 hover:opacity-80 transition-opacity"
+            className={`flex items-center gap-2 font-heading font-bold text-lg text-text-on-dark rounded-lg hover:opacity-90 transition-opacity ${FOCUS}`}
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600">
-              <CalendarDays className="w-4.5 h-4.5 text-white" />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand shadow-sm">
+              <CalendarDays className="w-4.5 h-4.5 text-text-on-dark" />
             </div>
             EventOS
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
-            <Link
-              to="/events"
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                isActive("/events")
-                  ? "text-indigo-600 bg-indigo-50"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              }`}
-            >
+          <div className="hidden md:flex items-center gap-1.5">
+            <Link to="/events" className={linkClass("/events", "px-3.5 py-2")}>
               Find Events
             </Link>
 
@@ -72,35 +87,32 @@ function Navbar() {
               <>
                 <Link
                   to="/dashboard"
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    isActive("/dashboard")
-                      ? "text-indigo-600 bg-indigo-50"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  }`}
+                  className={linkClass("/dashboard", "px-3.5 py-2")}
                 >
-                  <LayoutDashboard className="w-4 h-4" />
+                  <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
                   Dashboard
                 </Link>
-                <div className="w-px h-6 bg-gray-200 mx-2" />
-                <button
+                <div className="w-px h-6 bg-white/10 mx-2" />
+                <Button
+                  variant="ghost"
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-red-600 hover:bg-red-50 transition-colors"
+                  className={`gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg ${LOGOUT}`}
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
-                </button>
+                </Button>
               </>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                  className={`${LINK_BASE} ${LINK_IDLE} px-3.5 py-2 ${FOCUS}`}
                 >
                   Log In
                 </Link>
                 <Link
                   to="/signup"
-                  className="text-sm font-medium bg-indigo-600 text-white px-5 py-2 rounded-full hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-200 transition-all active:scale-95"
+                  className={`text-sm font-medium bg-brand text-text-on-dark px-5 py-2 rounded-lg hover:bg-brand-hover shadow-sm transition-all active:scale-95 ${FOCUS}`}
                 >
                   Sign Up
                 </Link>
@@ -108,24 +120,27 @@ function Navbar() {
             )}
           </div>
 
-          {/* Mobile toggle */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+            className="md:hidden text-text-on-dark/60 hover:text-text-on-dark hover:bg-panel-admin-hover transition-colors"
+            aria-label={
+              mobileOpen ? "Close navigation menu" : "Open navigation menu"
+            }
+            aria-expanded={mobileOpen}
           >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+            {mobileOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </Button>
         </div>
 
-        {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden flex flex-col gap-1 pb-4">
-            <Link
-              to="/events"
-              className={`px-3 py-2 text-sm font-medium rounded-lg ${
-                isActive("/events") ? "text-indigo-600 bg-indigo-50" : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
+          <div className="md:hidden flex flex-col gap-1.5 border-t border-white/10 pt-2 pb-4">
+            <Link to="/events" className={linkClass("/events", "px-3 py-2.5")}>
               Find Events
             </Link>
 
@@ -133,29 +148,31 @@ function Navbar() {
               <>
                 <Link
                   to="/dashboard"
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg ${
-                    isActive("/dashboard") ? "text-indigo-600 bg-indigo-50" : "text-gray-600 hover:bg-gray-50"
-                  }`}
+                  className={linkClass("/dashboard", "gap-2 px-3 py-2.5")}
                 >
-                  <LayoutDashboard className="w-4 h-4" />
+                  <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
                   Dashboard
                 </Link>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-left text-gray-600 rounded-lg hover:text-red-600 hover:bg-red-50"
+                  className={`justify-start gap-2 px-3 py-2.5 text-sm font-medium rounded-lg ${LOGOUT}`}
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <Link to="/login" className="px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50">
+                <Link
+                  to="/login"
+                  className={`${LINK_BASE} ${LINK_IDLE} px-3 py-2.5 ${FOCUS}`}
+                >
                   Log In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg text-center"
+                  className={`px-3 py-2.5 text-sm font-medium text-text-on-dark bg-brand rounded-lg text-center hover:bg-brand-hover transition-colors ${FOCUS}`}
                 >
                   Sign Up
                 </Link>
@@ -165,7 +182,7 @@ function Navbar() {
         )}
       </div>
     </nav>
-  )
+  );
 }
 
-export default Navbar
+export default Navbar;

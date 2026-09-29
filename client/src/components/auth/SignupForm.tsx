@@ -1,4 +1,10 @@
-import { useState } from "react";
+import {
+  useId,
+  useState,
+  type FormEvent,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   User,
@@ -9,6 +15,8 @@ import {
   Eye,
   EyeOff,
   UserPlus,
+  Loader2,
+  type LucideIcon,
 } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
@@ -23,36 +31,112 @@ interface Props {
   loginPath: string;
 }
 
-// Reusable Input Component to keep Signup code clean
-const ModernInput = ({ icon: Icon, label, ...props }: any) => (
-  <div className="space-y-1">
-    <label className="text-sm font-medium text-[var(--color-text-muted)]">
-      {label}
-    </label>
-    <div className="relative group">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--color-text-soft)] group-focus-within:text-[var(--color-focus)] transition-colors">
-        <Icon size={18} />
-      </div>
-      <input
-        {...props}
-        className="block w-full pl-10 pr-3 py-2.5 border border-[var(--color-border)] rounded-xl text-sm shadow-sm text-[var(--color-text)] placeholder:text-[var(--color-text-soft)] focus:outline-none focus:border-[var(--color-focus)] focus:ring-1 focus:ring-[var(--color-focus-soft)] transition-all bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface)] focus:bg-[var(--color-surface)]"
-      />
-      {props.rightElement && (
-        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-          {props.rightElement}
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 },
+  },
+};
+
+const INPUT =
+  "block w-full h-11 border rounded-xl bg-surface-muted text-base sm:text-sm text-text placeholder:text-text-soft shadow-sm transition-all hover:bg-surface focus:bg-surface focus:outline-none focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed";
+const INPUT_OK =
+  "border-border hover:border-border-strong focus:border-focus focus:ring-focus-soft";
+const INPUT_BAD =
+  "border-danger-border focus:border-danger focus:ring-danger-bg";
+
+const FOCUS =
+  "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 rounded-md";
+
+interface ModernInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  icon: LucideIcon;
+  label: string;
+  hint?: string;
+  invalid?: boolean;
+  rightElement?: ReactNode;
+}
+
+function ModernInput({
+  icon: Icon,
+  label,
+  hint,
+  invalid,
+  rightElement,
+  className,
+  ...props
+}: ModernInputProps) {
+  const id = useId();
+  const hintId = `${id}-hint`;
+
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-text-muted">
+        {label}
+      </label>
+      <div className="relative group">
+        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-soft transition-colors group-focus-within:text-focus">
+          <Icon size={18} />
         </div>
+        <input
+          {...props}
+          id={id}
+          aria-invalid={invalid || undefined}
+          aria-describedby={hint ? hintId : undefined}
+          className={`${INPUT} ${invalid ? INPUT_BAD : INPUT_OK} pl-11 ${
+            rightElement ? "pr-12" : "pr-3"
+          } ${className ?? ""}`}
+        />
+        {rightElement && (
+          <div className="absolute inset-y-0 right-0 flex items-center">
+            {rightElement}
+          </div>
+        )}
+      </div>
+      {hint && (
+        <p
+          id={hintId}
+          className={`text-xs ${invalid ? "text-danger" : "text-text-soft"}`}
+        >
+          {hint}
+        </p>
       )}
     </div>
-    {props.hint && (
-      <p className="text-xs text-[var(--color-text-soft)] mt-1">{props.hint}</p>
-    )}
-  </div>
-);
+  );
+}
+
+function EyeToggle({
+  shown,
+  onToggle,
+  label,
+}: {
+  shown: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={`${shown ? "Hide" : "Show"} ${label}`}
+      aria-pressed={shown}
+      className={`w-12 h-full flex items-center justify-center text-text-soft hover:text-text-muted transition-colors ${FOCUS}`}
+    >
+      {shown ? <EyeOff size={18} /> : <Eye size={18} />}
+    </button>
+  );
+}
 
 export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
   const { signUp } = useAuth();
   const navigate = useNavigate();
-  // States
+
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -66,8 +150,11 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const mismatch = confirm.length > 0 && password !== confirm;
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
     setInfo(null);
     if (password.length < 6)
@@ -76,9 +163,9 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
 
     setSubmitting(true);
     const result = await signUp({
-      email,
+      email: email.trim(),
       password,
-      fullName,
+      fullName: fullName.trim(),
       role: variant,
       phone: phone ? formatPhoneNumber(phone) : undefined,
       inviteCode: variant === "admin" ? inviteCode.trim() : undefined,
@@ -91,19 +178,6 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
     navigate(redirectTo);
   }
 
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 },
-    },
-  };
-
   return (
     <motion.form
       variants={containerVariants}
@@ -115,10 +189,12 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
       <motion.div variants={itemVariants}>
         <ModernInput
           icon={User}
-          label="Full Name"
+          label="Full name"
+          autoComplete="name"
           required
+          disabled={submitting}
           value={fullName}
-          onChange={(e: any) => setFullName(e.target.value)}
+          onChange={(e) => setFullName(e.target.value)}
           placeholder="Jane Doe"
         />
       </motion.div>
@@ -128,12 +204,15 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
           <ModernInput
             icon={Phone}
             type="tel"
+            inputMode="tel"
+            autoComplete="tel"
             label={
               variant === "attendee"
-                ? "Phone Number"
-                : "Phone Number (optional)"
+                ? "Phone number"
+                : "Phone number (optional)"
             }
             required={variant === "attendee"}
+            disabled={submitting}
             placeholder="e.g. 0711223344"
             hint={
               variant === "attendee"
@@ -141,7 +220,7 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
                 : undefined
             }
             value={phone}
-            onChange={(e: any) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(e.target.value)}
           />
         </motion.div>
       )}
@@ -150,10 +229,15 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
         <ModernInput
           icon={Mail}
           type="email"
-          label="Email Address"
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
+          label="Email address"
           required
+          disabled={submitting}
           value={email}
-          onChange={(e: any) => setEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
         />
       </motion.div>
@@ -162,20 +246,21 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
         <ModernInput
           icon={Lock}
           type={showPassword ? "text" : "password"}
+          autoComplete="new-password"
           label="Password"
           required
           minLength={6}
+          disabled={submitting}
+          hint="At least 6 characters."
           value={password}
-          onChange={(e: any) => setPassword(e.target.value)}
-          placeholder="••••••••"
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Create a password"
           rightElement={
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)] transition-colors"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+            <EyeToggle
+              shown={showPassword}
+              onToggle={() => setShowPassword((s) => !s)}
+              label="password"
+            />
           }
         />
       </motion.div>
@@ -184,19 +269,21 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
         <ModernInput
           icon={Lock}
           type={showConfirm ? "text" : "password"}
-          label="Confirm Password"
+          autoComplete="new-password"
+          label="Confirm password"
           required
+          disabled={submitting}
+          invalid={mismatch}
+          hint={mismatch ? "Passwords do not match." : undefined}
           value={confirm}
-          onChange={(e: any) => setConfirm(e.target.value)}
-          placeholder="••••••••"
+          onChange={(e) => setConfirm(e.target.value)}
+          placeholder="Repeat your password"
           rightElement={
-            <button
-              type="button"
-              onClick={() => setShowConfirm(!showConfirm)}
-              className="text-[var(--color-text-soft)] hover:text-[var(--color-text-muted)] transition-colors"
-            >
-              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+            <EyeToggle
+              shown={showConfirm}
+              onToggle={() => setShowConfirm((s) => !s)}
+              label="confirm password"
+            />
           }
         />
       </motion.div>
@@ -205,11 +292,15 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
         <motion.div variants={itemVariants}>
           <ModernInput
             icon={KeyRound}
-            label="Admin Invite Code"
+            label="Admin invite code"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
             required
+            disabled={submitting}
             hint="Codes are single-use and issued by an existing admin."
             value={inviteCode}
-            onChange={(e: any) => setInviteCode(e.target.value)}
+            onChange={(e) => setInviteCode(e.target.value)}
           />
         </motion.div>
       )}
@@ -227,30 +318,34 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
 
       <motion.button
         variants={itemVariants}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        whileHover={{ scale: submitting ? 1 : 1.01 }}
+        whileTap={{ scale: submitting ? 1 : 0.98 }}
         type="submit"
         disabled={submitting}
-        className={`mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-[var(--color-text-on-dark)] shadow-md disabled:opacity-70 transition-all ${VARIANTS[variant].btn}`}
+        className={`mt-2 flex items-center justify-center gap-2 h-12 px-4 rounded-xl text-sm font-semibold text-text-on-dark shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed ${VARIANTS[variant].btn}`}
       >
         {submitting ? (
-          <span className="animate-pulse">Creating account…</span>
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Creating account…
+          </>
         ) : (
           <>
-            <UserPlus size={16} /> Create Account
+            <UserPlus size={16} />
+            Create account
           </>
         )}
       </motion.button>
 
       <motion.div
         variants={itemVariants}
-        className="mt-4 pt-4 border-t border-[var(--color-border)] text-center"
+        className="mt-1 pt-5 border-t border-border text-center"
       >
-        <p className="text-sm text-[var(--color-text-muted)]">
+        <p className="text-sm text-text-muted">
           Already have an account?{" "}
           <Link
             to={loginPath}
-            className="font-semibold text-[var(--color-text)] hover:underline transition-all"
+            className={`font-semibold text-brand hover:text-brand-hover hover:underline ${FOCUS}`}
           >
             Log in
           </Link>

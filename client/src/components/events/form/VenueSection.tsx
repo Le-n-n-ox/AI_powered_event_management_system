@@ -6,11 +6,15 @@ interface Props {
 
 export default function VenueSection({ data, updateData, inputCls }: Props) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-gray-900">Location & Venue</h3>
-      
+    <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
+      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+        Location & Venue
+      </h3>
+
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Venue Name</label>
+        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+          Venue Name
+        </label>
         <input
           type="text"
           placeholder="e.g., KICC"
@@ -21,7 +25,9 @@ export default function VenueSection({ data, updateData, inputCls }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+          Full Address
+        </label>
         <input
           type="text"
           placeholder="e.g., Harambee Avenue, Nairobi"
@@ -32,7 +38,9 @@ export default function VenueSection({ data, updateData, inputCls }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Google Maps Link (Optional)</label>
+        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+          Google Maps Link (Optional)
+        </label>
         <input
           type="url"
           placeholder="https://maps.google.com/..."

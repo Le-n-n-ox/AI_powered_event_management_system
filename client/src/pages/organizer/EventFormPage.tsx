@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import type { Event } from "../../types/event";
+import { Button } from "../../components/ui/button";
 
-// Import our new sub-components
+// Import our sub-components
 import BasicInfoSection from "../../components/events/form/BasicInfoSection";
 import VenueSection from "../../components/events/form/VenueSection";
 import DateTimeSection from "../../components/events/form/DateTimeSection";
@@ -13,7 +14,8 @@ import RegistrationSection from "../../components/events/form/RegistrationSectio
 import AiAutofill from "../../components/events/form/AiAutofill";
 import KnowledgeSection from "../../components/events/form/KnowledgeSection";
 
-const inputCls = "border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors";
+const inputCls =
+  "border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/20 transition-colors";
 
 function toLocalInput(iso?: string | null) {
   if (!iso) return "";
@@ -26,12 +28,10 @@ export default function EventFormPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // If we navigated here with state (e.g., navigate('/edit-event', { state: { event: myEvent } })), use it.
+
   const event = location.state?.event as Event | null;
   const isEdit = !!event;
 
-  // Grouped state is much cleaner than 15 separate useStates
   const [formData, setFormData] = useState({
     name: event?.name ?? "",
     description: event?.description ?? "",
@@ -58,7 +58,6 @@ export default function EventFormPage() {
   };
 
   const handleAiExtraction = (extractedData: any) => {
-    // Merge the AI's data with the existing form data
     setFormData((prev) => ({
       ...prev,
       ...extractedData,
@@ -76,7 +75,10 @@ export default function EventFormPage() {
     if (new Date(formData.endDate) <= new Date(formData.startDate)) {
       return setError("End time must be after the start time.");
     }
-    if (formData.registrationDeadline && new Date(formData.registrationDeadline) > new Date(formData.startDate)) {
+    if (
+      formData.registrationDeadline &&
+      new Date(formData.registrationDeadline) > new Date(formData.startDate)
+    ) {
       return setError("Registration deadline must be before the event starts.");
     }
 
@@ -90,7 +92,9 @@ export default function EventFormPage() {
       venue_map_url: formData.venueMapUrl || null,
       start_date: new Date(formData.startDate).toISOString(),
       end_date: new Date(formData.endDate).toISOString(),
-      registration_deadline: formData.registrationDeadline ? new Date(formData.registrationDeadline).toISOString() : null,
+      registration_deadline: formData.registrationDeadline
+        ? new Date(formData.registrationDeadline).toISOString()
+        : null,
       capacity: formData.capacity ? parseInt(formData.capacity, 10) : null,
       requires_approval: formData.requiresApproval,
       is_paid: formData.isPaid,
@@ -99,8 +103,13 @@ export default function EventFormPage() {
     };
 
     const { error: dbError } = isEdit
-      ? await supabase.from("events").update({ ...payload, status: formData.status }).eq("id", event!.id)
-      : await supabase.from("events").insert({ ...payload, status: "upcoming", organizer_id: user?.id });
+      ? await supabase
+          .from("events")
+          .update({ ...payload, status: formData.status })
+          .eq("id", event!.id)
+      : await supabase
+          .from("events")
+          .insert({ ...payload, status: "upcoming", organizer_id: user?.id });
 
     setSubmitting(false);
 
@@ -109,27 +118,25 @@ export default function EventFormPage() {
       return;
     }
 
-    // Go back to the dashboard/events list after saving
-    navigate("/organizer/dashboard"); 
+    navigate("/organizer/dashboard");
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8"
+      className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8"
     >
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-slate-900">
             {isEdit ? "Edit Event" : "Create New Event"}
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-500 mt-1">
             Fill in the details below to publish your event.
           </p>
         </div>
 
-        {/* --- 🌟 THE AI COMPONENT --- */}
         {!isEdit && <AiAutofill onDataExtracted={handleAiExtraction} />}
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -140,26 +147,31 @@ export default function EventFormPage() {
           <KnowledgeSection data={formData} updateData={updateData} inputCls={inputCls} />
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100 text-sm">
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 text-sm">
               {error}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <Button
               type="button"
-              onClick={() => navigate(-1)} // Goes back to previous page
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              variant="outline"
+              onClick={() => navigate(-1)}
+              className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2 shadow-sm"
             >
-              {submitting ? "Saving..." : isEdit ? "Save Changes" : "Create Event"}
-            </button>
+              {submitting
+                ? "Saving..."
+                : isEdit
+                  ? "Save Changes"
+                  : "Create Event"}
+            </Button>
           </div>
         </form>
       </div>
