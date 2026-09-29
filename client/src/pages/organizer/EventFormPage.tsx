@@ -12,6 +12,8 @@ import VenueSection from "../../components/events/form/VenueSection";
 import DateTimeSection from "../../components/events/form/DateTimeSection";
 import RegistrationSection from "../../components/events/form/RegistrationSection";
 import AiAutofill from "../../components/events/form/AiAutofill";
+import KnowledgeSection from "../../components/events/form/KnowledgeSection";
+import React from "react";
 
 const inputCls =
   "border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/20 transition-colors";
@@ -45,6 +47,8 @@ export default function EventFormPage() {
     requiresApproval: event?.requires_approval ?? false,
     isPaid: event?.is_paid ?? false,
     ticketPrice: event?.ticket_price ? String(event.ticket_price) : "",
+    // Full text of uploaded documents, so the SMS assistant can answer from them
+    knowledgeText: event?.knowledge_text ?? "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -58,6 +62,10 @@ export default function EventFormPage() {
     setFormData((prev) => ({
       ...prev,
       ...extractedData,
+      // Append extracted document text instead of overwriting what the organizer typed
+      knowledgeText: extractedData?.knowledgeText
+        ? [prev.knowledgeText, extractedData.knowledgeText].filter(Boolean).join("\n\n")
+        : prev.knowledgeText,
     }));
   };
 
@@ -91,10 +99,8 @@ export default function EventFormPage() {
       capacity: formData.capacity ? parseInt(formData.capacity, 10) : null,
       requires_approval: formData.requiresApproval,
       is_paid: formData.isPaid,
-      ticket_price:
-        formData.isPaid && formData.ticketPrice
-          ? parseFloat(formData.ticketPrice)
-          : null,
+      ticket_price: formData.isPaid && formData.ticketPrice ? parseFloat(formData.ticketPrice) : null,
+      knowledge_text: formData.knowledgeText || null,
     };
 
     const { error: dbError } = isEdit
@@ -135,27 +141,11 @@ export default function EventFormPage() {
         {!isEdit && <AiAutofill onDataExtracted={handleAiExtraction} />}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <BasicInfoSection
-            data={formData}
-            updateData={updateData}
-            isEdit={isEdit}
-            inputCls={inputCls}
-          />
-          <DateTimeSection
-            data={formData}
-            updateData={updateData}
-            inputCls={inputCls}
-          />
-          <VenueSection
-            data={formData}
-            updateData={updateData}
-            inputCls={inputCls}
-          />
-          <RegistrationSection
-            data={formData}
-            updateData={updateData}
-            inputCls={inputCls}
-          />
+          <BasicInfoSection data={formData} updateData={updateData} isEdit={isEdit} inputCls={inputCls} />
+          <DateTimeSection data={formData} updateData={updateData} inputCls={inputCls} />
+          <VenueSection data={formData} updateData={updateData} inputCls={inputCls} />
+          <RegistrationSection data={formData} updateData={updateData} inputCls={inputCls} />
+          <KnowledgeSection data={formData} updateData={updateData} inputCls={inputCls} />
 
           {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 text-sm">
@@ -166,7 +156,6 @@ export default function EventFormPage() {
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Button
               type="button"
-              variant="outline"
               onClick={() => navigate(-1)}
               className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
             >

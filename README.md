@@ -54,20 +54,14 @@ npm run dev
 ```
 
 Vite prints the frontend URL in its terminal, usually `http://localhost:5173`. The backend API is available at `http://localhost:3000`.
-
 ```
-AI_powered_event_management_system
+smart-help-desk
 ├─ client
 │  ├─ components.json
 │  ├─ dist
 │  │  ├─ assets
-│  │  │  ├─ geist-cyrillic-ext-wght-normal-DjL33-gN.woff2
-│  │  │  ├─ geist-cyrillic-wght-normal-BEAKL7Jp.woff2
-│  │  │  ├─ geist-latin-ext-wght-normal-DC-KSUi6.woff2
-│  │  │  ├─ geist-latin-wght-normal-BgDaEnEv.woff2
-│  │  │  ├─ geist-vietnamese-wght-normal-6IgcOCM7.woff2
-│  │  │  ├─ index-CbZ26YW1.css
-│  │  │  └─ index-DgxrVY_9.js
+│  │  │  ├─ index-B8G384Mr.css
+│  │  │  └─ index-CtJWz2I0.js
 │  │  ├─ favicon.svg
 │  │  ├─ icons.svg
 │  │  └─ index.html
@@ -81,6 +75,7 @@ AI_powered_event_management_system
 │  ├─ README.md
 │  ├─ src
 │  │  ├─ App.css
+│  │  ├─ App.js
 │  │  ├─ App.tsx
 │  │  ├─ assets
 │  │  │  ├─ hero.png
@@ -88,71 +83,123 @@ AI_powered_event_management_system
 │  │  │  └─ vite.svg
 │  │  ├─ components
 │  │  │  ├─ admin
+│  │  │  │  ├─ UserManagement.js
 │  │  │  │  └─ UserManagement.tsx
 │  │  │  ├─ auth
+│  │  │  │  ├─ AuthLayout.js
 │  │  │  │  ├─ AuthLayout.tsx
+│  │  │  │  ├─ AuthUI.js
 │  │  │  │  ├─ AuthUI.tsx
+│  │  │  │  ├─ authVariants.js
 │  │  │  │  ├─ authVariants.ts
+│  │  │  │  ├─ LoginForm.js
 │  │  │  │  ├─ LoginForm.tsx
+│  │  │  │  ├─ SignupForm.js
 │  │  │  │  └─ SignupForm.tsx
 │  │  │  ├─ events
 │  │  │  │  └─ form
+│  │  │  │     ├─ AiAutofill.js
 │  │  │  │     ├─ AiAutofill.tsx
+│  │  │  │     ├─ BasicInfoSection.js
 │  │  │  │     ├─ BasicInfoSection.tsx
+│  │  │  │     ├─ DateTimeSection.js
 │  │  │  │     ├─ DateTimeSection.tsx
+│  │  │  │     ├─ KnowledgeSection.js
+│  │  │  │     ├─ KnowledgeSection.tsx
+│  │  │  │     ├─ RegistrationSection.js
 │  │  │  │     ├─ RegistrationSection.tsx
+│  │  │  │     ├─ VenueSection.js
 │  │  │  │     └─ VenueSection.tsx
 │  │  │  ├─ layout
+│  │  │  │  ├─ AccessDenied.js
 │  │  │  │  ├─ AccessDenied.tsx
+│  │  │  │  ├─ EventGuard.js
 │  │  │  │  ├─ EventGuard.tsx
+│  │  │  │  ├─ Navbar.js
 │  │  │  │  ├─ Navbar.tsx
+│  │  │  │  ├─ ProtectedRoute.js
 │  │  │  │  └─ ProtectedRoute.tsx
 │  │  │  ├─ pages
+│  │  │  │  ├─ RoleSelect.js
 │  │  │  │  └─ RoleSelect.tsx
 │  │  │  └─ ui
+│  │  │     ├─ AddScheduleItemForm.js
 │  │  │     ├─ AddScheduleItemForm.tsx
+│  │  │     ├─ AddVenueLocationForm.js
 │  │  │     ├─ AddVenueLocationForm.tsx
+│  │  │     ├─ badge.js
 │  │  │     ├─ badge.tsx
+│  │  │     ├─ button.js
 │  │  │     ├─ button.tsx
+│  │  │     ├─ card.js
 │  │  │     ├─ card.tsx
+│  │  │     ├─ EventCard.js
 │  │  │     ├─ EventCard.tsx
+│  │  │     ├─ input.js
 │  │  │     ├─ input.tsx
+│  │  │     ├─ RegistrationForm.js
 │  │  │     ├─ RegistrationForm.tsx
+│  │  │     ├─ select.js
 │  │  │     ├─ select.tsx
+│  │  │     ├─ table.js
 │  │  │     └─ table.tsx
 │  │  ├─ context
+│  │  │  ├─ AuthContext.js
 │  │  │  └─ AuthContext.tsx
 │  │  ├─ hooks
+│  │  │  ├─ useEvents.js
 │  │  │  └─ useEvents.ts
 │  │  ├─ index.css
 │  │  ├─ lib
+│  │  │  ├─ supabase.js
 │  │  │  ├─ supabase.ts
+│  │  │  ├─ utils.js
 │  │  │  └─ utils.ts
+│  │  ├─ main.js
 │  │  ├─ main.tsx
 │  │  ├─ pages
 │  │  │  ├─ admin
+│  │  │  │  ├─ AdminDashboard.js
 │  │  │  │  ├─ AdminDashboard.tsx
+│  │  │  │  ├─ AdminLogin.js
 │  │  │  │  ├─ AdminLogin.tsx
+│  │  │  │  ├─ AdminSignup.js
 │  │  │  │  └─ AdminSignup.tsx
 │  │  │  ├─ attendee
+│  │  │  │  ├─ AttendeeLogin.js
 │  │  │  │  ├─ AttendeeLogin.tsx
+│  │  │  │  ├─ AttendeeSignup.js
 │  │  │  │  └─ AttendeeSignup.tsx
+│  │  │  ├─ Dashboard.js
 │  │  │  ├─ Dashboard.tsx
+│  │  │  ├─ EventDetail.js
 │  │  │  ├─ EventDetail.tsx
+│  │  │  ├─ EventsList.js
 │  │  │  ├─ EventsList.tsx
+│  │  │  ├─ Landing.js
 │  │  │  ├─ Landing.tsx
+│  │  │  ├─ ManageAttendees.js
 │  │  │  ├─ ManageAttendees.tsx
+│  │  │  ├─ ManageSchedule.js
 │  │  │  ├─ ManageSchedule.tsx
+│  │  │  ├─ ManageVenueLocations.js
 │  │  │  ├─ ManageVenueLocations.tsx
 │  │  │  ├─ organizer
+│  │  │  │  ├─ EventFormPage.js
 │  │  │  │  ├─ EventFormPage.tsx
+│  │  │  │  ├─ OrganizerLogin.js
 │  │  │  │  ├─ OrganizerLogin.tsx
+│  │  │  │  ├─ OrganizerSignup.js
 │  │  │  │  └─ OrganizerSignup.tsx
+│  │  │  ├─ RoleSelect.js
 │  │  │  └─ RoleSelect.tsx
 │  │  ├─ types
+│  │  │  ├─ event.js
 │  │  │  └─ event.ts
 │  │  └─ utils
+│  │     ├─ dateHelpers.js
 │  │     ├─ dateHelpers.ts
+│  │     ├─ phone.js
 │  │     └─ phone.ts
 │  ├─ tailwind.config.js
 │  ├─ tsconfig.app.json
@@ -169,15 +216,11 @@ AI_powered_event_management_system
    │     └─ supabase-server
    │        └─ SKILL.md
    ├─ ai.js
-   ├─ config
-   │  ├─ db.js
-   │  └─ initDB.js
+   ├─ emergency.js
    ├─ index.js
    ├─ package-lock.json
    ├─ package.json
-   ├─ routes
-   │  ├─ auth.js
-   │  └─ events.js
    ├─ skills-lock.json
-   └─ test-api.js
+   └─ test-emergency.js
+
 ```

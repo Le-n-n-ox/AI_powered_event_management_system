@@ -27,6 +27,7 @@ function EventSection({ title, events }: { title: string; events: Event[] }) {
   );
 }
 
+
 function Dashboard() {
   const { events, loading, error } = useEvents();
   const { isAdmin } = useAuth();

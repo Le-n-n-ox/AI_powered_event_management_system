@@ -20,6 +20,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  // @ts-ignore The UI card module is JSX and is compiled by the application build.
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 interface Props {
   eventId: string;
   onSuccess: () => void;
@@ -267,7 +267,7 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
                   </label>
                   <Select
                     value={referralSource}
-                    onValueChange={(value) => setReferralSource(value ?? "")}
+                    onValueChange={(value: any) => setReferralSource(value ?? "")}
                   >
                     <SelectTrigger className="w-full" disabled={isSubmitting}>
                       <SelectValue placeholder="Select an option" />
