@@ -59,9 +59,20 @@ export default function EventFormPage() {
   };
 
   const handleAiExtraction = (extractedData: any) => {
+    const cleaned = Object.fromEntries(
+      Object.entries(extractedData ?? {}).map(([key, value]) => [
+        key,
+        value ?? "",
+      ]),
+    );
+
     setFormData((prev) => ({
       ...prev,
-      ...extractedData,
+      ...cleaned,
+      isPaid:
+        typeof extractedData?.isPaid === "boolean"
+          ? extractedData.isPaid
+          : prev.isPaid,
       // Append extracted document text instead of overwriting what the organizer typed
       knowledgeText: extractedData?.knowledgeText
         ? [prev.knowledgeText, extractedData.knowledgeText].filter(Boolean).join("\n\n")
@@ -119,7 +130,7 @@ export default function EventFormPage() {
       return;
     }
 
-    navigate("/organizer/dashboard");
+    navigate("/dashboard");
   }
 
   return (
