@@ -218,7 +218,7 @@ export default function EventFormPage() {
               className="mb-5"
             />
             {/* Added a subtle gradient to the text for a premium header feel */}
-            <h1 className="text-3xl font-bold font-heading bg-gradient-to-br from-text to-text-soft bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold font-heading bg-linear-to-br from-text to-text-soft bg-clip-text text-transparent">
               {isEdit ? "Edit Event" : "Create New Event"}
             </h1>
             <p className="text-text-soft mt-1.5 text-sm">
