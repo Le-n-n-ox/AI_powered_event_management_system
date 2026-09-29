@@ -357,7 +357,12 @@ ${relevantDocs}`.trim();
     }
 
     console.log("🧠 Knowledge base sent to AI:\n", knowledgeBase);
-    const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName, chatHistory);
+    const liveContext = {
+        supabase,
+        tasks,
+        eventId: latestRecord?.event_id
+    };
+    const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName, chatHistory, liveContext);
     let replyMessage = aiResult.reply;
 
     if (aiResult.isEmergency) {
