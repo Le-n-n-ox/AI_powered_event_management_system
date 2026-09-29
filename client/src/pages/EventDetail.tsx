@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import RegistrationForm from "../components/ui/RegistrationForm";
+import BackButton from "../components/layout/BackButton";
 import type { Event } from "../types/event";
 
 interface ScheduleItem {
@@ -100,6 +101,11 @@ export default function EventDetail() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 pt-24 pb-12 grid md:grid-cols-2 gap-8 md:gap-12">
         {/* Left: Event Info */}
         <div>
+          <BackButton
+            fallbackTo="/events"
+            label="Back to events"
+            className="mb-4"
+          />
           <h1 className="font-heading text-3xl sm:text-4xl font-bold text-text tracking-tight mb-4">
             {event.name}
           </h1>
@@ -111,7 +117,12 @@ export default function EventDetail() {
                 <p className="font-medium text-text">{event.venue_name}</p>
                 <p className="text-sm text-text-soft">{event.venue_address}</p>
                 {mapUrl && (
-                  <a href={mapUrl} target="_blank" rel="noopener noreferrer" className={MAP_LINK}>
+                  <a
+                    href={mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={MAP_LINK}
+                  >
                     View on Google Maps
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
