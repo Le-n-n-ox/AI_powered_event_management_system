@@ -31,8 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import React from "react";
-
 interface Props {
   eventId: string;
   onSuccess: () => void;
