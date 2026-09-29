@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "@types/node": "^26.6.3"
+  },
+  "dependencies": {
+    "pdf-parse": "^2.4.5"
   }
 }

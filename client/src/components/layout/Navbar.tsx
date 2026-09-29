@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const FOCUS =
@@ -11,9 +12,9 @@ const FOCUS =
 const LINK_BASE =
   "flex items-center gap-1.5 text-sm font-medium rounded-lg border transition-colors";
 const LINK_ACTIVE =
-  "text-text-on-dark bg-panel-admin-hover border-white/10";
+  "text-text-on-dark bg-panel-admin-hover border-text-on-dark/10";
 const LINK_IDLE =
-  "text-text-on-dark/60 border-transparent hover:text-text-on-dark hover:bg-panel-admin-hover";
+  "text-text-on-dark/60 border-[var(--color-transparent)] hover:text-text-on-dark hover:bg-panel-admin-hover";
 const LOGOUT =
   "text-text-on-dark/60 hover:text-danger-border hover:bg-danger/20";
 
@@ -23,6 +24,7 @@ function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isStaff } = useAuth();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -60,9 +62,9 @@ function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 w-full z-50 border-b border-white/10 transition-all duration-300 ${
+      className={`fixed top-0 w-full z-50 border-b border-text-on-dark/10 transition-all duration-300 ${
         isScrolled
-          ? "bg-panel-admin/95 backdrop-blur-md shadow-lg shadow-black/20"
+          ? "bg-panel-admin/95 backdrop-blur-md shadow-lg shadow-shadow-soft"
           : "bg-panel-admin"
       }`}
     >
@@ -85,14 +87,16 @@ function Navbar() {
 
             {session ? (
               <>
-                <Link
-                  to="/dashboard"
-                  className={linkClass("/dashboard", "px-3.5 py-2")}
-                >
-                  <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
-                  Dashboard
-                </Link>
-                <div className="w-px h-6 bg-white/10 mx-2" />
+                {isStaff && (
+                  <Link
+                    to="/dashboard"
+                    className={linkClass("/dashboard", "px-3.5 py-2")}
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
+                    Dashboard
+                  </Link>
+                )}
+                <div className="w-px h-6 bg-text-on-dark/10 mx-2" />
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
@@ -139,20 +143,22 @@ function Navbar() {
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden flex flex-col gap-1.5 border-t border-white/10 pt-2 pb-4">
+          <div className="md:hidden flex flex-col gap-1.5 border-t border-text-on-dark/10 pt-2 pb-4">
             <Link to="/events" className={linkClass("/events", "px-3 py-2.5")}>
               Find Events
             </Link>
 
             {session ? (
               <>
-                <Link
-                  to="/dashboard"
-                  className={linkClass("/dashboard", "gap-2 px-3 py-2.5")}
-                >
-                  <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
-                  Dashboard
-                </Link>
+                {isStaff && (
+                  <Link
+                    to="/dashboard"
+                    className={linkClass("/dashboard", "gap-2 px-3 py-2.5")}
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
+                    Dashboard
+                  </Link>
+                )}
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
