@@ -46,6 +46,8 @@ const EVENT_TZ = process.env.EVENT_TIMEZONE || 'Africa/Nairobi';
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-KE', { timeZone: EVENT_TZ, dateStyle: 'medium', timeStyle: 'short' }) : 'TBD';
 const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-KE', { timeZone: EVENT_TZ, timeStyle: 'short' }) : 'TBD';
 const MAX_DOC_CHARS = 15000; // keeps the prompt within what small/local models can handle
+// Temporary in-memory session tracker: maps phone number to active event ID.
+const activeEventSessions = new Map();
 
 // Chunk organizer documents and rank paragraphs by keyword matches to the SMS.
 function getRelevantChunks(text, query, maxChunks = 3) {
@@ -265,7 +267,7 @@ app.post('/webhook/incoming', async (req, res) => {
     const { error: cleanupError } = await supabase
         .from('chat_messages')
         .delete()
-        .eq('phone_number', from)
+        .eq('attendee_phone', from)
         .lt('created_at', thirtyMinsAgo);
     if (cleanupError) {
         console.error('❌ Chat history cleanup failed:', cleanupError.message);
@@ -274,8 +276,8 @@ app.post('/webhook/incoming', async (req, res) => {
     // Fetch the latest six messages, then restore chronological order for the model.
     const { data: historyData, error: historyError } = await supabase
         .from('chat_messages')
-        .select('role, content')
-        .eq('phone_number', from)
+        .select('role, content:message')
+        .eq('attendee_phone', from)
         .order('created_at', { ascending: false })
         .limit(6);
     if (historyError) {
@@ -283,7 +285,7 @@ app.post('/webhook/incoming', async (req, res) => {
     }
     const chatHistory = (historyData || []).reverse();
 
-    // 4. Build context for every event this attendee is registered for.
+    // 4. Fetch attendee records for this phone number.
     const { data: attendeeRecords, error: attendeeError } = await supabase
         .from('attendees')
         .select('*')
@@ -292,75 +294,128 @@ app.post('/webhook/incoming', async (req, res) => {
         console.error('❌ Attendee lookup failed:', attendeeError.message);
     }
 
+    if (!attendeeRecords || attendeeRecords.length === 0) {
+        await sms.send({ to: [from], message: 'You are not registered for any active events in our system.' });
+        return;
+    }
+
     const latestRecord = attendeeRecords && attendeeRecords.length > 0
         ? attendeeRecords.sort((a, b) => new Date(b.registered_at) - new Date(a.registered_at))[0]
         : null;
     const fullName = latestRecord?.name || latestRecord?.attendee_name || latestRecord?.full_name || null;
     const attendeeName = fullName ? fullName.trim().split(' ')[0] : null;
 
-    let knowledgeBase = "No event information available.";
+    const eventIds = [...new Set(attendeeRecords.map(record => record.event_id).filter(Boolean))];
+    if (eventIds.length === 0) {
+        await sms.send({ to: [from], message: 'No active events are available for your registration.' });
+        return;
+    }
 
-    if (attendeeRecords && attendeeRecords.length > 0) {
-        const eventIds = [...new Set(attendeeRecords.map(record => record.event_id).filter(Boolean))];
+    const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .in('id', eventIds);
+    if (eventsError) {
+        console.error('❌ Event lookup failed:', eventsError.message);
+    }
 
-        const { data: eventsData, error: eventsError } = await supabase
-            .from('events')
-            .select('*')
-            .in('id', eventIds);
-        const { data: scheduleData, error: scheduleError } = await supabase
-            .from('schedule_items')
-            .select('event_id, title, speaker, location, start_time, end_time')
-            .in('event_id', eventIds)
-            .order('start_time', { ascending: true });
-        const { data: venueData, error: venueError } = await supabase
-            .from('venue_locations')
-            .select('event_id, label, description')
-            .in('event_id', eventIds);
+    if (!eventsData || eventsData.length === 0) {
+        await sms.send({ to: [from], message: 'No active events are available for your registration.' });
+        return;
+    }
 
-        if (eventsError) console.error('❌ Event lookup failed:', eventsError.message);
-        if (scheduleError) console.error('❌ Schedule lookup failed:', scheduleError.message);
-        if (venueError) console.error('❌ Venue lookup failed:', venueError.message);
+    const registeredEventIds = new Set(eventIds.map(id => String(id)));
+    let activeEventId = activeEventSessions.get(from);
+    if (activeEventId && !registeredEventIds.has(String(activeEventId))) {
+        activeEventSessions.delete(from);
+        activeEventId = undefined;
+    }
 
-        knowledgeBase = (eventsData || []).map(event => {
-            const eventSchedule = (scheduleData || [])
-                .filter(item => item.event_id === event.id)
-                .map(item => `- ${item.title}${item.speaker ? ` by ${item.speaker}` : ''} at ${fmtTime(item.start_time)}${item.location ? ` in ${item.location}` : ''}`)
-                .join('\n');
-            const eventVenues = (venueData || [])
-                .filter(venue => venue.event_id === event.id)
-                .map(venue => `- ${venue.label}: ${venue.description || 'No additional details'}`)
-                .join('\n');
-            const priceText = event.is_paid ? `Paid event, ticket price ${event.ticket_price ?? 'TBD'}` : 'Free event';
-            const relevantDocs = getRelevantChunks(
-                (event.knowledge_text || '').slice(0, MAX_DOC_CHARS),
-                cleanText,
-            );
+    const lowerText = cleanText.toLowerCase();
+    const mentionedEvent = eventsData.find(event =>
+        event.name && lowerText.includes(event.name.toLowerCase())
+    );
 
-            return `
---- EVENT: ${event.name || 'Unknown'} ---
-About: ${event.description || 'No description provided.'}
-Venue: ${event.venue_name || 'TBD'}${event.venue_address ? `, ${event.venue_address}` : ''}
-Starts: ${fmtDateTime(event.start_date)}
-Ends: ${fmtDateTime(event.end_date)}
+    if (mentionedEvent) {
+        activeEventId = mentionedEvent.id;
+        activeEventSessions.set(from, activeEventId);
+        console.log(`🔄 Switched active event session for ${from} to: ${mentionedEvent.name}`);
+    }
+
+    if (!activeEventId && eventsData.length > 1) {
+        const eventNames = eventsData.map(event => event.name).filter(Boolean).join(', ');
+        const promptMsg = `You're registered for multiple events (${eventNames}). Which event are you asking about today?`;
+
+        await sms.send({ to: [from], message: promptMsg });
+        const { error: selectionHistoryError } = await supabase.from('chat_messages').insert([
+            { attendee_phone: from, role: 'user', message: cleanText },
+            { attendee_phone: from, role: 'assistant', message: promptMsg }
+        ]);
+        if (selectionHistoryError) {
+            console.error('❌ Saving event selection prompt failed:', selectionHistoryError.message);
+        }
+        return;
+    }
+
+    if (!activeEventId && eventsData.length === 1) {
+        activeEventId = eventsData[0].id;
+        activeEventSessions.set(from, activeEventId);
+    }
+
+    if (!activeEventId) {
+        activeEventId = eventsData[0].id;
+        activeEventSessions.set(from, activeEventId);
+    }
+
+    const targetEvent = eventsData.find(event => String(event.id) === String(activeEventId)) || eventsData[0];
+    const { data: scheduleData, error: scheduleError } = await supabase
+        .from('schedule_items')
+        .select('title, speaker, location, start_time, end_time')
+        .eq('event_id', targetEvent.id)
+        .order('start_time', { ascending: true });
+    const { data: venueData, error: venueError } = await supabase
+        .from('venue_locations')
+        .select('label, description')
+        .eq('event_id', targetEvent.id);
+
+    if (scheduleError) console.error('❌ Schedule lookup failed:', scheduleError.message);
+    if (venueError) console.error('❌ Venue lookup failed:', venueError.message);
+
+    const eventSchedule = (scheduleData || [])
+        .map(item => `- ${item.title}${item.speaker ? ` by ${item.speaker}` : ''} at ${fmtTime(item.start_time)}${item.location ? ` in ${item.location}` : ''}`)
+        .join('\n');
+    const eventVenues = (venueData || [])
+        .map(venue => `- ${venue.label}: ${venue.description || 'No additional details'}`)
+        .join('\n');
+    const priceText = targetEvent.is_paid ? `Paid event, ticket price ${targetEvent.ticket_price ?? 'TBD'}` : 'Free event';
+    const relevantDocs = getRelevantChunks(
+        (targetEvent.knowledge_text || '').slice(0, MAX_DOC_CHARS),
+        cleanText,
+    );
+
+    const knowledgeBase = `
+Event: ${targetEvent.name || 'Unknown'}
+About: ${targetEvent.description || 'No description provided.'}
+Venue: ${targetEvent.venue_name || 'TBD'}${targetEvent.venue_address ? `, ${targetEvent.venue_address}` : ''}
+Starts: ${fmtDateTime(targetEvent.start_date)}
+Ends: ${fmtDateTime(targetEvent.end_date)}
 Tickets: ${priceText}
+
 Schedule:
 ${eventSchedule || 'No schedule items yet.'}
+
 Venue Locations:
 ${eventVenues || 'No venue locations added yet.'}
-Organizer Documents (Relevant Excerpts):
-${relevantDocs}`.trim();
-        }).join('\n\n');
 
-        if (eventsData && eventsData.length > 1) {
-            knowledgeBase = `[CRITICAL SYSTEM INSTRUCTION: The attendee is registered for MULTIPLE events. If their question is vague, politely ask them which event they are asking about.]\n\n${knowledgeBase}`;
-        }
-    }
+Organizer Documents (Relevant Excerpts):
+${relevantDocs}
+`.trim();
 
     console.log("🧠 Knowledge base sent to AI:\n", knowledgeBase);
     const liveContext = {
         supabase,
         tasks,
-        eventId: latestRecord?.event_id
+        eventId: targetEvent.id
     };
     const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName, chatHistory, liveContext);
     let replyMessage = aiResult.reply;
@@ -382,8 +437,8 @@ ${relevantDocs}`.trim();
         replyMessage = `🚨 EMERGENCY LOGGED${attendeeName ? `, ${attendeeName}` : ''}: Floor security has been dispatched via phone call and SMS alert.`;
     } else {
         const { error: saveHistoryError } = await supabase.from('chat_messages').insert([
-            { phone_number: from, role: 'user', content: cleanText },
-            { phone_number: from, role: 'assistant', content: replyMessage }
+            { attendee_phone: from, role: 'user', message: cleanText },
+            { attendee_phone: from, role: 'assistant', message: replyMessage }
         ]);
         if (saveHistoryError) {
             console.error('❌ Saving chat history failed:', saveHistoryError.message);
