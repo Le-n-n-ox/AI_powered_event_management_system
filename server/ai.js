@@ -1,5 +1,6 @@
 require('dotenv').config();
 const OpenAI = require('openai');
+const { detectEmergency } = require('./emergency');
 
 const provider = process.env.AI_PROVIDER || 'ollama';
 
@@ -23,16 +24,18 @@ if (provider === 'gemini') {
     console.log("🦙 AI Mode Active: Local Llama 3.2"); 
 }
 
-async function processMessageWithAI(userMessage, knowledgeBase) {
-    const lowerMsg = userMessage.toLowerCase();
+function buildSystemPrompt(knowledge, attendeeName) {
+    const nameLine = attendeeName
+        ? `The attendee you are talking to is named ${attendeeName}. Address them by their first name naturally.`
+        : `You don't know the attendee's name, so don't guess one.`;
+    return `You are a helpful event assistant. ${nameLine} Use ONLY these facts to answer:\n${knowledge}\n\nKeep your answer short and direct (under 300 characters, since this is an SMS). If the answer isn't in the facts, say you don't know.`;
+}
 
-    const isEmergency = lowerMsg.includes('help') ||
-                        lowerMsg.includes('collapsed') ||
-                        lowerMsg.includes('injury') ||
-                        lowerMsg.includes('fire') ||
-                        lowerMsg.includes('security');
+async function processMessageWithAI(userMessage, knowledgeBase, attendeeName) {
+    const emergency = detectEmergency(userMessage);
 
-    if (isEmergency) {
+    if (emergency.isEmergency) {
+        console.log(`🚨 Emergency rule matched: ${emergency.matched}`);
         return {
             isEmergency: true,
             reply: "Medical or security assistance needed."
@@ -40,9 +43,10 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
     }
 
     const knowledge = knowledgeBase || "No event information available.";
+    const systemPrompt = buildSystemPrompt(knowledge, attendeeName);
 
     try {
-        console.log(`🤖 Processing message with \({provider}: "\){userMessage}"`);
+        console.log(`🤖 Processing message with ${provider}: "${userMessage}"`);
         let replyText = "";
 
         if (provider === 'gemini') {
@@ -54,7 +58,9 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
-                            text: `You are a helpful event assistant. Use these facts to answer: \({knowledge}. Keep your answer short and direct. If you don't know, say you don't know.\n\nUser query:\){userMessage}`
+                            text: `${systemPrompt}
+
+User query: ${userMessage}`
                         }]
                     }]
                 })
@@ -74,7 +80,7 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
                 messages: [
                     {
                         role: "system",
-                        content: `You are a helpful event assistant. Use these facts to answer: ${knowledge}. Keep your answer short and direct. If you don't know, say you don't know.`
+                        content: systemPrompt
                     },
                     { role: "user", content: userMessage }
                 ]
@@ -87,7 +93,7 @@ async function processMessageWithAI(userMessage, knowledgeBase) {
                 messages: [
                     {
                         role: "system",
-                        content: `You are a helpful event assistant. Use these facts to answer: ${knowledge}. Keep your answer short and direct. If you don't know, say you don't know.`
+                        content: systemPrompt
                     },
                     { role: "user", content: userMessage }
                 ]

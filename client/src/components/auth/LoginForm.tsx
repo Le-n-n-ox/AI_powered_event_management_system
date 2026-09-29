@@ -1,90 +1,131 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react"
-import { motion, type Variants } from "framer-motion" // NEW: Animation library
-import { useAuth } from "../../context/AuthContext"
-import { VARIANTS } from "./authVariants"
-import type { AuthVariant } from "./authVariants"
-import { ErrorBanner } from "./AuthUI"
+import { useId, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+import { useAuth } from "../../context/AuthContext";
+import { VARIANTS } from "./authVariants";
+import type { AuthVariant } from "./authVariants";
+import { ErrorBanner } from "./AuthUI";
 
 interface Props {
-  variant: AuthVariant
-  redirectTo: string
-  signupPath: string
+  variant: AuthVariant;
+  redirectTo: string;
+  signupPath: string;
 }
 
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 },
+  },
+};
+
+// text-base on mobile prevents iOS Safari zooming into the field on focus
+const INPUT =
+  "block w-full h-11 border border-border rounded-xl bg-surface-muted text-base sm:text-sm text-text placeholder:text-text-soft shadow-sm transition-all hover:border-border-strong hover:bg-surface focus:bg-surface focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus-soft disabled:opacity-60 disabled:cursor-not-allowed";
+
+const ICON_WRAP =
+  "absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-soft transition-colors group-focus-within:text-focus";
+
+const FOCUS =
+  "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 rounded-md";
+
 export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
-  const { signIn } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
+  const emailId = useId();
+  const passwordId = useId();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setError(null)
-    const { error } = await signIn(email, password, [variant])
-    setSubmitting(false)
-    if (error) return setError(error)
-    navigate(redirectTo)
-  }
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Animation variants for staggering the form fields
- const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  }
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const { error: authError } = await signIn(email.trim(), password, [
+      variant,
+    ]);
+    setSubmitting(false);
+    if (authError) return setError(authError);
+    navigate(redirectTo);
   }
 
   return (
-    <motion.form 
+    <motion.form
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      onSubmit={handleSubmit} 
+      onSubmit={handleSubmit}
       className="flex flex-col gap-5 w-full max-w-sm mx-auto"
     >
-      <motion.div variants={itemVariants} className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Email Address</label>
+      <motion.div variants={itemVariants} className="space-y-1.5">
+        <label
+          htmlFor={emailId}
+          className="block text-sm font-medium text-text-muted"
+        >
+          Email address
+        </label>
         <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+          <div className={ICON_WRAP}>
             <Mail size={18} />
           </div>
           <input
+            id={emailId}
             type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
             required
+            disabled={submitting}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-gray-50/50 hover:bg-white focus:bg-white"
+            className={`${INPUT} pl-11 pr-3`}
             placeholder="you@example.com"
           />
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Password</label>
+      <motion.div variants={itemVariants} className="space-y-1.5">
+        <label
+          htmlFor={passwordId}
+          className="block text-sm font-medium text-text-muted"
+        >
+          Password
+        </label>
         <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
+          <div className={ICON_WRAP}>
             <Lock size={18} />
           </div>
           <input
+            id={passwordId}
             type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
             required
+            disabled={submitting}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-gray-50/50 hover:bg-white focus:bg-white"
-            placeholder="••••••••"
+            className={`${INPUT} pl-11 pr-12`}
+            placeholder="Enter your password"
           />
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={() => setShowPassword((s) => !s)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            className={`absolute inset-y-0 right-0 w-12 flex items-center justify-center text-text-soft hover:text-text-muted transition-colors ${FOCUS}`}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -99,33 +140,45 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
 
       <motion.button
         variants={itemVariants}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        whileHover={{ scale: submitting ? 1 : 1.01 }}
+        whileTap={{ scale: submitting ? 1 : 0.98 }}
         type="submit"
         disabled={submitting}
-        className={`mt-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white shadow-md disabled:opacity-70 transition-all ${VARIANTS[variant].btn}`}
+        className={`mt-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl text-sm font-semibold text-text-on-dark shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed ${VARIANTS[variant].btn}`}
       >
         {submitting ? (
-          <span className="animate-pulse">Signing in…</span>
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Signing in…
+          </>
         ) : (
           <>
-            Log In to {VARIANTS[variant].label.split(" ")[0]}
+            Log in to {VARIANTS[variant].label.split(" ")[0]}
             <ArrowRight size={16} />
           </>
         )}
       </motion.button>
 
-      <motion.div variants={itemVariants} className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-3 text-center">
-        <p className="text-sm text-gray-600">
+      <motion.div
+        variants={itemVariants}
+        className="mt-1 pt-5 border-t border-border flex flex-col gap-3 text-center"
+      >
+        <p className="text-sm text-text-muted">
           Don't have an account?{" "}
-          <Link to={signupPath} className="font-semibold text-gray-900 hover:underline transition-all">
-            Sign up now
+          <Link
+            to={signupPath}
+            className={`font-semibold text-brand hover:text-brand-hover hover:underline ${FOCUS}`}
+          >
+            Sign up
           </Link>
         </p>
-        <Link to="/login" className="text-xs text-gray-400 hover:text-gray-800 transition-colors">
+        <Link
+          to="/login"
+          className={`text-xs text-text-soft hover:text-text transition-colors ${FOCUS}`}
+        >
           Wrong portal? Change account type
         </Link>
       </motion.div>
     </motion.form>
-  )
+  );
 }

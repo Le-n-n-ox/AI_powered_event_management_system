@@ -1,11 +1,19 @@
 // client/src/pages/EventDetail.tsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import {
+  MapPin,
+  CalendarDays,
+  Clock,
+  Loader2,
+  CircleCheck,
+  Ban,
+  ExternalLink,
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
 import RegistrationForm from "../components/ui/RegistrationForm";
 import type { Event } from "../types/event";
 
-// Added interface for schedule items
 interface ScheduleItem {
   id: string;
   title: string;
@@ -14,6 +22,11 @@ interface ScheduleItem {
   speaker?: string;
   venue_map_url?: string;
 }
+
+const PILL = "text-xs font-semibold px-2.5 py-1 rounded-full border";
+const FOCUS =
+  "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 rounded";
+const MAP_LINK = `inline-flex items-center gap-1 text-sm text-brand hover:text-brand-hover font-medium mt-1 ${FOCUS}`;
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +40,6 @@ export default function EventDetail() {
     async function fetchEvent() {
       if (!id) return;
 
-      // Fetch Event Details
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .select("*")
@@ -40,11 +52,9 @@ export default function EventDetail() {
         setEvent(eventData);
       }
 
-      // Fetch Attendee Count
       const { data: count } = await supabase.rpc("attendee_count", { eid: id });
       setAttendeeCount(count ?? 0);
 
-      // Fetch Schedule Items (assuming the table is named 'schedule_items')
       const { data: scheduleData, error: scheduleError } = await supabase
         .from("schedule_items")
         .select("*")
@@ -64,139 +74,183 @@ export default function EventDetail() {
   }, [id]);
 
   if (loading)
-    return <div className="p-10 text-center">Loading event details...</div>;
-  if (!event) return <div className="p-10 text-center">Event not found.</div>;
+    return (
+      <div className="min-h-screen bg-background pt-32 flex justify-center text-text-soft">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading event details...
+        </div>
+      </div>
+    );
+
+  if (!event)
+    return (
+      <div className="min-h-screen bg-background pt-32 text-center text-text-soft">
+        Event not found.
+      </div>
+    );
 
   const spotsLeft = event.capacity ? event.capacity - attendeeCount : null;
   const isFull = spotsLeft !== null && spotsLeft <= 0;
+  const mapUrl = event.venue_map_url ? String(event.venue_map_url) : null;
+  const mapQuery = event.venue_address || event.venue_name;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 md:p-10 grid md:grid-cols-2 gap-12">
-      {/* Left: Event Info */}
-      <div>
-        <h1 className="text-4xl font-bold mb-4">{event.name}</h1>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 pt-24 pb-12 grid md:grid-cols-2 gap-8 md:gap-12">
+        {/* Left: Event Info */}
+        <div>
+          <h1 className="font-heading text-3xl sm:text-4xl font-bold text-text tracking-tight mb-4">
+            {event.name}
+          </h1>
 
-        <div className="bg-gray-50 p-4 rounded-md mb-4 border border-gray-100">
-          <p className="font-medium text-gray-700 mb-2">
-            📍 {event.venue_name}
+          <div className="bg-surface p-4 rounded-xl mb-4 border border-border shadow-sm">
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 mt-0.5 text-brand shrink-0" />
+              <div>
+                <p className="font-medium text-text">{event.venue_name}</p>
+                <p className="text-sm text-text-soft">{event.venue_address}</p>
+                {mapUrl && (
+                  <a href={mapUrl} target="_blank" rel="noopener noreferrer" className={MAP_LINK}>
+                    View on Google Maps
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {mapQuery && (
+              <div className="mt-3 rounded-lg overflow-hidden border border-border">
+                <iframe
+                  title="Event location map"
+                  width="100%"
+                  height="220"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(
+                    mapQuery,
+                  )}&output=embed`}
+                />
+              </div>
+            )}
+
+            <hr className="my-3 border-border" />
+            <div className="flex items-center gap-2 font-medium text-text">
+              <CalendarDays className="w-4 h-4 text-brand shrink-0" />
+              {new Date(event.start_date).toLocaleString()}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {event.capacity != null && (
+              <span
+                className={`${PILL} ${
+                  isFull
+                    ? "bg-danger-bg text-danger border-danger-border"
+                    : "bg-info-bg text-info border-info-border"
+                }`}
+              >
+                {isFull ? "Fully Booked" : `${spotsLeft} spots left`}
+              </span>
+            )}
+            {event.requires_approval && (
+              <span
+                className={`${PILL} bg-warning-bg text-warning border-warning-border`}
+              >
+                Approval Required
+              </span>
+            )}
+            {event.is_paid ? (
+              <span
+                className={`${PILL} bg-success-bg text-success border-success-border`}
+              >
+                KES {event.ticket_price}
+              </span>
+            ) : (
+              <span
+                className={`${PILL} bg-surface-strong text-text-muted border-border`}
+              >
+                Free
+              </span>
+            )}
+          </div>
+
+          <p className="text-text-muted leading-relaxed whitespace-pre-wrap">
+            {event.description}
           </p>
-          <p className="text-sm text-gray-500">{event.venue_address}</p>
-          {event.venue_map_url && (
-            <a
-              href={String(event.venue_map_url)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium inline-block mt-1"
-            >
-              View on Google Maps →
-            </a>
-          )}
-          {(event.venue_address || event.venue_name) && (
-            <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">
-              <iframe
-                title="Event location map"
-                width="100%"
-                height="220"
-                style={{ border: 0 }}
-                loading="lazy"
-                src={`https://www.google.com/maps?q=${encodeURIComponent(
-                  event.venue_address || event.venue_name,
-                )}&output=embed`}
-              />
+
+          {/* Schedule Section */}
+          {scheduleItems.length > 0 && (
+            <div className="mt-8">
+              <h2 className="font-heading text-lg font-bold text-text mb-3">
+                Schedule
+              </h2>
+              <div className="flex flex-col gap-2">
+                {scheduleItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border border-border rounded-lg p-3 bg-surface shadow-sm"
+                  >
+                    <p className="font-medium text-text text-sm">
+                      {item.title}
+                    </p>
+                    <p className="flex items-center gap-1.5 text-xs text-text-soft mt-1">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {new Date(item.start_time).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {item.location && ` · ${item.location}`}
+                        {item.speaker && ` · ${item.speaker}`}
+                      </span>
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          <hr className="my-3 border-gray-200" />
-          <p className="font-medium text-gray-700">
-            📅 {new Date(event.start_date).toLocaleString()}
-          </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          {event.capacity && (
-            <span
-              className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                isFull ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-              }`}
+        {/* Right: Registration */}
+        <div className="md:sticky md:top-24 md:self-start">
+          {isRegistered ? (
+            <div
+              role="status"
+              className="bg-success-bg border border-success-border text-success p-8 rounded-xl text-center shadow-sm"
             >
-              {isFull ? "Fully Booked" : `${spotsLeft} spots left`}
-            </span>
-          )}
-          {event.requires_approval && (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
-              Approval Required
-            </span>
-          )}
-          {event.is_paid ? (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700">
-              KES {event.ticket_price}
-            </span>
+              <CircleCheck className="w-10 h-10 mx-auto mb-3" />
+              <h3 className="font-heading text-2xl font-bold mb-2">
+                {event.requires_approval
+                  ? "Request submitted"
+                  : "You're on the list!"}
+              </h3>
+              <p className="text-sm">
+                {event.requires_approval
+                  ? "The organizer will review your registration. You'll be notified once approved."
+                  : "You can now interact with our AI Assistant via SMS using the phone number you provided."}
+              </p>
+            </div>
+          ) : isFull ? (
+            <div
+              role="status"
+              className="bg-danger-bg border border-danger-border text-danger p-8 rounded-xl text-center shadow-sm"
+            >
+              <Ban className="w-10 h-10 mx-auto mb-3" />
+              <h3 className="font-heading text-xl font-bold mb-2">
+                Event Full
+              </h3>
+              <p className="text-sm">
+                This event has reached its capacity. Registration is closed.
+              </p>
+            </div>
           ) : (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-              Free
-            </span>
+            <RegistrationForm
+              eventId={event.id}
+              onSuccess={() => setIsRegistered(true)}
+            />
           )}
         </div>
-
-        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-          {event.description}
-        </p>
-
-        {/* Schedule Section Integrated Here */}
-        {scheduleItems.length > 0 && (
-          <div className="mt-8">
-            <h2 className="font-heading text-lg font-bold text-gray-900 mb-3">
-              Schedule
-            </h2>
-            <div className="flex flex-col gap-2">
-              {scheduleItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="border border-gray-100 rounded-lg p-3 bg-gray-50"
-                >
-                  <p className="font-medium text-gray-800 text-sm">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(item.start_time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {item.location && ` · ${item.location}`}
-                    {item.speaker && ` · ${item.speaker}`}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Right: Registration */}
-      <div>
-        {isRegistered ? (
-          <div className="bg-green-50 border border-green-200 text-green-800 p-8 rounded-lg text-center">
-            <h3 className="text-2xl font-bold mb-2">
-              {event.requires_approval
-                ? "Request submitted ✅"
-                : "You're on the list! ✅"}
-            </h3>
-            <p>
-              {event.requires_approval
-                ? "The organizer will review your registration. You'll be notified once approved."
-                : "You can now interact with our AI Assistant via SMS using the phone number you provided."}
-            </p>
-          </div>
-        ) : isFull ? (
-          <div className="bg-red-50 border border-red-200 text-red-800 p-8 rounded-lg text-center">
-            <h3 className="text-xl font-bold mb-2">Event Full</h3>
-            <p>This event has reached its capacity. Registration is closed.</p>
-          </div>
-        ) : (
-          <RegistrationForm
-            eventId={event.id}
-            onSuccess={() => setIsRegistered(true)}
-          />
-        )}
       </div>
     </div>
   );

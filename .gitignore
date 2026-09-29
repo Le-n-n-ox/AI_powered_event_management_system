@@ -1,3 +1,6 @@
 node_modules/
 .env
 ngrok.exe
+src/**/*.js
+src/**/*.js.map
+!src/**/*.config.js

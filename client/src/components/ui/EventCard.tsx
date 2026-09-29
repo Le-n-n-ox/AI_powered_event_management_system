@@ -1,125 +1,226 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  MapPin,
-  Calendar,
-  Users,
-  Clock,
-  Pencil,
+  MapPinned,
+  CalendarDays,
+  UsersRound,
+  AlarmClock,
+  SquarePen,
   Link as LinkIcon,
   Check,
 } from "lucide-react";
 import type { Event } from "../../types/event";
 import { getCountdown } from "../../utils/dateHelpers";
 
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
 interface EventCardProps {
   event: Event;
-  onEdit?: (event: Event) => void;
 }
 
-function EventCard({ event, onEdit }: EventCardProps) {
+interface StatusStyle {
+  variant: "default" | "secondary" | "destructive";
+  badge: string;
+  bar: string;
+}
+
+const STATUS_STYLES: { [key: string]: StatusStyle } = {
+  upcoming: {
+    variant: "default",
+    badge: "bg-info-bg text-info border-info-border hover:bg-info-bg",
+    bar: "bg-info",
+  },
+  ongoing: {
+    variant: "default",
+    badge: "bg-success-bg text-success border-success-border hover:bg-success-bg",
+    bar: "bg-success",
+  },
+  cancelled: {
+    variant: "destructive",
+    badge: "",
+    bar: "bg-danger",
+  },
+  completed: {
+    variant: "secondary",
+    badge: "",
+    bar: "bg-border-strong",
+  },
+};
+
+const ICON_BTN = "text-text-soft hover:text-text hover:bg-surface-muted";
+
+export default function EventCard({ event }: EventCardProps) {
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
-  const statusStyles = {
-    upcoming: { badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200", accent: "bg-blue-500" },
-    ongoing: { badge: "bg-green-50 text-green-700 ring-1 ring-green-200", accent: "bg-green-500" },
-    completed: { badge: "bg-gray-100 text-gray-600 ring-1 ring-gray-200", accent: "bg-gray-400" },
-    cancelled: { badge: "bg-red-50 text-red-700 ring-1 ring-red-200", accent: "bg-red-500" },
-  };
+  const isPastEvent = new Date(event.end_date) < new Date();
+  const isCancelled = event.status === "cancelled";
+  const showAsPast = isPastEvent && !isCancelled;
 
-  function handleCopyLink() {
+  const style = showAsPast
+    ? STATUS_STYLES.completed
+    : STATUS_STYLES[event.status] ?? STATUS_STYLES.completed;
+  const statusLabel = showAsPast ? "past" : event.status;
+
+  async function handleCopyLink() {
     const url = `${window.location.origin}/events/${event.id}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
   }
-
-  const style = statusStyles[event.status];
-  const iconBtn =
-    "flex items-center justify-center w-9 h-9 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="relative rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
+      className={`h-full ${showAsPast ? "opacity-80 hover:opacity-100" : ""}`}
     >
-      <div className={`absolute top-0 left-0 w-1 h-full ${style.accent}`} />
+      <Card className="h-full relative shadow-sm hover:shadow-md ring-border hover:ring-brand-border transition-all bg-surface">
+        <div className={`absolute top-0 left-0 w-full h-1 ${style.bar}`} />
 
-      <div className="p-5 pl-6">
-        <div className="flex items-start justify-between mb-2 gap-2">
-          <h3 className="font-heading font-semibold text-lg text-gray-900 leading-snug">
-            {event.name}
-          </h3>
-          <span
-            className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${style.badge}`}
-          >
-            {event.status}
-          </span>
-        </div>
-
-        {event.description && (
-          <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed">
-            {event.description}
-          </p>
-        )}
-
-        <div className="flex flex-col gap-1.5 text-sm mb-4 bg-gray-50 rounded-lg p-3">
-          {event.venue_name && (
-            <div className="flex items-center gap-2 text-gray-700">
-              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="truncate">{event.venue_name}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-gray-700">
-            <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-            <span>{new Date(event.start_date).toLocaleDateString()}</span>
-            <span className="text-indigo-600 font-medium">
-              · {getCountdown(event.start_date)}
-            </span>
+        <CardHeader className="pt-1">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="font-heading text-lg leading-snug text-text">
+              {event.name}
+            </CardTitle>
+            <Badge
+              variant={style.variant}
+              className={`capitalize shrink-0 ${style.badge}`}
+            >
+              {statusLabel}
+            </Badge>
           </div>
-          {event.registration_deadline && (
-            <div className="flex items-center gap-2 text-amber-700">
-              <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>Registration closes {getCountdown(event.registration_deadline)}</span>
-            </div>
+          {event.description && (
+            <p className="text-sm text-text-soft line-clamp-2 mt-2">
+              {event.description}
+            </p>
           )}
-        </div>
+        </CardHeader>
 
-        <div className="flex items-center gap-1.5 pt-3 border-t border-gray-100">
-          <Link
-            to={`/events/${event.id}/manage`}
-            title="Manage Attendees"
-            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg py-2 hover:bg-indigo-100 transition-colors"
-          >
-            <Users className="w-3.5 h-3.5" />
-            Attendees
-          </Link>
-          {onEdit && (
-            <button onClick={() => onEdit(event)} title="Edit Event" className={iconBtn}>
-              <Pencil className="w-4 h-4" />
-            </button>
-          )}
-          <Link to={`/events/${event.id}/schedule`} title="Manage Schedule" className={iconBtn}>
-            <Clock className="w-4 h-4" />
-          </Link>
-          <Link to={`/events/${event.id}/locations`} title="Manage Locations" className={iconBtn}>
-            <MapPin className="w-4 h-4" />
-          </Link>
-          <button onClick={handleCopyLink} title="Copy Registration Link" className={iconBtn}>
-            {copied ? (
-              <Check className="w-4 h-4 text-green-600" />
-            ) : (
-              <LinkIcon className="w-4 h-4" />
+        <CardContent className="flex-1">
+          <div className="flex flex-col gap-2 text-sm bg-surface-muted rounded-lg p-3 border border-border">
+            {event.venue_name && (
+              <div className="flex items-center gap-2 text-text-muted">
+                <MapPinned className="w-4 h-4 text-text-soft shrink-0" />
+                <span className="truncate">{event.venue_name}</span>
+              </div>
             )}
-          </button>
-        </div>
-      </div>
+            <div className="flex items-center gap-2 text-text-muted">
+              <CalendarDays className="w-4 h-4 text-text-soft shrink-0" />
+              <span>{new Date(event.start_date).toLocaleDateString()}</span>
+              <span
+                className={`font-medium ml-auto text-xs ${
+                  isPastEvent ? "text-text-soft" : "text-brand"
+                }`}
+              >
+                {isPastEvent ? "Ended" : getCountdown(event.start_date)}
+              </span>
+            </div>
+            {event.registration_deadline && !isPastEvent && (
+              <div className="flex items-center gap-2 text-warning mt-1">
+                <AlarmClock className="w-4 h-4 shrink-0" />
+                <span className="text-xs font-medium">
+                  Closes {getCountdown(event.registration_deadline)}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+
+        <CardFooter className="justify-between gap-1 border-border bg-surface-muted/50">
+          <Button
+            asChild
+            variant="secondary"
+            className="flex-1 text-brand-strong bg-surface-alt hover:bg-brand-soft border border-brand-border"
+          >
+            <Link to={`/events/${event.id}/manage`}>
+              <UsersRound className="w-4 h-4 mr-1.5" />
+              Attendees
+            </Link>
+          </Button>
+
+          <div className="flex items-center gap-1">
+            {!isPastEvent && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={ICON_BTN}
+                onClick={() =>
+                  navigate("/organizer/events/edit", { state: { event } })
+                }
+                title="Edit Event"
+                aria-label="Edit Event"
+              >
+                <SquarePen className="w-4 h-4" />
+              </Button>
+            )}
+
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={ICON_BTN}
+              title="Manage Schedule"
+            >
+              <Link
+                to={`/events/${event.id}/schedule`}
+                aria-label="Manage Schedule"
+              >
+                <AlarmClock className="w-4 h-4" />
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={ICON_BTN}
+              title="Manage Locations"
+            >
+              <Link
+                to={`/events/${event.id}/locations`}
+                aria-label="Manage Locations"
+              >
+                <MapPinned className="w-4 h-4" />
+              </Link>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className={
+                copied
+                  ? "text-success hover:text-success hover:bg-success-bg"
+                  : ICON_BTN
+              }
+              onClick={handleCopyLink}
+              title="Copy Registration Link"
+              aria-label="Copy Registration Link"
+            >
+              {copied ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <LinkIcon className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
     </motion.div>
   );
 }
-
-export default EventCard;

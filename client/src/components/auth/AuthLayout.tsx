@@ -1,17 +1,17 @@
-import { ShieldCheck, CalendarDays, Ticket } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
-import type { ReactNode } from "react" // Import ReactNode for the children prop
+import { ShieldCheck, CalendarDays, Ticket } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react"; // Import ReactNode for the children prop
 
-export type AuthVariant = "admin" | "organizer" | "attendee"
+export type AuthVariant = "admin" | "organizer" | "attendee";
 
 interface VariantConfig {
-  icon: LucideIcon
-  label: string
-  headline: string
-  points: string[]
-  panel: string
-  accent: string
-  btn: string
+  icon: LucideIcon;
+  label: string;
+  headline: string;
+  points: string[];
+  panel: string;
+  accent: string;
+  btn: string;
 }
 
 export const VARIANTS: Record<AuthVariant, VariantConfig> = {
@@ -20,9 +20,9 @@ export const VARIANTS: Record<AuthVariant, VariantConfig> = {
     label: "Admin Portal",
     headline: "Platform administration",
     points: [],
-    panel: "bg-slate-900",
-    accent: "text-amber-400",
-    btn: "bg-slate-900 hover:bg-slate-800",
+    panel: "bg-[var(--color-panel-admin)]",
+    accent: "text-[var(--color-accent-admin)]",
+    btn: "bg-[var(--color-panel-admin)] hover:bg-[var(--color-panel-admin-hover)]",
   },
   organizer: {
     icon: CalendarDays,
@@ -34,9 +34,9 @@ export const VARIANTS: Record<AuthVariant, VariantConfig> = {
       "Manage schedules and venue locations",
       "AI assistant answers attendee questions by SMS",
     ],
-    panel: "bg-indigo-600",
-    accent: "text-indigo-200",
-    btn: "bg-indigo-600 hover:bg-indigo-700",
+    panel: "bg-[var(--color-panel-organizer)]",
+    accent: "text-[var(--color-accent-organizer)]",
+    btn: "bg-[var(--color-panel-organizer)] hover:bg-[var(--color-panel-organizer-hover)]",
   },
   attendee: {
     icon: Ticket,
@@ -47,38 +47,40 @@ export const VARIANTS: Record<AuthVariant, VariantConfig> = {
       "Get schedule and venue answers by SMS",
       "One-tap safety check-ins at the venue",
     ],
-    panel: "bg-emerald-600",
-    accent: "text-emerald-100",
-    btn: "bg-emerald-600 hover:bg-emerald-700",
+    panel: "bg-[var(--color-panel-attendee)]",
+    accent: "text-[var(--color-accent-attendee)]",
+    btn: "bg-[var(--color-panel-attendee)] hover:bg-[var(--color-panel-attendee-hover)]",
   },
-}
+};
 
 // 1. Define your component props
 interface AuthLayoutProps {
-  children: ReactNode
-  variant?: AuthVariant 
-  title?: string     // <-- ADD THIS
-  subtitle?: string  // <-- ADD THIS
+  children: ReactNode;
+  variant?: AuthVariant;
+  title?: string; // <-- ADD THIS
+  subtitle?: string; // <-- ADD THIS
 }
 
 // 2. Actually create the AuthLayout component function
-export default function AuthLayout({ children, variant = "admin" }: AuthLayoutProps) {
-  const config = VARIANTS[variant]
-  const Icon = config.icon
+export default function AuthLayout({
+  children,
+  variant = "admin",
+}: AuthLayoutProps) {
+  const config = VARIANTS[variant];
+  const Icon = config.icon;
 
   return (
-    <div className="flex min-h-screen">
-      {/* Example Layout using your config */}
-      <div className={`w-1/2 p-8 text-white ${config.panel}`}>
+    <div className="flex min-h-screen bg-[var(--color-background)]">
+      <div
+        className={`w-1/2 p-8 text-[var(--color-text-on-dark)] ${config.panel}`}
+      >
         <Icon className={`w-12 h-12 ${config.accent} mb-4`} />
         <h1 className="text-3xl font-bold">{config.headline}</h1>
-        {/* Render your points, etc. */}
       </div>
 
-      <div className="w-1/2 p-8 flex items-center justify-center">
-        {/* This is where your login forms (like AdminLogin) will render */}
+      <div className="w-1/2 p-8 flex items-center justify-center bg-[var(--color-surface)]">
         {children}
       </div>
     </div>
-  )
+  );
 }

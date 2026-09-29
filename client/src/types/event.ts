@@ -1,19 +1,20 @@
 export interface Event {
-  venue_map_url?: string;
-  registration_deadline?: string | null; // Added here
   id: string;
   organizer_id: string;
   name: string;
   description: string;
+  status: "upcoming" | "ongoing" | "completed" | "cancelled";
   venue_name: string;
   venue_address: string;
+  venue_map_url?: string;
   start_date: string;
   end_date: string;
-  status: "upcoming" | "ongoing" | "completed" | "cancelled";
+  registration_deadline?: string | null;
+  capacity: number | null;
   requires_approval: boolean;
   is_paid: boolean;
-  ticket_price: number;
-  capacity: number | null;
+  ticket_price: number | null;
+  knowledge_text?: string | null;
   created_at: string;
 }
 
