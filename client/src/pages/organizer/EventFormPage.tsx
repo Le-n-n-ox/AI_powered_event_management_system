@@ -13,6 +13,7 @@ import DateTimeSection from "../../components/events/form/DateTimeSection";
 import RegistrationSection from "../../components/events/form/RegistrationSection";
 import AiAutofill from "../../components/events/form/AiAutofill";
 import KnowledgeSection from "../../components/events/form/KnowledgeSection";
+import React from "react";
 
 const inputCls =
   "border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/20 transition-colors";
@@ -155,7 +156,6 @@ export default function EventFormPage() {
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Button
               type="button"
-              variant="outline"
               onClick={() => navigate(-1)}
               className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
             >

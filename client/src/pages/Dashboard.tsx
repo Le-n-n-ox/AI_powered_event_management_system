@@ -8,6 +8,7 @@ import type { Event } from "../types/event";
 import { Button } from "@/components/ui/button";
 
 import AdminDashboard from "./admin/AdminDashboard";
+import React from "react";
 
 function EventSection({ title, events }: { title: string; events: Event[] }) {
   return (

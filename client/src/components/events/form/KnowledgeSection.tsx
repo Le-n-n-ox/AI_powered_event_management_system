@@ -1,5 +1,6 @@
 ﻿import { useRef, useState } from "react";
 import { Sparkles, Upload, Trash2 } from "lucide-react";
+import React from "react";
 
 const MAX_CHARS = 15000;
 const MAX_FILE_BYTES = 500 * 1024;
