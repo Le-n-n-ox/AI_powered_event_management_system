@@ -47,6 +47,26 @@ const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-KE', { timeZone: E
 const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-KE', { timeZone: EVENT_TZ, timeStyle: 'short' }) : 'TBD';
 const MAX_DOC_CHARS = 15000; // keeps the prompt within what small/local models can handle
 
+// Chunk organizer documents and rank paragraphs by keyword matches to the SMS.
+function getRelevantChunks(text, query, maxChunks = 3) {
+    if (!text) return 'None uploaded.';
+
+    const stopWords = new Set(['what', 'where', 'when', 'how', 'who', 'is', 'are', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'my', 'i', 'can']);
+    const keywords = query.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(word => word.length > 2 && !stopWords.has(word));
+    const chunks = text.split(/\n\n+/).map(chunk => chunk.trim()).filter(Boolean);
+
+    if (keywords.length === 0) return chunks.slice(0, maxChunks).join('\n\n');
+
+    const scored = chunks.map(chunk => {
+        const lowerChunk = chunk.toLowerCase();
+        const score = keywords.reduce((total, word) => total + (lowerChunk.includes(word) ? 1 : 0), 0);
+        return { chunk, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, maxChunks).map(item => item.chunk).join('\n\n...\n\n');
+}
+
 app.get('/', (req, res) => {
     res.status(200).json({ 
         status: 'online', 
@@ -200,81 +220,109 @@ app.post('/webhook/incoming', async (req, res) => {
         return;
     }
 
-    // 3. AI Processing & Emergency Call Escalation
-    const { data: attendee } = await supabase
+    // 3. Remove this sender's messages older than 30 minutes.
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { error: cleanupError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('phone_number', from)
+        .lt('created_at', thirtyMinsAgo);
+    if (cleanupError) {
+        console.error('❌ Chat history cleanup failed:', cleanupError.message);
+    }
+
+    // Fetch the latest six messages, then restore chronological order for the model.
+    const { data: historyData, error: historyError } = await supabase
+        .from('chat_messages')
+        .select('role, content')
+        .eq('phone_number', from)
+        .order('created_at', { ascending: false })
+        .limit(6);
+    if (historyError) {
+        console.error('❌ Chat history lookup failed:', historyError.message);
+    }
+    const chatHistory = (historyData || []).reverse();
+
+    // 4. Build context for every event this attendee is registered for.
+    const { data: attendeeRecords, error: attendeeError } = await supabase
         .from('attendees')
         .select('*')
-        .eq('phone_number', from)
-        .order('registered_at', { ascending: false })
-        .limit(1)
-        .single();
+        .eq('phone_number', from);
+    if (attendeeError) {
+        console.error('❌ Attendee lookup failed:', attendeeError.message);
+    }
 
-    // Use the name given at registration (column name may differ, so check the common ones)
-    const fullName = attendee?.name || attendee?.attendee_name || attendee?.full_name || null;
+    const latestRecord = attendeeRecords && attendeeRecords.length > 0
+        ? attendeeRecords.sort((a, b) => new Date(b.registered_at) - new Date(a.registered_at))[0]
+        : null;
+    const fullName = latestRecord?.name || latestRecord?.attendee_name || latestRecord?.full_name || null;
     const attendeeName = fullName ? fullName.trim().split(' ')[0] : null;
 
     let knowledgeBase = "No event information available.";
 
-    if (attendee?.event_id) {
-        const { data: eventData } = await supabase
+    if (attendeeRecords && attendeeRecords.length > 0) {
+        const eventIds = [...new Set(attendeeRecords.map(record => record.event_id).filter(Boolean))];
+
+        const { data: eventsData, error: eventsError } = await supabase
             .from('events')
             .select('*')
-            .eq('id', attendee.event_id)
-            .single();
-
-        const { data: scheduleData } = await supabase
+            .in('id', eventIds);
+        const { data: scheduleData, error: scheduleError } = await supabase
             .from('schedule_items')
-            .select('title, speaker, location, start_time, end_time')
-            .eq('event_id', attendee.event_id)
+            .select('event_id, title, speaker, location, start_time, end_time')
+            .in('event_id', eventIds)
             .order('start_time', { ascending: true });
-
-        const { data: venueData } = await supabase
+        const { data: venueData, error: venueError } = await supabase
             .from('venue_locations')
-            .select('label, description')
-            .eq('event_id', attendee.event_id);
+            .select('event_id, label, description')
+            .in('event_id', eventIds);
 
-        const scheduleText = (scheduleData || [])
-            .map(s => `- ${s.title}${s.speaker ? ` by ${s.speaker}` : ''} at ${fmtTime(s.start_time)}${s.location ? ` in ${s.location}` : ''}`)
-            .join('\n');
+        if (eventsError) console.error('❌ Event lookup failed:', eventsError.message);
+        if (scheduleError) console.error('❌ Schedule lookup failed:', scheduleError.message);
+        if (venueError) console.error('❌ Venue lookup failed:', venueError.message);
 
-        const venueText = (venueData || [])
-            .map(v => `- ${v.label}: ${v.description || 'No additional details'}`)
-            .join('\n');
+        knowledgeBase = (eventsData || []).map(event => {
+            const eventSchedule = (scheduleData || [])
+                .filter(item => item.event_id === event.id)
+                .map(item => `- ${item.title}${item.speaker ? ` by ${item.speaker}` : ''} at ${fmtTime(item.start_time)}${item.location ? ` in ${item.location}` : ''}`)
+                .join('\n');
+            const eventVenues = (venueData || [])
+                .filter(venue => venue.event_id === event.id)
+                .map(venue => `- ${venue.label}: ${venue.description || 'No additional details'}`)
+                .join('\n');
+            const priceText = event.is_paid ? `Paid event, ticket price ${event.ticket_price ?? 'TBD'}` : 'Free event';
+            const relevantDocs = getRelevantChunks(
+                (event.knowledge_text || '').slice(0, MAX_DOC_CHARS),
+                cleanText,
+            );
 
-        const docText = (eventData?.knowledge_text || '').slice(0, MAX_DOC_CHARS);
-        const priceText = eventData?.is_paid ? `Paid event, ticket price ${eventData?.ticket_price ?? 'TBD'}` : 'Free event';
-
-        knowledgeBase = `
-Event: ${eventData?.name || 'Unknown'}
-About: ${eventData?.description || 'No description provided.'}
-Venue: ${eventData?.venue_name || 'TBD'}${eventData?.venue_address ? `, ${eventData.venue_address}` : ''}
-Starts: ${fmtDateTime(eventData?.start_date)}
-Ends: ${fmtDateTime(eventData?.end_date)}
-Registration deadline: ${eventData?.registration_deadline ? fmtDateTime(eventData.registration_deadline) : 'None stated'}
-Capacity: ${eventData?.capacity ?? 'Not stated'}
+            return `
+--- EVENT: ${event.name || 'Unknown'} ---
+About: ${event.description || 'No description provided.'}
+Venue: ${event.venue_name || 'TBD'}${event.venue_address ? `, ${event.venue_address}` : ''}
+Starts: ${fmtDateTime(event.start_date)}
+Ends: ${fmtDateTime(event.end_date)}
 Tickets: ${priceText}
-
 Schedule:
-${scheduleText || 'No schedule items yet.'}
-
+${eventSchedule || 'No schedule items yet.'}
 Venue Locations:
-${venueText || 'No venue locations added yet.'}
+${eventVenues || 'No venue locations added yet.'}
+Organizer Documents (Relevant Excerpts):
+${relevantDocs}`.trim();
+        }).join('\n\n');
 
-Organizer's uploaded documents (agenda, FAQ, rules, etc.):
-${docText || 'None uploaded.'}
-`.trim();
+        if (eventsData && eventsData.length > 1) {
+            knowledgeBase = `[CRITICAL SYSTEM INSTRUCTION: The attendee is registered for MULTIPLE events. If their question is vague, politely ask them which event they are asking about.]\n\n${knowledgeBase}`;
+        }
     }
 
     console.log("🧠 Knowledge base sent to AI:\n", knowledgeBase);
-    const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName);
+    const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName, chatHistory);
     let replyMessage = aiResult.reply;
 
     if (aiResult.isEmergency) {
-        console.log(`🚨 EMERGENCY DETECTED! Triggering voice call escalation...`);
-        
-        // Check if running in Sandbox mode to prevent voice DNS resolution errors
+        console.log('🚨 EMERGENCY DETECTED! Triggering voice call escalation...');
         if (process.env.AT_USERNAME === 'sandbox') {
-            console.log(`📞 [SANDBOX SIMULATION] Voice calls are restricted in the AT Sandbox environment.`);
             console.log(`📞 [SANDBOX SIMULATION] Outbound emergency call to ${process.env.EMERGENCY_CONTACT_PHONE || 'configured contact'} successfully simulated.`);
         } else {
             try {
@@ -282,24 +330,26 @@ ${docText || 'None uploaded.'}
                     callFrom: process.env.AT_VIRTUAL_NUMBER,
                     callTo: process.env.EMERGENCY_CONTACT_PHONE
                 });
-                console.log(`📞 OUTBOUND VOICE CALL DISPATCHED successfully.`);
             } catch (callError) {
-                console.error(`❌ Voice Call Failed:`, callError.message);
+                console.error('❌ Voice Call Failed:', callError.message);
             }
         }
-
         replyMessage = `🚨 EMERGENCY LOGGED${attendeeName ? `, ${attendeeName}` : ''}: Floor security has been dispatched via phone call and SMS alert.`;
+    } else {
+        const { error: saveHistoryError } = await supabase.from('chat_messages').insert([
+            { phone_number: from, role: 'user', content: cleanText },
+            { phone_number: from, role: 'assistant', content: replyMessage }
+        ]);
+        if (saveHistoryError) {
+            console.error('❌ Saving chat history failed:', saveHistoryError.message);
+        }
     }
 
     try {
-        console.log(`📤 Sending AI reply to ${from}: "${replyMessage}"`);
-        const sendResult = await sms.send({
-            to: [from],
-            message: replyMessage
-        });
-        console.log("✅ SMS API Success Response:", sendResult);
+        await sms.send({ to: [from], message: replyMessage });
+        console.log(`📤 Sent AI reply to ${from}`);
     } catch (error) {
-        console.error(`❌ Failed to send SMS reply via API:`, error);
+        console.error('❌ Failed to send SMS reply via API:', error);
     }
 });
 

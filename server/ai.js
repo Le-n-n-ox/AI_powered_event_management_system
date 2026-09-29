@@ -31,7 +31,7 @@ function buildSystemPrompt(knowledge, attendeeName) {
     return `You are a helpful event assistant. ${nameLine} Use ONLY these facts to answer:\n${knowledge}\n\nKeep your answer short and direct (under 300 characters, since this is an SMS). If the answer isn't in the facts, say you don't know.`;
 }
 
-async function processMessageWithAI(userMessage, knowledgeBase, attendeeName) {
+async function processMessageWithAI(userMessage, knowledgeBase, attendeeName, chatHistory = []) {
     const emergency = detectEmergency(userMessage);
 
     if (emergency.isEmergency) {
@@ -46,23 +46,27 @@ async function processMessageWithAI(userMessage, knowledgeBase, attendeeName) {
     const systemPrompt = buildSystemPrompt(knowledge, attendeeName);
 
     try {
-        console.log(`🤖 Processing message with ${provider}: "${userMessage}"`);
+        console.log(`🤖 Processing message with \({provider}: "\){userMessage}"`);
         let replyText = "";
 
         if (provider === 'gemini') {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
+            // Map standard chat history to Gemini's specific role format
+            const contents = chatHistory.map(msg => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }]
+            }));
+            
+            // Add the new user message
+            contents.push({ role: 'user', parts: [{ text: userMessage }] });
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `${systemPrompt}
-
-User query: ${userMessage}`
-                        }]
-                    }]
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: contents
                 })
             });
 
@@ -74,29 +78,21 @@ User query: ${userMessage}`
 
             replyText = data.candidates[0].content.parts[0].text.trim();
 
-        } else if (provider === 'nvidia') {
-            const response = await aiClient.chat.completions.create({
-                model: process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct", 
-                messages: [
-                    {
-                        role: "system",
-                        content: systemPrompt
-                    },
-                    { role: "user", content: userMessage }
-                ]
-            });
-            replyText = response.choices[0].message.content.trim();
-            
         } else {
+            // OpenAI format (used by NVIDIA and Ollama)
+            const messages = [
+                { role: "system", content: systemPrompt },
+                ...chatHistory.map(msg => ({ role: msg.role, content: msg.content })),
+                { role: "user", content: userMessage }
+            ];
+            
+            const modelToUse = provider === 'nvidia' 
+                ? (process.env.NVIDIA_MODEL || "meta/llama-3.1-70b-instruct") 
+                : "llama3.2";
+
             const response = await aiClient.chat.completions.create({
-                model: "llama3.2", 
-                messages: [
-                    {
-                        role: "system",
-                        content: systemPrompt
-                    },
-                    { role: "user", content: userMessage }
-                ]
+                model: modelToUse, 
+                messages: messages
             });
             replyText = response.choices[0].message.content.trim();
         }
@@ -105,7 +101,6 @@ User query: ${userMessage}`
 
     } catch (error) {
         console.error(`❌ DETAILED AI ERROR (${provider}):`, error.message || error);
-
         return {
             isEmergency: false,
             reply: "Sorry, I couldn't process that right now. Please try again shortly."
