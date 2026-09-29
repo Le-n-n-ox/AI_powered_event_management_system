@@ -18,6 +18,9 @@ import OrganizerSignup from "./pages/organizer/OrganizerSignup";
 import AttendeeLogin from "./pages/attendee/AttendeeLogin";
 import AttendeeSignup from "./pages/attendee/AttendeeSignup";
 import EventFormPage from "./pages/organizer/EventFormPage";
+import RequireAuth from "./components/layout/RequireAuth";
+import Profile from "./pages/Profile";
+
 
 // Staff login required AND must own the event (admins bypass ownership)
 function Managed({ children }: { children: ReactNode }) {
@@ -44,6 +47,7 @@ function App() {
           <Route path="/organizer/signup" element={<OrganizerSignup />} />
           <Route path="/attendee/login" element={<AttendeeLogin />} />
           <Route path="/attendee/signup" element={<AttendeeSignup />} />
+          <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
 
           {/* Event Form Management */}
           <Route

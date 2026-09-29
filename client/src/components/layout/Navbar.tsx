@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
+import { CalendarDays, LogOut, LayoutDashboard, UserRound, Menu, X } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
@@ -96,6 +96,10 @@ function Navbar() {
                     Dashboard
                   </Link>
                 )}
+                <Link to="/profile" className={linkClass("/profile", "px-3.5 py-2")}>
+                  <UserRound className="w-4 h-4" />
+                  Profile
+                </Link>
                 <div className="w-px h-6 bg-text-on-dark/25 mx-2" />
                 <Button
                   variant="ghost"
@@ -159,6 +163,10 @@ function Navbar() {
                     Dashboard
                   </Link>
                 )}
+                <Link to="/profile" className={linkClass("/profile", "gap-2 px-3 py-2.5")}>
+                  <UserRound className="w-4 h-4" />
+                  Profile
+                </Link>
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
