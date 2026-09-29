@@ -198,4 +198,41 @@ async function extractEventFromText(rawText) {
     };
 }
 
-module.exports = { processMessageWithAI, extractEventFromText };
+async function draftBroadcastMessage(eventName, updateType, changeDetails) {
+    const prompt = `You are a friendly event assistant for "${eventName}". The organizer just updated the ${updateType}.
+Details: ${changeDetails}.
+Draft a quick, polite SMS under 160 characters notifying attendees of this change. Sound natural and human, not robotic. Do not use placeholders or add a greeting that wastes space. Return only the final message.`;
+
+    try {
+        let message;
+
+        if (provider === 'gemini') {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
+            message = data.candidates[0].content.parts[0].text.trim();
+        } else {
+            const modelToUse = provider === 'nvidia'
+                ? (process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct')
+                : 'llama3.2';
+            const response = await aiClient.chat.completions.create({
+                model: modelToUse,
+                messages: [{ role: 'user', content: prompt }]
+            });
+            message = response.choices[0].message.content.trim();
+        }
+
+        return message.length <= 160 ? message : `${message.slice(0, 157).trimEnd()}...`;
+    } catch (error) {
+        console.error('❌ AI Broadcast drafting failed:', error);
+        const fallback = `Update for ${eventName}: The ${updateType} has changed. Reply with questions!`;
+        return fallback.length <= 160 ? fallback : `${fallback.slice(0, 157).trimEnd()}...`;
+    }
+}
+
+module.exports = { processMessageWithAI, extractEventFromText, draftBroadcastMessage };

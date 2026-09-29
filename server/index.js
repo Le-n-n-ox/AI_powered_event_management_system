@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 const express = require('express');
 const cors = require('cors'); // Required for React frontend communication
-const { processMessageWithAI, extractEventFromText } = require('./ai');
+const { processMessageWithAI, extractEventFromText, draftBroadcastMessage } = require('./ai');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 
@@ -124,6 +124,46 @@ app.post('/api/extract-event', upload.array('files', 5), async (req, res) => {
     } catch (err) {
         console.error('❌ Event extraction error:', err.message || err);
         res.status(500).json({ error: 'Failed to extract event details from that document.' });
+    }
+});
+
+// Proactive AI Broadcast Endpoint
+app.post('/api/broadcast-update', async (req, res) => {
+    const { eventId, eventName, updateType, changeDetails } = req.body;
+
+    if (!eventId || !eventName) {
+        return res.status(400).json({ error: 'Missing event details' });
+    }
+
+    try {
+        const { data: attendees, error } = await supabase
+            .from('attendees')
+            .select('phone_number')
+            .eq('event_id', eventId);
+
+        if (error) throw error;
+        if (!attendees || attendees.length === 0) {
+            return res.json({ message: 'No attendees to notify.' });
+        }
+
+        const message = await draftBroadcastMessage(eventName, updateType, changeDetails);
+        console.log(`📢 Broadcasting AI update for ${eventName}: "${message}"`);
+
+        const phoneNumbers = [...new Set(attendees.map(attendee => attendee.phone_number).filter(Boolean))];
+        if (phoneNumbers.length === 0) {
+            return res.json({ message: 'No attendees to notify.' });
+        }
+
+        if (process.env.AT_USERNAME === 'sandbox') {
+            console.log(`📱 [SANDBOX] Simulated broadcast to ${phoneNumbers.length} attendees.`);
+        } else {
+            await sms.send({ to: phoneNumbers, message });
+        }
+
+        res.json({ success: true, message: 'Broadcast sent successfully', draftedText: message });
+    } catch (err) {
+        console.error('❌ Broadcast Error:', err);
+        res.status(500).json({ error: 'Failed to send broadcast' });
     }
 });
 

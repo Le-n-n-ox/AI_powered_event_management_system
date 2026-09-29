@@ -42,11 +42,30 @@ export default function ManageSchedule() {
 
   async function handleDelete(itemId: string) {
     if (!confirm("Delete this schedule item?")) return;
+    const deletedItem = items.find((item) => item.id === itemId);
+
     const { error } = await supabase
       .from("schedule_items")
       .delete()
       .eq("id", itemId);
-    if (!error) setItems(items.filter((i) => i.id !== itemId));
+
+    if (!error) {
+      setItems(items.filter((item) => item.id !== itemId));
+
+      if (deletedItem && event) {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+        fetch(`${apiUrl}/api/broadcast-update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId: event.id,
+            eventName: event.name,
+            updateType: "schedule cancellation",
+            changeDetails: `The session "${deletedItem.title}" has been removed from the schedule.`,
+          }),
+        }).catch((err) => console.error("Schedule broadcast failed:", err));
+      }
+    }
   }
 
   if (loading)

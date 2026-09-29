@@ -224,3 +224,125 @@ smart-help-desk
    ├─ skills-lock.json
    └─ test-emergency.js
 ```
+
+```
+smart-help-desk
+├─ client
+│  ├─ components.json
+│  ├─ dist
+│  │  ├─ assets
+│  │  │  ├─ index-CJQKm5Ns.js
+│  │  │  └─ index-DVy33Hw5.css
+│  │  ├─ favicon.svg
+│  │  ├─ icons.svg
+│  │  └─ index.html
+│  ├─ eslint.config.js
+│  ├─ index.html
+│  ├─ package-lock.json
+│  ├─ package.json
+│  ├─ public
+│  │  ├─ favicon.svg
+│  │  └─ icons.svg
+│  ├─ README.md
+│  ├─ src
+│  │  ├─ App.css
+│  │  ├─ App.tsx
+│  │  ├─ assets
+│  │  │  ├─ hero.png
+│  │  │  ├─ react.svg
+│  │  │  └─ vite.svg
+│  │  ├─ components
+│  │  │  ├─ admin
+│  │  │  │  └─ UserManagement.tsx
+│  │  │  ├─ auth
+│  │  │  │  ├─ AuthLayout.tsx
+│  │  │  │  ├─ AuthUI.tsx
+│  │  │  │  ├─ authVariants.ts
+│  │  │  │  ├─ LoginForm.tsx
+│  │  │  │  └─ SignupForm.tsx
+│  │  │  ├─ events
+│  │  │  │  └─ form
+│  │  │  │     ├─ AiAutofill.tsx
+│  │  │  │     ├─ BasicInfoSection.tsx
+│  │  │  │     ├─ DateTimeSection.tsx
+│  │  │  │     ├─ KnowledgeSection.tsx
+│  │  │  │     ├─ RegistrationSection.tsx
+│  │  │  │     └─ VenueSection.tsx
+│  │  │  ├─ layout
+│  │  │  │  ├─ AccessDenied.tsx
+│  │  │  │  ├─ BackButton.tsx
+│  │  │  │  ├─ EventGuard.tsx
+│  │  │  │  ├─ Navbar.tsx
+│  │  │  │  └─ ProtectedRoute.tsx
+│  │  │  ├─ pages
+│  │  │  │  └─ RoleSelect.tsx
+│  │  │  └─ ui
+│  │  │     ├─ AddScheduleItemForm.tsx
+│  │  │     ├─ AddVenueLocationForm.tsx
+│  │  │     ├─ badge.tsx
+│  │  │     ├─ button.tsx
+│  │  │     ├─ card.tsx
+│  │  │     ├─ EventCard.tsx
+│  │  │     ├─ input.tsx
+│  │  │     ├─ RegistrationForm.tsx
+│  │  │     ├─ select.tsx
+│  │  │     └─ table.tsx
+│  │  ├─ context
+│  │  │  └─ AuthContext.tsx
+│  │  ├─ hooks
+│  │  │  └─ useEvents.ts
+│  │  ├─ index.css
+│  │  ├─ lib
+│  │  │  ├─ supabase.ts
+│  │  │  └─ utils.ts
+│  │  ├─ main.tsx
+│  │  ├─ pages
+│  │  │  ├─ admin
+│  │  │  │  ├─ AdminDashboard.tsx
+│  │  │  │  ├─ AdminLogin.tsx
+│  │  │  │  └─ AdminSignup.tsx
+│  │  │  ├─ attendee
+│  │  │  │  ├─ AttendeeLogin.tsx
+│  │  │  │  └─ AttendeeSignup.tsx
+│  │  │  ├─ Dashboard.tsx
+│  │  │  ├─ EventDetail.tsx
+│  │  │  ├─ EventsList.tsx
+│  │  │  ├─ Landing.tsx
+│  │  │  ├─ ManageAttendees.tsx
+│  │  │  ├─ ManageSchedule.tsx
+│  │  │  ├─ ManageVenueLocations.tsx
+│  │  │  ├─ organizer
+│  │  │  │  ├─ EventFormPage.tsx
+│  │  │  │  ├─ OrganizerLogin.tsx
+│  │  │  │  └─ OrganizerSignup.tsx
+│  │  │  └─ RoleSelect.tsx
+│  │  ├─ types
+│  │  │  └─ event.ts
+│  │  └─ utils
+│  │     ├─ dateHelpers.ts
+│  │     └─ phone.ts
+│  ├─ tailwind.config.js
+│  ├─ tsconfig.app.json
+│  ├─ tsconfig.json
+│  ├─ tsconfig.node.json
+│  ├─ tsconfig.tsbuildinfo
+│  ├─ vercel.json
+│  └─ vite.config.ts
+├─ package-lock.json
+├─ package.json
+├─ README.md
+└─ server
+   ├─ .agents
+   │  └─ skills
+   │     └─ supabase-server
+   │        └─ SKILL.md
+   ├─ ai.js
+   ├─ chat_messages.sql
+   ├─ emergency.js
+   ├─ index.js
+   ├─ package-lock.json
+   ├─ package.json
+   ├─ skills-lock.json
+   └─ test-emergency.js
+
+```

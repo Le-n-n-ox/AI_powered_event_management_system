@@ -153,6 +153,24 @@ export default function EventFormPage() {
       return;
     }
 
+    if (isEdit) {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+        await fetch(`${apiUrl}/api/broadcast-update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId: event!.id,
+            eventName: formData.name,
+            updateType: "event details (venue/dates)",
+            changeDetails: `Venue is now ${formData.venueName}. Dates: ${formData.startDate} to ${formData.endDate}.`,
+          }),
+        });
+      } catch (err) {
+        console.error("Broadcast trigger failed:", err);
+      }
+    }
+
     navigate("/dashboard");
   }
 
