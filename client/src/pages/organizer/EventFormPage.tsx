@@ -17,7 +17,7 @@ import KnowledgeSection from "../../components/events/form/KnowledgeSection";
 import React from "react";
 
 const inputCls =
-  "border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/20 transition-colors";
+  "border border-border rounded-lg px-3 py-2 text-sm text-text bg-surface focus:outline-none focus:border-focus focus:ring-1 focus:ring-focus-soft transition-colors";
 
 function toLocalInput(iso?: string | null) {
   if (!iso) return "";
@@ -77,7 +77,9 @@ export default function EventFormPage() {
           : prev.isPaid,
       // Append extracted document text instead of overwriting what the organizer typed
       knowledgeText: extractedData?.knowledgeText
-        ? [prev.knowledgeText, extractedData.knowledgeText].filter(Boolean).join("\n\n")
+        ? [prev.knowledgeText, extractedData.knowledgeText]
+            .filter(Boolean)
+            .join("\n\n")
         : prev.knowledgeText,
     }));
   };
@@ -123,7 +125,10 @@ export default function EventFormPage() {
       capacity: formData.capacity ? parseInt(formData.capacity, 10) : null,
       requires_approval: formData.requiresApproval,
       is_paid: formData.isPaid,
-      ticket_price: formData.isPaid && formData.ticketPrice ? parseFloat(formData.ticketPrice) : null,
+      ticket_price:
+        formData.isPaid && formData.ticketPrice
+          ? parseFloat(formData.ticketPrice)
+          : null,
       knowledge_text: formData.knowledgeText || null,
     };
 
@@ -144,19 +149,25 @@ export default function EventFormPage() {
     }
 
     navigate("/dashboard");
-
   }
 
   async function handleDelete() {
     if (!event) return;
-    if (!confirm(`Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`)) {
+    if (
+      !confirm(
+        `Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`,
+      )
+    ) {
       return;
     }
 
     setDeleting(true);
     setError(null);
 
-    const { error: dbError } = await supabase.from("events").delete().eq("id", event.id);
+    const { error: dbError } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", event.id);
 
     setDeleting(false);
 
@@ -166,22 +177,21 @@ export default function EventFormPage() {
     }
 
     navigate("/dashboard");
-
   }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8"
+      className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8"
     >
       <div className="max-w-3xl mx-auto">
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
+            <h1 className="text-3xl font-bold text-text">
               {isEdit ? "Edit Event" : "Create New Event"}
             </h1>
-            <p className="text-slate-500 mt-1">
+            <p className="text-text-soft mt-1">
               Fill in the details below to publish your event.
             </p>
           </div>
@@ -190,7 +200,7 @@ export default function EventFormPage() {
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-danger bg-surface border border-danger-border rounded-lg hover:bg-danger-hover disabled:opacity-50 shrink-0"
             >
               <Trash2 className="w-4 h-4" />
               {deleting ? "Deleting…" : "Delete Event"}
@@ -201,30 +211,53 @@ export default function EventFormPage() {
         {!isEdit && <AiAutofill onDataExtracted={handleAiExtraction} />}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <BasicInfoSection data={formData} updateData={updateData} isEdit={isEdit} inputCls={inputCls} />
-          <DateTimeSection data={formData} updateData={updateData} inputCls={inputCls} isEdit={isEdit} />
-          <VenueSection data={formData} updateData={updateData} inputCls={inputCls} />
-          <RegistrationSection data={formData} updateData={updateData} inputCls={inputCls} isEdit={isEdit} />
-          <KnowledgeSection data={formData} updateData={updateData} inputCls={inputCls} />
+          <BasicInfoSection
+            data={formData}
+            updateData={updateData}
+            isEdit={isEdit}
+            inputCls={inputCls}
+          />
+          <DateTimeSection
+            data={formData}
+            updateData={updateData}
+            inputCls={inputCls}
+            isEdit={isEdit}
+          />
+          <VenueSection
+            data={formData}
+            updateData={updateData}
+            inputCls={inputCls}
+          />
+          <RegistrationSection
+            data={formData}
+            updateData={updateData}
+            inputCls={inputCls}
+            isEdit={isEdit}
+          />
+          <KnowledgeSection
+            data={formData}
+            updateData={updateData}
+            inputCls={inputCls}
+          />
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 text-sm">
+            <div className="bg-danger-bg text-danger p-4 rounded-lg border border-danger-border text-sm">
               {error}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+              className="px-5 py-2.5 text-sm font-medium text-text-muted bg-surface border border-border rounded-lg hover:bg-surface-muted"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2 shadow-sm"
+              className="px-5 py-2.5 text-sm font-medium text-text-on-dark bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2 shadow-sm"
             >
               {submitting
                 ? "Saving..."

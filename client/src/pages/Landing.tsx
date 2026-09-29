@@ -44,7 +44,7 @@ function Landing() {
       <section className="relative overflow-hidden">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-surface-alt to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-surface-alt to-[var(--color-transparent)]"
         />
         <div className="relative max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
           <motion.span

@@ -36,30 +36,31 @@ interface StatusStyle {
   bar: string;
 }
 
+// Polished matching the custom CSS variables for high contrast
 const STATUS_STYLES: { [key: string]: StatusStyle } = {
   upcoming: {
     variant: "default",
-    badge: "bg-info-bg text-info border-info-border hover:bg-info-bg",
+    badge: "bg-info-bg text-info border-info-border hover:bg-info-bg/80",
     bar: "bg-info",
   },
   ongoing: {
     variant: "default",
-    badge: "bg-success-bg text-success border-success-border hover:bg-success-bg",
+    badge: "bg-success-bg text-success border-success-border hover:bg-success-bg/80",
     bar: "bg-success",
   },
   cancelled: {
     variant: "destructive",
-    badge: "",
+    badge: "bg-danger-bg text-danger border-danger-border hover:bg-danger-bg/80",
     bar: "bg-danger",
   },
   completed: {
     variant: "secondary",
-    badge: "",
+    badge: "bg-surface-strong text-text-soft border-border-strong",
     bar: "bg-border-strong",
   },
 };
 
-const ICON_BTN = "text-text-soft hover:text-text hover:bg-surface-muted";
+const ICON_BTN = "text-text-soft hover:text-text hover:bg-surface-strong transition-colors duration-200";
 
 export default function EventCard({ event, onDeleted }: EventCardProps) {
   const navigate = useNavigate();
@@ -113,19 +114,27 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className={`h-full ${showAsPast ? "opacity-80 hover:opacity-100" : ""}`}
+      className={`h-full ${showAsPast ? "opacity-75 hover:opacity-100" : ""}`}
     >
-      <Card className="h-full relative shadow-sm hover:shadow-md ring-border hover:ring-brand-border transition-all bg-surface">
-        <div className={`absolute top-0 left-0 w-full h-1 ${style.bar}`} />
+      {/* 
+        Card Container Updates: 
+        - Replaced ring with a crisp border (border-border-strong)
+        - Added shadow-shadow-brand on hover for a distinct pop from the background
+        - Added overflow-hidden so the top bar respects the rounded corners 
+      */}
+      <Card className="h-full flex flex-col relative shadow-md hover:shadow-xl hover:shadow-brand-soft border border-border-strong hover:border-brand-border transition-all duration-300 bg-surface overflow-hidden">
+        
+        {/* Made the top bar slightly thicker (h-1.5) for better visual hierarchy */}
+        <div className={`absolute top-0 left-0 w-full h-1.5 ${style.bar}`} />
 
-        <CardHeader className="pt-1">
+        <CardHeader className="pt-4 pb-2">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="font-heading text-lg leading-snug text-text">
               {event.name}
             </CardTitle>
             <Badge
               variant={style.variant}
-              className={`capitalize shrink-0 ${style.badge}`}
+              className={`capitalize shrink-0 font-medium tracking-wide ${style.badge}`}
             >
               {statusLabel}
             </Badge>
@@ -137,20 +146,20 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
           )}
         </CardHeader>
 
-        <CardContent className="flex-1">
-          <div className="flex flex-col gap-2 text-sm bg-surface-muted rounded-lg p-3 border border-border">
+        <CardContent className="flex-1 pb-4">
+          <div className="flex flex-col gap-2 text-sm bg-surface-muted rounded-lg p-3 border border-border-strong mt-2">
             {event.venue_name && (
               <div className="flex items-center gap-2 text-text-muted">
-                <MapPinned className="w-4 h-4 text-text-soft shrink-0" />
+                <MapPinned className="w-4 h-4 text-brand-strong shrink-0" />
                 <span className="truncate">{event.venue_name}</span>
               </div>
             )}
             <div className="flex items-center gap-2 text-text-muted">
-              <CalendarDays className="w-4 h-4 text-text-soft shrink-0" />
+              <CalendarDays className="w-4 h-4 text-brand-strong shrink-0" />
               <span>{new Date(event.start_date).toLocaleDateString()}</span>
               <span
                 className={`font-medium ml-auto text-xs ${
-                  isPastEvent ? "text-text-soft" : "text-brand"
+                  isPastEvent ? "text-text-soft" : "text-info"
                 }`}
               >
                 {isPastEvent ? "Ended" : getCountdown(event.start_date)}
@@ -167,11 +176,12 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="justify-between gap-1 border-border bg-surface-muted/50">
+        {/* Footer Area: Darkened slightly with surface-alt for distinct separation from the card body */}
+        <CardFooter className="justify-between gap-1 border-t border-border-strong bg-surface-alt/50 py-3">
           <Button
             asChild
             variant="secondary"
-            className="flex-1 text-brand-strong bg-surface-alt hover:bg-brand-soft border border-brand-border"
+            className="flex-1 text-brand-strong bg-brand-soft hover:bg-brand/20 border border-brand-border transition-colors duration-200"
           >
             <Link to={`/events/${event.id}/manage`}>
               <UsersRound className="w-4 h-4 mr-1.5" />
@@ -230,7 +240,7 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
               size="icon"
               className={
                 copied
-                  ? "text-success hover:text-success hover:bg-success-bg"
+                  ? "text-success bg-success-bg transition-colors duration-200"
                   : ICON_BTN
               }
               onClick={handleCopyLink}
@@ -247,7 +257,7 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="text-text-soft hover:text-danger hover:bg-danger-bg"
+              className="text-text-soft hover:text-danger hover:bg-danger-bg transition-colors duration-200"
               onClick={handleDelete}
               disabled={deleting}
               title="Delete Event"
