@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Plus, Trash2, Clock, MapPin, User, CalendarClock } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import AddScheduleItemForm from "../components/ui/AddScheduleItemForm";
+import BackButton from "../components/layout/BackButton";
 import type { Event, ScheduleItem } from "../types/event";
 
 const CHIP = "text-xs font-medium px-2.5 py-1 rounded-full";
@@ -66,13 +67,20 @@ export default function ManageSchedule() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-12">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
+            <BackButton
+              fallbackTo="/dashboard"
+              label="Back to dashboard"
+              className="mb-4"
+            />
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-text tracking-tight mb-2">
               Schedule
               <span className="block sm:inline sm:ml-2 text-text-soft font-medium text-lg sm:text-2xl">
                 {event.name}
               </span>
             </h1>
-            <span className={`${CHIP} inline-flex items-center gap-1 bg-brand-soft text-brand-strong`}>
+            <span
+              className={`${CHIP} inline-flex items-center gap-1 bg-brand-soft text-brand-strong`}
+            >
               <CalendarClock className="w-3 h-3" />
               {items.length} session{items.length !== 1 ? "s" : ""}
             </span>

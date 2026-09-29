@@ -29,10 +29,10 @@ const itemVariants: Variants = {
 
 // text-base on mobile prevents iOS Safari zooming into the field on focus
 const INPUT =
-  "block w-full h-11 border border-border rounded-xl bg-surface-muted text-base sm:text-sm text-text placeholder:text-text-soft shadow-sm transition-all hover:border-border-strong hover:bg-surface focus:bg-surface focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus-soft disabled:opacity-60 disabled:cursor-not-allowed";
+  "block w-full h-11 border border-border rounded-xl bg-surface-muted text-base sm:text-sm text-text placeholder:text-text-soft shadow-sm transition-all duration-200 hover:border-brand-border hover:bg-surface focus:bg-surface focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand-soft disabled:opacity-60 disabled:cursor-not-allowed";
 
 const ICON_WRAP =
-  "absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-soft transition-colors group-focus-within:text-focus";
+  "absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-soft transition-colors duration-200 group-focus-within:text-brand";
 
 const FOCUS =
   "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 rounded-md";
@@ -125,7 +125,7 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
             onClick={() => setShowPassword((s) => !s)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
-            className={`absolute inset-y-0 right-0 w-12 flex items-center justify-center text-text-soft hover:text-text-muted transition-colors ${FOCUS}`}
+            className={`absolute inset-y-1 right-1 w-10 flex items-center justify-center rounded-lg text-text-soft hover:text-brand-strong hover:bg-brand-soft transition-colors duration-200 ${FOCUS}`}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -140,11 +140,11 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
 
       <motion.button
         variants={itemVariants}
-        whileHover={{ scale: submitting ? 1 : 1.01 }}
-        whileTap={{ scale: submitting ? 1 : 0.98 }}
+        whileHover={{ scale: submitting ? 1 : 1.02 }}
+        whileTap={{ scale: submitting ? 1 : 0.97 }}
         type="submit"
         disabled={submitting}
-        className={`mt-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl text-sm font-semibold text-text-on-dark shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed ${VARIANTS[variant].btn}`}
+        className={`group mt-1 flex items-center justify-center gap-2 h-12 px-4 rounded-xl text-sm font-semibold text-text-on-dark shadow-md shadow-shadow-brand/30 transition-all duration-200 hover:shadow-lg hover:shadow-shadow-brand/50 hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed ${VARIANTS[variant].btn}`}
       >
         {submitting ? (
           <>
@@ -154,7 +154,10 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
         ) : (
           <>
             Log in to {VARIANTS[variant].label.split(" ")[0]}
-            <ArrowRight size={16} />
+            <ArrowRight
+              size={16}
+              className="transition-transform duration-200 group-hover:translate-x-1"
+            />
           </>
         )}
       </motion.button>
@@ -167,14 +170,14 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
           Don't have an account?{" "}
           <Link
             to={signupPath}
-            className={`font-semibold text-brand hover:text-brand-hover hover:underline ${FOCUS}`}
+            className={`font-semibold text-brand-strong hover:text-tag-violet hover:underline ${FOCUS}`}
           >
             Sign up
           </Link>
         </p>
         <Link
           to="/login"
-          className={`text-xs text-text-soft hover:text-text transition-colors ${FOCUS}`}
+          className={`text-xs text-text-soft hover:text-brand-strong transition-colors ${FOCUS}`}
         >
           Wrong portal? Change account type
         </Link>

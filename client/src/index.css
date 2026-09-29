@@ -5,62 +5,88 @@
   --font-heading: "Sora", sans-serif;
   --font-body: "Inter", sans-serif;
 
-  /* --color-background and --color-border are defined in @theme inline below */
-  --color-surface: #111827;
-  --color-surface-muted: #0b1120;
-  --color-surface-strong: #1e293b;
-  --color-surface-alt: #17223d;
-  --color-border-strong: #334155;
-  --color-text: #f1f5f9;
-  --color-text-muted: #cbd5e1;
-  --color-text-soft: #94a3b8;
+  /* Surfaces: airy, white-based, with cool blue tints */
+  --color-surface: #ffffff;              /* Default card/modal surface */
+  --color-surface-muted: #eef4ff;        /* Inset containers */
+  --color-surface-strong: #e0eaff;       /* Raised cards / popovers / active states */
+  --color-surface-alt: #f3f0ff;          /* Secondary structural containers (soft lavender) */
+  --color-surface-translucent: rgba(255, 255, 255, 0.82);
+
+  /* Borders */
+  --color-border-strong: #b7c6f0;
+  --color-brand-border: #8ea6f2;
+
+  /* Text (dark on light) */
+  --color-text: #14203d;
+  --color-text-muted: #3d4c73;
+  --color-text-soft: #64749b;
   --color-text-on-dark: #ffffff;
   --color-transparent: transparent;
-  --color-focus: #3b82f6;
-  --color-focus-soft: rgba(59, 130, 246, 0.2);
-  --color-brand: #3b5cd4;
-  --color-brand-hover: #4f6ee0;
-  --color-brand-soft: rgba(59, 92, 212, 0.18);
-  --color-brand-strong: #93b4ff;
-  --color-brand-border: #33448a;
 
-  --color-panel-admin: #000000;
-  --color-panel-admin-hover: #0f172a;
-  --color-panel-organizer: #1e3a8a;
-  --color-panel-organizer-hover: #2648a3;
-  --color-panel-attendee: #0c4a6e;
-  --color-panel-attendee-hover: #115e87;
+  /* Focus */
+  --color-focus: #0ea5e9;
+  --color-focus-soft: rgba(14, 165, 233, 0.28);
 
-  --color-accent-admin: #38bdf8;
-  --color-accent-organizer: #bfdbfe;
-  --color-accent-attendee: #bae6fd;
+  /* Primary brand: vivid indigo-blue */
+  --color-brand: #5152e8;
+  --color-brand-hover: #4041d4;
+  --color-brand-soft: rgba(81, 82, 232, 0.12);
+  --color-brand-strong: #3d3fc4;
 
-  --color-role-admin: #93b4ff;
-  --color-role-admin-bg: #17223d;
-  --color-role-admin-border: #33448a;
-  --color-role-organizer: #93b4ff;
-  --color-role-organizer-bg: #17223d;
-  --color-role-organizer-border: #33448a;
+  /* Role-based navigation & panels (vivid, still dark enough for white text) */
+  --color-panel-admin: #2b2a8f;
+  --color-panel-admin-hover: #3735b0;
+  --color-panel-organizer: #2563eb;
+  --color-panel-organizer-hover: #1d4ed8;
+  --color-panel-attendee: #0e8fa8;
+  --color-panel-attendee-hover: #0b7a91;
 
-  --color-success: #4ade80;
-  --color-success-bg: #0f2a1a;
-  --color-success-border: #1e5631;
-  --color-success-hover: #143d24;
-  --color-warning: #fbbf24;
-  --color-warning-bg: #2b230d;
-  --color-warning-border: #4d3d14;
-  --color-danger: #f87171;
-  --color-danger-bg: #2b1414;
-  --color-danger-border: #4d1f1f;
-  --color-danger-hover: #3a1a1a;
-  --color-info: #60a5fa;
-  --color-info-bg: #10203a;
-  --color-info-border: #1e3a63;
+  --color-accent-admin: #67e8f9;
+  --color-accent-organizer: #dbeafe;
+  --color-accent-attendee: #ccfbf1;
 
-  --color-shadow-soft: rgba(0, 0, 0, 0.4);
-  --color-shadow-brand: rgba(59, 92, 212, 0.35);
-  --color-overlay: rgba(0, 0, 0, 0.6);
-  --color-surface-translucent: rgba(17, 24, 39, 0.9);
+  --color-role-admin: #3d3fc4;
+  --color-role-admin-bg: #eef0ff;
+  --color-role-admin-border: #c3c7fa;
+  --color-role-organizer: #1d4ed8;
+  --color-role-organizer-bg: #e6f0ff;
+  --color-role-organizer-border: #b3cdfb;
+
+  /* Fun category / tag colours for events */
+  --color-tag-violet: #7c3aed;
+  --color-tag-violet-bg: #f1e9ff;
+  --color-tag-teal: #0d9488;
+  --color-tag-teal-bg: #dcfaf5;
+  --color-tag-sky: #0284c7;
+  --color-tag-sky-bg: #e0f3ff;
+  --color-tag-pink: #db2777;
+  --color-tag-pink-bg: #ffe6f2;
+  --color-tag-amber: #d97706;
+  --color-tag-amber-bg: #fff1d6;
+
+  /* Semantic feedback */
+  --color-success: #059669;
+  --color-success-bg: #d9f7e8;
+  --color-success-border: #7ce0b4;
+  --color-success-hover: #c2f0da;
+
+  --color-warning: #b45309;
+  --color-warning-bg: #fff3d0;
+  --color-warning-border: #f5cd63;
+
+  --color-danger: #e11d48;
+  --color-danger-bg: #ffe4ea;
+  --color-danger-border: #fda4b8;
+  --color-danger-hover: #ffd0da;
+
+  --color-info: #0284c7;
+  --color-info-bg: #e0f3ff;
+  --color-info-border: #8fd3f7;
+
+  /* Elevation & shadows (tinted blue instead of black) */
+  --color-shadow-soft: rgba(52, 72, 150, 0.16);
+  --color-shadow-brand: rgba(81, 82, 232, 0.38);
+  --color-overlay: rgba(20, 32, 61, 0.45);
 }
 
 @theme inline {
@@ -89,38 +115,197 @@
 }
 
 :root {
-  --background: #0b1120;
-  --foreground: #f1f5f9;
-  --card: #111827;
-  --card-foreground: #f1f5f9;
-  --popover: #111827;
-  --popover-foreground: #f1f5f9;
-  --primary: #3b5cd4;
+  --background: #f3f7ff;
+  --foreground: #14203d;
+  --card: #ffffff;
+  --card-foreground: #14203d;
+  --popover: #ffffff;
+  --popover-foreground: #14203d;
+  --primary: #5152e8;
   --primary-foreground: #ffffff;
-  --secondary: #17223d;
-  --secondary-foreground: #93b4ff;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #17223d;
-  --accent-foreground: #93b4ff;
-  --destructive: #f87171;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #3b5cd4;
-  --radius: 0.625rem;
+  --secondary: #e8eeff;
+  --secondary-foreground: #3d3fc4;
+  --muted: #e6edfb;
+  --muted-foreground: #64749b;
+  --accent: #dff3ff;
+  --accent-foreground: #0b7a91;
+  --destructive: #e11d48;
+  --border: #d3def5;
+  --input: #c3d1ef;
+  --ring: #5152e8;
+  --radius: 0.75rem;
+
+  /* Reusable gradients */
+  --gradient-brand: linear-gradient(135deg, #5152e8 0%, #2f8ff0 55%, #14b8c4 100%);
+  --gradient-warm: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  --gradient-fresh: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-body);
+
+  html {
+    color-scheme: light;
+    scroll-behavior: smooth;
   }
-  h1,
-  h2,
-  h3 {
+
+  body {
+    @apply text-foreground;
+    /* Soft colour blooms: lavender top-left, sky top-right, mint bottom */
+    background:
+      radial-gradient(60rem 30rem at 0% -10%, rgba(139, 124, 255, 0.22), transparent 60%),
+      radial-gradient(50rem 28rem at 100% 0%, rgba(56, 189, 248, 0.22), transparent 60%),
+      radial-gradient(45rem 26rem at 50% 110%, rgba(45, 212, 191, 0.16), transparent 60%),
+      var(--background);
+    background-attachment: fixed;
+
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
+    letter-spacing: -0.015em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: #c7d2fe;
+    color: #14203d;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #b7c6f0;
+    border-radius: 9999px;
+    border: 2px solid var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #8ea6f2;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Interactive utilities. Use as normal classes, e.g.
+   <div className="bg-surface rounded-xl border card-interactive">
+   ------------------------------------------------------------------ */
+
+/* Cards that lift and glow on hover, press down on click */
+@utility card-interactive {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-brand-border);
+    box-shadow: 0 12px 28px -8px var(--color-shadow-soft), 0 0 0 3px var(--color-brand-soft);
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(0.99);
+  }
+}
+
+/* Gradient primary button */
+@utility btn-gradient {
+  background-image: var(--gradient-brand);
+  background-size: 160% 100%;
+  background-position: 0% 0%;
+  color: var(--color-text-on-dark);
+  transition: background-position 300ms ease, transform 150ms ease, box-shadow 200ms ease;
+
+  &:hover {
+    background-position: 100% 0%;
+    box-shadow: 0 10px 24px -6px var(--color-shadow-brand);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Quick press feedback for any clickable element */
+@utility press {
+  transition: transform 120ms ease;
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* Gradient text for headings and key numbers */
+@utility text-gradient {
+  background-image: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Colourful top accent bar for cards (pick a gradient with the classes below) */
+@utility accent-bar {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background-image: var(--gradient-brand);
+  }
+}
+
+@utility accent-bar-warm {
+  &::before {
+    background-image: var(--gradient-warm);
+  }
+}
+
+@utility accent-bar-fresh {
+  &::before {
+    background-image: var(--gradient-fresh);
+  }
+}
+
+/* Loading skeleton with a soft colour shimmer */
+@utility skeleton {
+  background: linear-gradient(90deg, #e6edfb 25%, #f3f0ff 50%, #e6edfb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
