@@ -2,13 +2,22 @@ interface Props {
   data: any;
   updateData: (field: string, value: any) => void;
   inputCls: string;
+  isEdit?: boolean;
+}
+
+function toLocalInput(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export default function RegistrationSection({
   data,
   updateData,
   inputCls,
+  isEdit,
 }: Props) {
+  const minDeadline = isEdit ? undefined : toLocalInput(new Date());
+
   return (
     <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
       <h3 className="text-lg font-semibold text-[var(--color-text)]">
@@ -24,6 +33,8 @@ export default function RegistrationSection({
             type="datetime-local"
             value={data.registrationDeadline}
             onChange={(e) => updateData("registrationDeadline", e.target.value)}
+            min={minDeadline}
+            max={data.startDate || undefined}
             className={`w-full ${inputCls}`}
           />
         </div>

@@ -44,15 +44,29 @@ function App() {
           <Route path="/organizer/signup" element={<OrganizerSignup />} />
           <Route path="/attendee/login" element={<AttendeeLogin />} />
           <Route path="/attendee/signup" element={<AttendeeSignup />} />
-          
+
           {/* Event Form Management */}
-          <Route path="/organizer/events/new" element={<EventFormPage />} />
-          <Route path="/organizer/events/edit" element={<EventFormPage />} />
-          
+          <Route
+            path="/organizer/events/new"
+            element={
+              <ProtectedRoute>
+                <EventFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizer/events/:id/edit"
+            element={
+              <Managed>
+                <EventFormPage />
+              </Managed>
+            }
+          />
+
           {/* Public */}
           <Route path="/events" element={<EventsList />} />
           <Route path="/events/:id" element={<EventDetail />} />
-          
+
           {/* Staff only */}
           <Route
             path="/dashboard"

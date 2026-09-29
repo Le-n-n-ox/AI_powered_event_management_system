@@ -2,9 +2,17 @@ interface Props {
   data: any;
   updateData: (field: string, value: any) => void;
   inputCls: string;
+  isEdit?: boolean;
 }
 
-export default function DateTimeSection({ data, updateData, inputCls }: Props) {
+function toLocalInput(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export default function DateTimeSection({ data, updateData, inputCls, isEdit }: Props) {
+  const minStart = isEdit ? undefined : toLocalInput(new Date());
+
   return (
     <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
       <h3 className="text-lg font-semibold text-[var(--color-text)]">
@@ -20,6 +28,7 @@ export default function DateTimeSection({ data, updateData, inputCls }: Props) {
             type="datetime-local"
             value={data.startDate}
             onChange={(e) => updateData("startDate", e.target.value)}
+            min={minStart}
             required
             className={`w-full ${inputCls}`}
           />
@@ -32,6 +41,7 @@ export default function DateTimeSection({ data, updateData, inputCls }: Props) {
             type="datetime-local"
             value={data.endDate}
             onChange={(e) => updateData("endDate", e.target.value)}
+            min={data.startDate || minStart}
             required
             className={`w-full ${inputCls}`}
           />
