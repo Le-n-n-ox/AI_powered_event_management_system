@@ -61,21 +61,22 @@ export default function AiAutofill({ onDataExtracted }: AiAutofillProps) {
   };
 
   return (
-    <div className="mb-8 bg-linear-to-r from-indigo-50/80 to-white/90 rounded-xl p-1 border border-slate-200 shadow-sm">
-      <div className="bg-white/70 backdrop-blur-sm rounded-lg p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="mb-8 bg-linear-to-r from-brand-soft to-surface-translucent rounded-xl p-1 border border-border shadow-sm">
+      <div className="bg-surface-translucent backdrop-blur-sm rounded-lg p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-50 p-2.5 rounded-lg text-indigo-600">
+          <div className="bg-brand-soft p-2.5 rounded-lg text-brand">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-text flex items-center gap-2">
               Magic Auto-Fill
-              <span className="text-indigo-600 text-xs uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-indigo-50">
+              <span className="text-brand text-xs uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full bg-brand-soft">
                 AI Powered
               </span>
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Upload a poster or agenda as a PDF, or a text file (.txt, .md, .csv, .json). We'll fill the form and knowledge base for you.
+            <p className="text-xs text-text-soft mt-0.5">
+              Upload a poster or agenda as a PDF, or a text file (.txt, .md,
+              .csv, .json). We'll fill the form and knowledge base for you.
             </p>
           </div>
         </div>
@@ -95,7 +96,7 @@ export default function AiAutofill({ onDataExtracted }: AiAutofillProps) {
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100/50 border-slate-200 shadow-sm"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 text-brand bg-brand-soft hover:bg-surface-alt border-border shadow-sm"
           >
             {isProcessing ? (
               <>
@@ -118,7 +119,7 @@ export default function AiAutofill({ onDataExtracted }: AiAutofillProps) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="px-5 pb-3 text-xs text-red-600"
+            className="px-5 pb-3 text-xs text-danger"
           >
             {error}
           </motion.div>

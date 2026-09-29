@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { Attendee, Event } from "../types/event";
+import BackButton from "../components/layout/BackButton";
 
 type AttendeeStatus = Attendee["status"];
 type PaymentStatus = Attendee["payment_status"];
@@ -131,6 +132,11 @@ export default function ManageAttendees() {
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-12">
         <div className="mb-6">
+          <BackButton
+            fallbackTo="/dashboard"
+            label="Back to dashboard"
+            className="mb-4"
+          />
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-text tracking-tight mb-3">
             Manage attendees
             <span className="block sm:inline sm:ml-2 text-text-soft font-medium text-lg sm:text-2xl">
@@ -175,16 +181,26 @@ export default function ManageAttendees() {
             <table className="w-full min-w-[40rem] text-left text-sm">
               <thead className="bg-surface-muted border-b border-border text-text-soft uppercase text-xs tracking-wide">
                 <tr>
-                  <th scope="col" className={TH}>Attendee</th>
-                  <th scope="col" className={TH}>Contact</th>
+                  <th scope="col" className={TH}>
+                    Attendee
+                  </th>
+                  <th scope="col" className={TH}>
+                    Contact
+                  </th>
                   <th scope="col" className={`${TH} hidden md:table-cell`}>
                     Registered
                   </th>
-                  <th scope="col" className={TH}>Status</th>
+                  <th scope="col" className={TH}>
+                    Status
+                  </th>
                   {event.is_paid && (
-                    <th scope="col" className={TH}>Payment</th>
+                    <th scope="col" className={TH}>
+                      Payment
+                    </th>
                   )}
-                  <th scope="col" className={`${TH} text-right`}>Actions</th>
+                  <th scope="col" className={`${TH} text-right`}>
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

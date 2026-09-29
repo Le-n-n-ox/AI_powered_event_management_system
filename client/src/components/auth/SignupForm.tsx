@@ -46,20 +46,42 @@ const itemVariants: Variants = {
 };
 
 const INPUT =
-  "block w-full h-11 border rounded-xl bg-surface-muted text-base sm:text-sm text-text placeholder:text-text-soft shadow-sm transition-all hover:bg-surface focus:bg-surface focus:outline-none focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed";
+  "block w-full h-11 border rounded-xl bg-surface-muted text-base sm:text-sm text-text placeholder:text-text-soft shadow-sm transition-all duration-200 hover:bg-surface focus:bg-surface focus:outline-none focus:ring-4 disabled:opacity-60 disabled:cursor-not-allowed";
 const INPUT_OK =
-  "border-border hover:border-border-strong focus:border-focus focus:ring-focus-soft";
+  "border-border hover:border-brand-border focus:border-brand focus:ring-brand-soft";
 const INPUT_BAD =
   "border-danger-border focus:border-danger focus:ring-danger-bg";
+const INPUT_GOOD =
+  "border-success-border focus:border-success focus:ring-success-bg";
 
 const FOCUS =
   "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 rounded-md";
+
+// 1 = weak ... 4 = strong. Visual feedback only; the 6-character rule is unchanged.
+const STRENGTH: Record<number, { label: string; bar: string; text: string }> = {
+  1: { label: "Weak", bar: "bg-danger", text: "text-danger" },
+  2: { label: "Fair", bar: "bg-tag-amber", text: "text-tag-amber" },
+  3: { label: "Good", bar: "bg-tag-sky", text: "text-tag-sky" },
+  4: { label: "Strong", bar: "bg-success", text: "text-success" },
+};
+
+function passwordStrength(pw: string): number {
+  if (pw.length < 6) return 1;
+  let score = 2;
+  if (pw.length >= 10) score++;
+  const mixed =
+    (/[a-z]/.test(pw) && /[A-Z]/.test(pw) && /\d/.test(pw)) ||
+    /[^A-Za-z0-9]/.test(pw);
+  if (mixed) score++;
+  return Math.min(score, 4);
+}
 
 interface ModernInputProps extends InputHTMLAttributes<HTMLInputElement> {
   icon: LucideIcon;
   label: string;
   hint?: string;
   invalid?: boolean;
+  valid?: boolean;
   rightElement?: ReactNode;
 }
 
@@ -68,12 +90,24 @@ function ModernInput({
   label,
   hint,
   invalid,
+  valid,
   rightElement,
   className,
   ...props
 }: ModernInputProps) {
   const id = useId();
   const hintId = `${id}-hint`;
+  const tone = invalid ? INPUT_BAD : valid ? INPUT_GOOD : INPUT_OK;
+  const iconTone = invalid
+    ? "group-focus-within:text-danger"
+    : valid
+      ? "text-success"
+      : "group-focus-within:text-brand";
+  const hintTone = invalid
+    ? "text-danger"
+    : valid
+      ? "text-success"
+      : "text-text-soft";
 
   return (
     <div className="space-y-1.5">
@@ -81,7 +115,9 @@ function ModernInput({
         {label}
       </label>
       <div className="relative group">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-soft transition-colors group-focus-within:text-focus">
+        <div
+          className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-soft transition-colors duration-200 ${iconTone}`}
+        >
           <Icon size={18} />
         </div>
         <input
@@ -89,7 +125,7 @@ function ModernInput({
           id={id}
           aria-invalid={invalid || undefined}
           aria-describedby={hint ? hintId : undefined}
-          className={`${INPUT} ${invalid ? INPUT_BAD : INPUT_OK} pl-11 ${
+          className={`${INPUT} ${tone} pl-11 ${
             rightElement ? "pr-12" : "pr-3"
           } ${className ?? ""}`}
         />
@@ -100,10 +136,7 @@ function ModernInput({
         )}
       </div>
       {hint && (
-        <p
-          id={hintId}
-          className={`text-xs ${invalid ? "text-danger" : "text-text-soft"}`}
-        >
+        <p id={hintId} className={`text-xs ${hintTone}`}>
           {hint}
         </p>
       )}
@@ -126,7 +159,7 @@ function EyeToggle({
       onClick={onToggle}
       aria-label={`${shown ? "Hide" : "Show"} ${label}`}
       aria-pressed={shown}
-      className={`w-12 h-full flex items-center justify-center text-text-soft hover:text-text-muted transition-colors ${FOCUS}`}
+      className={`mr-1 w-10 h-9 flex items-center justify-center rounded-lg text-text-soft hover:text-brand-strong hover:bg-brand-soft transition-colors duration-200 ${FOCUS}`}
     >
       {shown ? <EyeOff size={18} /> : <Eye size={18} />}
     </button>
@@ -151,6 +184,8 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const mismatch = confirm.length > 0 && password !== confirm;
+  const matches = confirm.length > 0 && password === confirm;
+  const strength = password ? passwordStrength(password) : 0;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -263,6 +298,25 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
             />
           }
         />
+        {strength > 0 && (
+          <div className="mt-2 flex items-center gap-2" aria-live="polite">
+            <div className="flex flex-1 gap-1">
+              {[1, 2, 3, 4].map((n) => (
+                <span
+                  key={n}
+                  className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                    n <= strength ? STRENGTH[strength].bar : "bg-surface-strong"
+                  }`}
+                />
+              ))}
+            </div>
+            <span
+              className={`text-xs font-semibold ${STRENGTH[strength].text}`}
+            >
+              {STRENGTH[strength].label}
+            </span>
+          </div>
+        )}
       </motion.div>
 
       <motion.div variants={itemVariants}>
@@ -274,7 +328,14 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
           required
           disabled={submitting}
           invalid={mismatch}
-          hint={mismatch ? "Passwords do not match." : undefined}
+          valid={matches}
+          hint={
+            mismatch
+              ? "Passwords do not match."
+              : matches
+                ? "Passwords match."
+                : undefined
+          }
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="Repeat your password"
@@ -318,11 +379,11 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
 
       <motion.button
         variants={itemVariants}
-        whileHover={{ scale: submitting ? 1 : 1.01 }}
-        whileTap={{ scale: submitting ? 1 : 0.98 }}
+        whileHover={{ scale: submitting ? 1 : 1.02 }}
+        whileTap={{ scale: submitting ? 1 : 0.97 }}
         type="submit"
         disabled={submitting}
-        className={`mt-2 flex items-center justify-center gap-2 h-12 px-4 rounded-xl text-sm font-semibold text-text-on-dark shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed ${VARIANTS[variant].btn}`}
+        className={`mt-2 flex items-center justify-center gap-2 h-12 px-4 rounded-xl text-sm font-semibold text-text-on-dark shadow-md shadow-shadow-brand/30 transition-all duration-200 hover:shadow-lg hover:shadow-shadow-brand/50 hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed ${VARIANTS[variant].btn}`}
       >
         {submitting ? (
           <>
@@ -345,7 +406,7 @@ export default function SignupForm({ variant, redirectTo, loginPath }: Props) {
           Already have an account?{" "}
           <Link
             to={loginPath}
-            className={`font-semibold text-brand hover:text-brand-hover hover:underline ${FOCUS}`}
+            className={`font-semibold text-brand-strong hover:text-tag-violet hover:underline ${FOCUS}`}
           >
             Log in
           </Link>

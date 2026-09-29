@@ -54,6 +54,7 @@ npm run dev
 ```
 
 Vite prints the frontend URL in its terminal, usually `http://localhost:5173`. The backend API is available at `http://localhost:3000`.
+
 ```
 smart-help-desk
 ├─ client
@@ -222,5 +223,4 @@ smart-help-desk
    ├─ package.json
    ├─ skills-lock.json
    └─ test-emergency.js
-
 ```
