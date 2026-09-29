@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const FOCUS =
@@ -23,6 +24,7 @@ function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isStaff } = useAuth();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -85,13 +87,15 @@ function Navbar() {
 
             {session ? (
               <>
-                <Link
-                  to="/dashboard"
-                  className={linkClass("/dashboard", "px-3.5 py-2")}
-                >
-                  <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
-                  Dashboard
-                </Link>
+                {isStaff && (
+                  <Link
+                    to="/dashboard"
+                    className={linkClass("/dashboard", "px-3.5 py-2")}
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
+                    Dashboard
+                  </Link>
+                )}
                 <div className="w-px h-6 bg-white/10 mx-2" />
                 <Button
                   variant="ghost"
@@ -146,13 +150,15 @@ function Navbar() {
 
             {session ? (
               <>
-                <Link
-                  to="/dashboard"
-                  className={linkClass("/dashboard", "gap-2 px-3 py-2.5")}
-                >
-                  <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
-                  Dashboard
-                </Link>
+                {isStaff && (
+                  <Link
+                    to="/dashboard"
+                    className={linkClass("/dashboard", "gap-2 px-3 py-2.5")}
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-accent-organizer" />
+                    Dashboard
+                  </Link>
+                )}
                 <Button
                   variant="ghost"
                   onClick={handleLogout}

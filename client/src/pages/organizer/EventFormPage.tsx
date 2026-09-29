@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import type { Event } from "../../types/event";
@@ -52,6 +53,7 @@ export default function EventFormPage() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const updateData = (field: string, value: any) => {
@@ -84,8 +86,19 @@ export default function EventFormPage() {
     e.preventDefault();
     setError(null);
 
+    // Backdating guard — only enforced on create; editing a past/ongoing event is allowed
+    if (!isEdit && new Date(formData.startDate) < new Date()) {
+      return setError("Event start date cannot be in the past.");
+    }
     if (new Date(formData.endDate) <= new Date(formData.startDate)) {
       return setError("End time must be after the start time.");
+    }
+    if (
+      formData.registrationDeadline &&
+      !isEdit &&
+      new Date(formData.registrationDeadline) < new Date()
+    ) {
+      return setError("Registration deadline cannot be in the past.");
     }
     if (
       formData.registrationDeadline &&
@@ -131,6 +144,29 @@ export default function EventFormPage() {
     }
 
     navigate("/dashboard");
+
+  }
+
+  async function handleDelete() {
+    if (!event) return;
+    if (!confirm(`Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+
+    const { error: dbError } = await supabase.from("events").delete().eq("id", event.id);
+
+    setDeleting(false);
+
+    if (dbError) {
+      setError(dbError.message);
+      return;
+    }
+
+    navigate("/dashboard");
+
   }
 
   return (
@@ -140,22 +176,35 @@ export default function EventFormPage() {
       className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8"
     >
       <div className="max-w-3xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">
-            {isEdit ? "Edit Event" : "Create New Event"}
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Fill in the details below to publish your event.
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              {isEdit ? "Edit Event" : "Create New Event"}
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Fill in the details below to publish your event.
+            </p>
+          </div>
+          {isEdit && (
+            <Button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? "Deleting…" : "Delete Event"}
+            </Button>
+          )}
         </div>
 
         {!isEdit && <AiAutofill onDataExtracted={handleAiExtraction} />}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <BasicInfoSection data={formData} updateData={updateData} isEdit={isEdit} inputCls={inputCls} />
-          <DateTimeSection data={formData} updateData={updateData} inputCls={inputCls} />
+          <DateTimeSection data={formData} updateData={updateData} inputCls={inputCls} isEdit={isEdit} />
           <VenueSection data={formData} updateData={updateData} inputCls={inputCls} />
-          <RegistrationSection data={formData} updateData={updateData} inputCls={inputCls} />
+          <RegistrationSection data={formData} updateData={updateData} inputCls={inputCls} isEdit={isEdit} />
           <KnowledgeSection data={formData} updateData={updateData} inputCls={inputCls} />
 
           {error && (

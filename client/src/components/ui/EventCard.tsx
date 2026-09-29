@@ -9,9 +9,11 @@ import {
   SquarePen,
   Link as LinkIcon,
   Check,
+  Trash2,
 } from "lucide-react";
 import type { Event } from "../../types/event";
 import { getCountdown } from "../../utils/dateHelpers";
+import { supabase } from "../../lib/supabase";
 
 import {
   Card,
@@ -25,6 +27,7 @@ import { Button } from "@/components/ui/button";
 
 interface EventCardProps {
   event: Event;
+  onDeleted?: (id: string) => void;
 }
 
 interface StatusStyle {
@@ -58,9 +61,10 @@ const STATUS_STYLES: { [key: string]: StatusStyle } = {
 
 const ICON_BTN = "text-text-soft hover:text-text hover:bg-surface-muted";
 
-export default function EventCard({ event }: EventCardProps) {
+export default function EventCard({ event, onDeleted }: EventCardProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isPastEvent = new Date(event.end_date) < new Date();
   const isCancelled = event.status === "cancelled";
@@ -80,6 +84,27 @@ export default function EventCard({ event }: EventCardProps) {
     } catch {
       window.prompt("Copy this link:", url);
     }
+  }
+
+  async function handleDelete() {
+    if (
+      !confirm(
+        `Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    const { error } = await supabase.from("events").delete().eq("id", event.id);
+    setDeleting(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    onDeleted?.(event.id);
   }
 
   return (
@@ -161,7 +186,7 @@ export default function EventCard({ event }: EventCardProps) {
                 size="icon"
                 className={ICON_BTN}
                 onClick={() =>
-                  navigate("/organizer/events/edit", { state: { event } })
+                  navigate(`/organizer/events/${event.id}/edit`, { state: { event } })
                 }
                 title="Edit Event"
                 aria-label="Edit Event"
@@ -217,6 +242,18 @@ export default function EventCard({ event }: EventCardProps) {
               ) : (
                 <LinkIcon className="w-4 h-4" />
               )}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-text-soft hover:text-danger hover:bg-danger-bg"
+              onClick={handleDelete}
+              disabled={deleting}
+              title="Delete Event"
+              aria-label="Delete Event"
+            >
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </CardFooter>
