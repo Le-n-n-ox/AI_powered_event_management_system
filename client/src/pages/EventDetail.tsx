@@ -5,9 +5,9 @@ import {
   MapPin,
   CalendarDays,
   Clock,
-  Loader2,
   CircleCheck,
   Ban,
+  CalendarX,
   ExternalLink,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -27,7 +27,7 @@ interface ScheduleItem {
 const PILL = "text-xs font-semibold px-2.5 py-1 rounded-full border";
 const FOCUS =
   "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 rounded";
-const MAP_LINK = `inline-flex items-center gap-1 text-sm text-brand hover:text-brand-hover font-medium mt-1 ${FOCUS}`;
+const MAP_LINK = `inline-flex items-center gap-1 text-sm text-brand-strong hover:text-tag-violet font-semibold mt-1 transition-colors ${FOCUS}`;
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
@@ -76,10 +76,21 @@ export default function EventDetail() {
 
   if (loading)
     return (
-      <div className="min-h-screen bg-background pt-32 flex justify-center text-text-soft">
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Loading event details...
+      <div className="min-h-screen bg-background">
+        <div
+          role="status"
+          aria-busy="true"
+          className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 pt-24 pb-12 grid md:grid-cols-2 gap-8 md:gap-12"
+        >
+          <span className="sr-only">Loading event details...</span>
+          <div>
+            <div className="skeleton h-4 w-28 mb-5" />
+            <div className="skeleton h-10 w-3/4 mb-5" />
+            <div className="skeleton h-56 w-full mb-4" />
+            <div className="skeleton h-4 w-full mb-2" />
+            <div className="skeleton h-4 w-5/6" />
+          </div>
+          <div className="skeleton h-80 w-full" />
         </div>
       </div>
     );
@@ -91,6 +102,7 @@ export default function EventDetail() {
       </div>
     );
 
+  const isPast = new Date(event.end_date) < new Date();
   const spotsLeft = event.capacity ? event.capacity - attendeeCount : null;
   const isFull = spotsLeft !== null && spotsLeft <= 0;
   const mapUrl = event.venue_map_url ? String(event.venue_map_url) : null;
@@ -110,9 +122,10 @@ export default function EventDetail() {
             {event.name}
           </h1>
 
-          <div className="bg-surface p-4 rounded-xl mb-4 border border-border shadow-sm">
+          <div className="relative overflow-hidden bg-surface p-4 pt-5 rounded-xl mb-4 border border-border shadow-md shadow-shadow-soft">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-brand via-tag-violet to-tag-teal" />
             <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 mt-0.5 text-brand shrink-0" />
+              <MapPin className="w-4 h-4 mt-0.5 text-tag-teal shrink-0" />
               <div>
                 <p className="font-medium text-text">{event.venue_name}</p>
                 <p className="text-sm text-text-soft">{event.venue_address}</p>
@@ -147,22 +160,30 @@ export default function EventDetail() {
 
             <hr className="my-3 border-border" />
             <div className="flex items-center gap-2 font-medium text-text">
-              <CalendarDays className="w-4 h-4 text-brand shrink-0" />
+              <CalendarDays className="w-4 h-4 text-tag-violet shrink-0" />
               {new Date(event.start_date).toLocaleString()}
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-6">
-            {event.capacity != null && (
+            {isPast ? (
               <span
-                className={`${PILL} ${
-                  isFull
-                    ? "bg-danger-bg text-danger border-danger-border"
-                    : "bg-info-bg text-info border-info-border"
-                }`}
+                className={`${PILL} bg-surface-strong text-text-soft border-border`}
               >
-                {isFull ? "Fully Booked" : `${spotsLeft} spots left`}
+                Ended
               </span>
+            ) : (
+              event.capacity != null && (
+                <span
+                  className={`${PILL} ${
+                    isFull
+                      ? "bg-danger-bg text-danger border-danger-border"
+                      : "bg-info-bg text-info border-info-border"
+                  }`}
+                >
+                  {isFull ? "Fully Booked" : `${spotsLeft} spots left`}
+                </span>
+              )
             )}
             {event.requires_approval && (
               <span
@@ -179,7 +200,7 @@ export default function EventDetail() {
               </span>
             ) : (
               <span
-                className={`${PILL} bg-surface-strong text-text-muted border-border`}
+                className={`${PILL} bg-tag-teal-bg text-tag-teal border-tag-teal/30`}
               >
                 Free
               </span>
@@ -193,20 +214,21 @@ export default function EventDetail() {
           {/* Schedule Section */}
           {scheduleItems.length > 0 && (
             <div className="mt-8">
-              <h2 className="font-heading text-lg font-bold text-text mb-3">
+              <h2 className="font-heading text-lg font-bold text-text mb-3 flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-linear-to-br from-brand to-tag-teal" />
                 Schedule
               </h2>
               <div className="flex flex-col gap-2">
                 {scheduleItems.map((item) => (
                   <div
                     key={item.id}
-                    className="border border-border rounded-lg p-3 bg-surface shadow-sm"
+                    className="border border-border border-l-4 border-l-brand rounded-lg p-3 bg-surface shadow-sm shadow-shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-brand-border hover:border-l-tag-violet"
                   >
                     <p className="font-medium text-text text-sm">
                       {item.title}
                     </p>
                     <p className="flex items-center gap-1.5 text-xs text-text-soft mt-1">
-                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <Clock className="w-3.5 h-3.5 shrink-0 text-tag-sky" />
                       <span>
                         {new Date(item.start_time).toLocaleTimeString([], {
                           hour: "2-digit",
@@ -228,7 +250,7 @@ export default function EventDetail() {
           {isRegistered ? (
             <div
               role="status"
-              className="bg-success-bg border border-success-border text-success p-8 rounded-xl text-center shadow-sm"
+              className="bg-success-bg border border-success-border text-success p-8 rounded-xl text-center shadow-md shadow-shadow-soft"
             >
               <CircleCheck className="w-10 h-10 mx-auto mb-3" />
               <h3 className="font-heading text-2xl font-bold mb-2">
@@ -242,10 +264,24 @@ export default function EventDetail() {
                   : "You can now interact with our AI Assistant via SMS using the phone number you provided."}
               </p>
             </div>
+          ) : isPast ? (
+            <div
+              role="status"
+              className="bg-surface-muted border border-border-strong text-text-muted p-8 rounded-xl text-center shadow-md shadow-shadow-soft"
+            >
+              <CalendarX className="w-10 h-10 mx-auto mb-3 text-text-soft" />
+              <h3 className="font-heading text-xl font-bold text-text mb-2">
+                This event has ended
+              </h3>
+              <p className="text-sm">
+                Registration is closed because this event has already taken
+                place.
+              </p>
+            </div>
           ) : isFull ? (
             <div
               role="status"
-              className="bg-danger-bg border border-danger-border text-danger p-8 rounded-xl text-center shadow-sm"
+              className="bg-danger-bg border border-danger-border text-danger p-8 rounded-xl text-center shadow-md shadow-shadow-soft"
             >
               <Ban className="w-10 h-10 mx-auto mb-3" />
               <h3 className="font-heading text-xl font-bold mb-2">
