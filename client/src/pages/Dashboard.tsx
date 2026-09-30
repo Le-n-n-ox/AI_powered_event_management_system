@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CirclePlus, CalendarDays, Loader2, TriangleAlert } from "lucide-react";
 import EventCard from "@/components/ui/EventCard";
@@ -9,7 +10,15 @@ import { Button } from "@/components/ui/button";
 
 import AdminDashboard from "./admin/AdminDashboard";
 
-function EventSection({ title, events }: { title: string; events: Event[] }) {
+function EventSection({
+  title,
+  events,
+  onDeleted,
+}: {
+  title: string;
+  events: Event[];
+  onDeleted: (id: string) => void;
+}) {
   return (
     <section className="mb-10">
       <h2 className="font-heading text-sm font-semibold text-text-soft uppercase tracking-wide mb-4 flex items-center gap-2">
@@ -20,24 +29,29 @@ function EventSection({ title, events }: { title: string; events: Event[] }) {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {events.map((event) => (
-          <EventCard key={event.id} event={event} />
+          <EventCard key={event.id} event={event} onDeleted={onDeleted} />
         ))}
       </div>
     </section>
   );
 }
 
-
 function Dashboard() {
   const { events, loading, error } = useEvents();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   if (isAdmin) {
     return <AdminDashboard />;
   }
 
-  const { groups, order } = groupEventsByPeriod(events);
+  function handleDeleted(id: string) {
+    setRemovedIds((prev) => new Set(prev).add(id));
+  }
+
+  const visibleEvents = events.filter((e) => !removedIds.has(e.id));
+  const { groups, order } = groupEventsByPeriod(visibleEvents);
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,7 +91,7 @@ function Dashboard() {
           </div>
         )}
 
-        {!loading && !error && events.length === 0 && (
+        {!loading && !error && visibleEvents.length === 0 && (
           <div className="flex flex-col items-center text-center bg-surface border border-dashed border-border-strong rounded-xl p-12">
             <div className="p-3 rounded-lg bg-brand-soft text-brand mb-4">
               <CalendarDays className="w-8 h-8" />
@@ -99,7 +113,7 @@ function Dashboard() {
         )}
 
         {order.map((key) => (
-          <EventSection key={key} title={key} events={groups[key]} />
+          <EventSection key={key} title={key} events={groups[key]} onDeleted={handleDeleted} />
         ))}
       </div>
     </div>

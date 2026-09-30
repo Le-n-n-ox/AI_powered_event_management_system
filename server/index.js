@@ -7,7 +7,16 @@ const supabase = createClient(
 );
 const express = require('express');
 const cors = require('cors'); // Required for React frontend communication
-const { processMessageWithAI } = require('./ai');
+const { processMessageWithAI, extractEventFromText } = require('./ai');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+
+// Handles the Magic Auto-Fill upload. Files are kept in memory only
+// (never written to disk) and capped so a huge upload can't hang the server.
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024, files: 5 } // 5MB per file, 5 files max
+});
 
 
 const credentials = {
@@ -20,7 +29,7 @@ const voice = AfricasTalking.VOICE;
 
 const app = express();
 app.use(cors()); 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' })); // raised from Express's 100kb default so uploaded knowledge-base text fits
 app.use(express.urlencoded({ extended: true }));
 
 
@@ -36,12 +45,66 @@ let tasks = [
 const EVENT_TZ = process.env.EVENT_TIMEZONE || 'Africa/Nairobi';
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-KE', { timeZone: EVENT_TZ, dateStyle: 'medium', timeStyle: 'short' }) : 'TBD';
 const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-KE', { timeZone: EVENT_TZ, timeStyle: 'short' }) : 'TBD';
+const MAX_DOC_CHARS = 15000; // keeps the prompt within what small/local models can handle
 
 app.get('/', (req, res) => {
     res.status(200).json({ 
         status: 'online', 
         message: 'Operations Engine API is running smoothly!' 
     });
+});
+
+// Magic Auto-Fill: takes raw text from an uploaded file (frontend reads the
+// file itself) and asks the AI to pull out structured event form fields.
+app.post('/api/extract-event', upload.array('files', 5), async (req, res) => {
+    const files = req.files || [];
+    if (!files.length) {
+        return res.status(400).json({ error: 'No files uploaded.' });
+    }
+
+    const TEXT_EXTENSIONS = ['.txt', '.md', '.csv', '.json'];
+
+    try {
+        let combinedText = '';
+
+        for (const file of files) {
+            const lowerName = file.originalname.toLowerCase();
+            let content = '';
+
+            if (lowerName.endsWith('.pdf') || file.mimetype === 'application/pdf') {
+                try {
+                    const parsed = await pdfParse(file.buffer);
+                    content = (parsed.text || '').trim();
+                } catch (pdfErr) {
+                    console.error(`❌ Could not parse PDF "${file.originalname}":`, pdfErr.message);
+                    continue; // skip this file, try the others
+                }
+            } else if (TEXT_EXTENSIONS.some(ext => lowerName.endsWith(ext))) {
+                content = file.buffer.toString('utf-8').trim();
+            } else {
+                console.log(`⚠️ Skipping unsupported file type: ${file.originalname}`);
+                continue;
+            }
+
+            if (content) {
+                combinedText += `${combinedText ? '\n\n' : ''}--- ${file.originalname} ---\n${content}`;
+            }
+        }
+
+        if (!combinedText.trim()) {
+            return res.status(422).json({ error: "Couldn't read any usable text from those files. If it's a scanned/image-only PDF, this won't work yet — try pasting the text in manually." });
+        }
+
+        const extracted = await extractEventFromText(combinedText);
+
+        // Send back both the structured fields AND the raw combined text,
+        // so the frontend can fill the form fields and the knowledge box in one round trip.
+        res.json({ ...extracted, rawText: combinedText });
+
+    } catch (err) {
+        console.error('❌ Event extraction error:', err.message || err);
+        res.status(500).json({ error: 'Failed to extract event details from that document.' });
+    }
 });
 
 app.get('/webhook/incoming', (req, res) => {
@@ -138,80 +201,68 @@ app.post('/webhook/incoming', async (req, res) => {
     }
 
     // 3. AI Processing & Emergency Call Escalation
-    // Fetch ALL registrations for this phone number
-    const { data: attendeeRecords } = await supabase
+    const { data: attendee } = await supabase
         .from('attendees')
         .select('*')
-        .eq('phone_number', from);
+        .eq('phone_number', from)
+        .order('registered_at', { ascending: false })
+        .limit(1)
+        .single();
 
-    // Grab the name from their most recent registration
-    const latestRecord = attendeeRecords && attendeeRecords.length > 0 
-        ? attendeeRecords.sort((a, b) => new Date(b.registered_at) - new Date(a.registered_at))[0] 
-        : null;
-        
-    const fullName = latestRecord?.name || latestRecord?.attendee_name || latestRecord?.full_name || null;
+    // Use the name given at registration (column name may differ, so check the common ones)
+    const fullName = attendee?.name || attendee?.attendee_name || attendee?.full_name || null;
     const attendeeName = fullName ? fullName.trim().split(' ')[0] : null;
 
     let knowledgeBase = "No event information available.";
 
-    if (attendeeRecords && attendeeRecords.length > 0) {
-        // Extract all unique event IDs they are registered for
-        const eventIds = [...new Set(attendeeRecords.map(record => record.event_id))];
-
-        // Fetch all data for ALL their events at once using .in()
-        const { data: eventsData } = await supabase
+    if (attendee?.event_id) {
+        const { data: eventData } = await supabase
             .from('events')
             .select('*')
-            .in('id', eventIds);
+            .eq('id', attendee.event_id)
+            .single();
 
         const { data: scheduleData } = await supabase
             .from('schedule_items')
-            .select('event_id, title, speaker, location, start_time, end_time')
-            .in('event_id', eventIds)
+            .select('title, speaker, location, start_time, end_time')
+            .eq('event_id', attendee.event_id)
             .order('start_time', { ascending: true });
 
         const { data: venueData } = await supabase
             .from('venue_locations')
-            .select('event_id, label, description')
-            .in('event_id', eventIds);
+            .select('label, description')
+            .eq('event_id', attendee.event_id);
 
-        // Build a combined knowledge base
-        knowledgeBase = (eventsData || []).map(event => {
-            const eventSchedule = (scheduleData || []).filter(s => s.event_id === event.id)
-                    .map(s => `- ${s.title}${s.speaker ? ` by ${s.speaker}` : ''} at ${fmtTime(s.start_time)}${s.location ? ` in ${s.location}` : ''}`)
-                .join('\n');
+        const scheduleText = (scheduleData || [])
+            .map(s => `- ${s.title}${s.speaker ? ` by ${s.speaker}` : ''} at ${fmtTime(s.start_time)}${s.location ? ` in ${s.location}` : ''}`)
+            .join('\n');
 
-            const eventVenues = (venueData || []).filter(v => v.event_id === event.id)
-                    .map(v => `- ${v.label}: ${v.description || 'No additional details'}`)
-                .join('\n');
+        const venueText = (venueData || [])
+            .map(v => `- ${v.label}: ${v.description || 'No additional details'}`)
+            .join('\n');
 
-            const priceText = event.is_paid ? `Paid event, ticket price ${event.ticket_price ?? 'TBD'}` : 'Free event';
+        const docText = (eventData?.knowledge_text || '').slice(0, MAX_DOC_CHARS);
+        const priceText = eventData?.is_paid ? `Paid event, ticket price ${eventData?.ticket_price ?? 'TBD'}` : 'Free event';
 
-            return `
---- EVENT: ${event.name || 'Unknown'} ---
-About: ${event.description || 'No description provided.'}
-Venue: ${event.venue_name || 'TBD'}${event.venue_address ? `, ${event.venue_address}` : ''}
-Starts: ${fmtDateTime(event.start_date)}
-Ends: ${fmtDateTime(event.end_date)}
-Registration deadline: ${event.registration_deadline ? fmtDateTime(event.registration_deadline) : 'None stated'}
-Capacity: ${event.capacity ?? 'Not stated'}
+        knowledgeBase = `
+Event: ${eventData?.name || 'Unknown'}
+About: ${eventData?.description || 'No description provided.'}
+Venue: ${eventData?.venue_name || 'TBD'}${eventData?.venue_address ? `, ${eventData.venue_address}` : ''}
+Starts: ${fmtDateTime(eventData?.start_date)}
+Ends: ${fmtDateTime(eventData?.end_date)}
+Registration deadline: ${eventData?.registration_deadline ? fmtDateTime(eventData.registration_deadline) : 'None stated'}
+Capacity: ${eventData?.capacity ?? 'Not stated'}
 Tickets: ${priceText}
 
 Schedule:
-${eventSchedule || 'No schedule items yet.'}
+${scheduleText || 'No schedule items yet.'}
 
 Venue Locations:
-${eventVenues || 'No venue locations added yet.'}
+${venueText || 'No venue locations added yet.'}
 
 Organizer's uploaded documents (agenda, FAQ, rules, etc.):
-${event.knowledge_text || 'None uploaded.'}
+${docText || 'None uploaded.'}
 `.trim();
-        }).join('\n\n');
-
-        // If registered for multiple events, append a strict routing instruction for the AI
-        if (eventsData && eventsData.length > 1) {
-            knowledgeBase = `[CRITICAL SYSTEM INSTRUCTION: The attendee is registered for MULTIPLE events. If their question is vague (e.g., "where is parking?" or "what time is lunch?"), you MUST politely ask them which event they are asking about. If they specify the event, answer using that specific event's details.]\n\n` + knowledgeBase;
-        }
     }
 
     console.log("🧠 Knowledge base sent to AI:\n", knowledgeBase);

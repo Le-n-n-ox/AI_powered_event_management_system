@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import UserManagement from "../../components/admin/UserManagement";
+import EventCard from "@/components/ui/EventCard";
+import { useEvents } from "../../hooks/useEvents";
+import type { Event } from "../../types/event";
 import {
   UsersRound,
   CalendarDays,
@@ -8,6 +11,7 @@ import {
   TriangleAlert,
   Ban,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 
 const STATS = [
@@ -51,6 +55,49 @@ const TABS = ["overview", "users", "events", "logs"] as const;
 type AdminTab = (typeof TABS)[number];
 
 const CARD = "bg-surface rounded-xl border border-border shadow-sm";
+
+function GlobalEventControl() {
+  const { events, loading, error } = useEvents();
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+
+  function handleDeleted(id: string) {
+    setRemovedIds((prev) => new Set(prev).add(id));
+  }
+
+  const visibleEvents = events.filter((e: Event) => !removedIds.has(e.id));
+
+  if (loading) {
+    return (
+      <div className={`${CARD} p-12 flex items-center justify-center gap-2 text-text-soft`}>
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading all events…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`${CARD} p-6 text-danger text-sm`}>Error: {error}</div>
+    );
+  }
+
+  if (visibleEvents.length === 0) {
+    return (
+      <div className={`${CARD} p-12 text-center text-text-muted`}>
+        <CalendarDays size={48} className="mx-auto mb-4 text-border-strong" />
+        <h2 className="text-xl font-medium text-text">No events on the platform</h2>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {visibleEvents.map((event: Event) => (
+        <EventCard key={event.id} event={event} onDeleted={handleDeleted} />
+      ))}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
@@ -156,19 +203,7 @@ export default function AdminDashboard() {
 
         {activeTab === "events" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className={`${CARD} p-12 text-center text-text-muted`}>
-              <CalendarDays
-                size={48}
-                className="mx-auto mb-4 text-border-strong"
-              />
-              <h2 className="text-xl font-medium text-text">
-                Global Event Control
-              </h2>
-              <p className="mt-2">
-                This is where you will manage, delete, and oversee all platform
-                events.
-              </p>
-            </div>
+            <GlobalEventControl />
           </motion.div>
         )}
 

@@ -3,7 +3,10 @@ import { useParams } from "react-router-dom";
 import { Plus, Trash2, MapPin } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import AddVenueLocationForm from "../components/ui/AddVenueLocationForm";
+import BackButton from "../components/layout/BackButton";
 import type { Event, VenueLocation } from "../types/event";
+
+const CHIP = "text-xs font-medium px-2.5 py-1 rounded-full";
 
 export default function ManageVenueLocations() {
   const { id } = useParams<{ id: string }>();
@@ -48,80 +51,100 @@ export default function ManageVenueLocations() {
 
   if (loading)
     return (
-      <div className="p-10 text-center text-[var(--color-text-muted)]">
+      <div className="min-h-screen bg-background pt-32 text-center text-text-soft">
         Loading locations…
       </div>
     );
   if (!event)
     return (
-      <div className="p-10 text-center text-[var(--color-danger)]">
+      <div className="min-h-screen bg-background pt-32 text-center text-danger">
         Event not found.
       </div>
     );
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-[var(--color-text)]">
-            Venue Locations: {event.name}
-          </h1>
-          <p className="text-sm text-[var(--color-text-muted)]">
-            {locations.length} location{locations.length !== 1 ? "s" : ""} —
-            used by the AI assistant to answer attendee questions
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--color-text-on-dark)] bg-[var(--color-brand)] rounded-lg hover:bg-[var(--color-brand-hover)]"
-        >
-          <Plus className="w-4 h-4" />
-          Add Location
-        </button>
-      </div>
-
-      {locations.length === 0 ? (
-        <div className="text-center p-10 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)]">
-          No locations yet. Add washrooms, halls, registration desks, etc.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {locations.map((loc) => (
-            <div
-              key={loc.id}
-              className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] p-4 flex items-start justify-between"
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-12">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <BackButton
+              fallbackTo="/dashboard"
+              label="Back to dashboard"
+              className="mb-4"
+            />
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-text tracking-tight mb-2">
+              Venue Locations
+              <span className="block sm:inline sm:ml-2 text-text-soft font-medium text-lg sm:text-2xl">
+                {event.name}
+              </span>
+            </h1>
+            <span
+              className={`${CHIP} inline-flex items-center gap-1 bg-brand-soft text-brand-strong`}
             >
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-[var(--color-brand)] mt-0.5" />
-                <div>
-                  <h3 className="font-heading font-semibold text-[var(--color-text)]">
-                    {loc.label}
-                  </h3>
-                  {loc.description && (
-                    <p className="text-sm text-[var(--color-text-muted)] mt-1">
-                      {loc.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => handleDelete(loc.id)}
-                className="text-[var(--color-text-soft)] hover:text-[var(--color-danger)] transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+              <MapPin className="w-3 h-3" />
+              {locations.length} location{locations.length !== 1 ? "s" : ""} —
+              used by the AI assistant
+            </span>
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-on-dark bg-brand rounded-lg hover:bg-brand-hover transition-colors shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Add Location
+          </button>
         </div>
-      )}
 
-      {showForm && (
-        <AddVenueLocationForm
-          eventId={event.id}
-          onLocationAdded={fetchData}
-          onClose={() => setShowForm(false)}
-        />
-      )}
+        {locations.length === 0 ? (
+          <div className="text-center p-10 bg-surface rounded-xl border border-border shadow-sm">
+            <div className="inline-flex p-3 rounded-lg bg-brand-soft text-brand mb-3">
+              <MapPin className="w-6 h-6" />
+            </div>
+            <p className="font-medium text-text">No locations yet</p>
+            <p className="text-sm text-text-soft mt-1">
+              Add washrooms, halls, registration desks, and other landmarks.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {locations.map((loc) => (
+              <div
+                key={loc.id}
+                className="bg-surface rounded-xl border border-border shadow-sm p-4 flex items-start justify-between hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-brand mt-0.5 shrink-0" />
+                  <div>
+                    <h3 className="font-heading font-semibold text-text">
+                      {loc.label}
+                    </h3>
+                    {loc.description && (
+                      <p className="text-sm text-text-muted mt-1">
+                        {loc.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(loc.id)}
+                  className="text-text-soft hover:text-danger transition-colors shrink-0"
+                  aria-label={`Delete ${loc.label}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showForm && (
+          <AddVenueLocationForm
+            eventId={event.id}
+            onLocationAdded={fetchData}
+            onClose={() => setShowForm(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

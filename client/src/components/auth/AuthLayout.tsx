@@ -1,86 +1,76 @@
-import { ShieldCheck, CalendarDays, Ticket } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react"; // Import ReactNode for the children prop
+import type { ReactNode } from "react";
+import { Check } from "lucide-react";
+import { VARIANTS } from "./authVariants";
+import type { AuthVariant } from "./authVariants";
 
-export type AuthVariant = "admin" | "organizer" | "attendee";
-
-interface VariantConfig {
-  icon: LucideIcon;
-  label: string;
-  headline: string;
-  points: string[];
-  panel: string;
-  accent: string;
-  btn: string;
-}
-
-export const VARIANTS: Record<AuthVariant, VariantConfig> = {
-  admin: {
-    icon: ShieldCheck,
-    label: "Admin Portal",
-    headline: "Platform administration",
-    points: [],
-    panel: "bg-[var(--color-panel-admin)]",
-    accent: "text-[var(--color-accent-admin)]",
-    btn: "bg-[var(--color-panel-admin)] hover:bg-[var(--color-panel-admin-hover)]",
-  },
-  organizer: {
-    icon: CalendarDays,
-    label: "Organizer Portal",
-    headline: "Run your event without the chaos",
-    points: [
-      "Create events with venue, pricing and capacity",
-      "Approve registrations and track payments",
-      "Manage schedules and venue locations",
-      "AI assistant answers attendee questions by SMS",
-    ],
-    panel: "bg-[var(--color-panel-organizer)]",
-    accent: "text-[var(--color-accent-organizer)]",
-    btn: "bg-[var(--color-panel-organizer)] hover:bg-[var(--color-panel-organizer-hover)]",
-  },
-  attendee: {
-    icon: Ticket,
-    label: "Attendee Portal",
-    headline: "Find events. Show up. Stay informed.",
-    points: [
-      "Browse and register for upcoming events",
-      "Get schedule and venue answers by SMS",
-      "One-tap safety check-ins at the venue",
-    ],
-    panel: "bg-[var(--color-panel-attendee)]",
-    accent: "text-[var(--color-accent-attendee)]",
-    btn: "bg-[var(--color-panel-attendee)] hover:bg-[var(--color-panel-attendee-hover)]",
-  },
-};
-
-// 1. Define your component props
-interface AuthLayoutProps {
+interface Props {
+  variant: AuthVariant;
+  title: string;
+  subtitle: string;
   children: ReactNode;
-  variant?: AuthVariant;
-  title?: string; // <-- ADD THIS
-  subtitle?: string; // <-- ADD THIS
 }
 
-// 2. Actually create the AuthLayout component function
-export default function AuthLayout({
-  children,
-  variant = "admin",
-}: AuthLayoutProps) {
-  const config = VARIANTS[variant];
-  const Icon = config.icon;
+export default function AuthLayout({ variant, title, subtitle, children }: Props) {
+  const v = VARIANTS[variant];
+  const Icon = v.icon;
 
+  // Admin: dark canvas, single centered card — no marketing panel
+  if (variant === "admin") {
+    return (
+      <div className="min-h-screen bg-panel-admin flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className={`flex items-center justify-center gap-2 mb-6 font-heading font-semibold ${v.accent}`}>
+            <Icon className="w-5 h-5" />
+            {v.label}
+          </div>
+          <div className="bg-surface-muted border border-border rounded-2xl shadow-2xl p-8">
+            <h1 className="font-heading text-2xl font-bold text-text">{title}</h1>
+            <p className="text-sm text-text-soft mt-1 mb-6">{subtitle}</p>
+            {children}
+          </div>
+          <p className="text-center text-xs text-text-on-dark/40 mt-4">
+            Authorized personnel only.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Organizer: marketing panel on the left. Attendee: on the right.
   return (
-    <div className="flex min-h-screen bg-[var(--color-background)]">
-      <div
-        className={`w-1/2 p-8 text-[var(--color-text-on-dark)] ${config.panel}`}
+    <div className="min-h-screen grid md:grid-cols-2 bg-background">
+      <aside
+        className={`${v.panel} text-text-on-dark hidden md:flex flex-col justify-center p-12 ${
+          variant === "attendee" ? "md:order-2" : ""
+        }`}
       >
-        <Icon className={`w-12 h-12 ${config.accent} mb-4`} />
-        <h1 className="text-3xl font-bold">{config.headline}</h1>
-      </div>
+        <div className={`flex items-center gap-2 mb-6 font-heading font-semibold ${v.accent}`}>
+          <Icon className="w-5 h-5" />
+          {v.label}
+        </div>
+        <h2 className="font-heading text-3xl font-bold leading-tight mb-6">{v.headline}</h2>
+        <ul className="flex flex-col gap-3">
+          {v.points.map((p) => (
+            <li key={p} className="flex items-start gap-2 text-sm text-text-on-dark/85">
+              <Check className="w-4 h-4 mt-0.5 shrink-0" />
+              {p}
+            </li>
+          ))}
+        </ul>
+      </aside>
 
-      <div className="w-1/2 p-8 flex items-center justify-center bg-[var(--color-surface)]">
-        {children}
-      </div>
+      <main className="flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          <p className="md:hidden text-xs font-semibold uppercase tracking-wide text-text-soft mb-2">
+            {v.label}
+          </p>
+          <h1 className="font-heading text-2xl font-bold text-text">{title}</h1>
+          <p className="text-sm text-text-soft mt-1 mb-6">{subtitle}</p>
+          <div className="bg-surface-muted border border-border rounded-xl shadow-lg shadow-shadow-soft p-6">
+            {children}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
