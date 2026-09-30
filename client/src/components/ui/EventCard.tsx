@@ -44,7 +44,8 @@ const STATUS_STYLES: { [key: string]: StatusStyle } = {
   },
   ongoing: {
     variant: "default",
-    badge: "bg-success-bg text-success border-success-border hover:bg-success-bg",
+    badge:
+      "bg-success-bg text-success border-success-border hover:bg-success-bg",
     bar: "bg-linear-to-r from-success to-tag-teal",
   },
   cancelled: {
@@ -73,7 +74,7 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
 
   const style = showAsPast
     ? STATUS_STYLES.completed
-    : STATUS_STYLES[event.status] ?? STATUS_STYLES.completed;
+    : (STATUS_STYLES[event.status] ?? STATUS_STYLES.completed);
   const statusLabel = showAsPast ? "past" : event.status;
 
   async function handleCopyLink() {
@@ -90,7 +91,7 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
   async function handleDelete() {
     if (
       !confirm(
-        `Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`
+        `Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`,
       )
     ) {
       return;
@@ -183,6 +184,18 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
             </Link>
           </Button>
 
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className={ICON_BTN}
+            title="Check-in"
+          >
+            <Link to={`/events/${event.id}/checkin`} aria-label="Check-in">
+              <ScanLine className="w-4 h-4" />
+            </Link>
+          </Button>
+
           <div className="flex items-center gap-0.5 ml-1">
             {!isPastEvent && (
               <Button
@@ -190,7 +203,9 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
                 size="icon"
                 className={`${ICON_BASE} hover:text-brand-strong hover:bg-brand-soft`}
                 onClick={() =>
-                  navigate(`/organizer/events/${event.id}/edit`, { state: { event } })
+                  navigate(`/organizer/events/${event.id}/edit`, {
+                    state: { event },
+                  })
                 }
                 title="Edit Event"
                 aria-label="Edit Event"

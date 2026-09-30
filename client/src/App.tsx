@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import EventGuard from "./components/layout/EventGuard";
+import RequireAuth from "./components/layout/RequireAuth";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import EventsList from "./pages/EventsList";
@@ -18,9 +19,9 @@ import OrganizerSignup from "./pages/organizer/OrganizerSignup";
 import AttendeeLogin from "./pages/attendee/AttendeeLogin";
 import AttendeeSignup from "./pages/attendee/AttendeeSignup";
 import EventFormPage from "./pages/organizer/EventFormPage";
-import RequireAuth from "./components/layout/RequireAuth";
 import Profile from "./pages/Profile";
-
+import CheckIn from "./pages/CheckIn";
+import MyEvents from "./pages/attendee/MyEvents";
 
 // Staff login required AND must own the event (admins bypass ownership)
 function Managed({ children }: { children: ReactNode }) {
@@ -35,7 +36,9 @@ function App() {
   return (
     <>
       <Navbar />
-      <div className="pt-16"> {/* Global fix: pushes all page routes below the fixed navbar */}
+      <div className="pt-16">
+        {" "}
+        {/* Global fix: pushes all page routes below the fixed navbar */}
         <Routes>
           <Route path="/" element={<Landing />} />
           {/* Auth */}
@@ -47,7 +50,24 @@ function App() {
           <Route path="/organizer/signup" element={<OrganizerSignup />} />
           <Route path="/attendee/login" element={<AttendeeLogin />} />
           <Route path="/attendee/signup" element={<AttendeeSignup />} />
-          <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+
+          {/* Any logged-in user */}
+          <Route
+            path="/my-events"
+            element={
+              <RequireAuth>
+                <MyEvents />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <Profile />
+              </RequireAuth>
+            }
+          />
 
           {/* Event Form Management */}
           <Route
@@ -101,6 +121,14 @@ function App() {
             element={
               <Managed>
                 <ManageVenueLocations />
+              </Managed>
+            }
+          />
+          <Route
+            path="/events/:id/checkin"
+            element={
+              <Managed>
+                <CheckIn />
               </Managed>
             }
           />

@@ -17,10 +17,10 @@ import { supabase } from "../../lib/supabase";
 
 interface Profile {
   id: string;
-  name: string;
-  email: string;
-  role: "admin" | "organizer" | "attendee";
-  status: "active" | "suspended";
+  full_name: string | null;
+  email: string | null;
+  role: "admin" | "organizer" | "attendee" | "floor_manager";
+  suspended: boolean;
   created_at: string;
 }
 
@@ -58,7 +58,7 @@ const FOCUS =
   "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
 
 function initials(user: Profile) {
-  const source = (user.name || user.email || "?").trim();
+  const source = (user.full_name || user.email || "?").trim();
   const parts = source.split(/\s+/);
   const letters =
     parts.length > 1 ? parts[0][0] + parts[1][0] : source.slice(0, 2);
@@ -80,10 +80,7 @@ export default function UserManagement() {
   async function fetchUsers() {
     setLoading(true);
     setError(null);
-    const { data, error: dbError } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error: dbError } = await supabase.rpc("admin_list_users");
 
     if (dbError) {
       setError(dbError.message);
@@ -93,22 +90,21 @@ export default function UserManagement() {
     setLoading(false);
   }
 
-  async function toggleUserStatus(id: string, current: Profile["status"]) {
-    const next: Profile["status"] =
-      current === "active" ? "suspended" : "active";
+  async function toggleUserStatus(id: string, currentlySuspended: boolean) {
+    const next = !currentlySuspended;
 
     setPendingId(id);
     setError(null);
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: next } : u)));
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, suspended: next } : u)));
 
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ status: next })
+      .update({ suspended: next })
       .eq("id", id);
 
     if (updateError) {
       setUsers((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, status: current } : u)),
+        prev.map((u) => (u.id === id ? { ...u, suspended: currentlySuspended } : u)),
       );
       setError("Failed to update user status. Please try again.");
     }
@@ -119,7 +115,7 @@ export default function UserManagement() {
     const q = search.trim().toLowerCase();
     return users.filter((user) => {
       const matchesSearch =
-        (user.name?.toLowerCase() || "").includes(q) ||
+        (user.full_name?.toLowerCase() || "").includes(q) ||
         (user.email?.toLowerCase() || "").includes(q);
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
       return matchesSearch && matchesRole;
@@ -198,7 +194,7 @@ export default function UserManagement() {
               filteredUsers.map((user) => {
                 const role = ROLE_STYLES[user.role] ?? FALLBACK_ROLE;
                 const RoleIcon = role.icon;
-                const active = user.status === "active";
+                const active = !user.suspended;
                 const busy = pendingId === user.id;
                 return (
                   <tr
@@ -215,7 +211,7 @@ export default function UserManagement() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium text-text truncate">
-                            {user.name || "Unnamed user"}
+                            {user.full_name || "Unnamed user"}
                           </div>
                           <div className="text-text-soft text-xs mt-0.5 truncate">
                             {user.email}
@@ -251,7 +247,7 @@ export default function UserManagement() {
                           <button
                             type="button"
                             disabled={busy}
-                            onClick={() => toggleUserStatus(user.id, user.status)}
+                            onClick={() => toggleUserStatus(user.id, user.suspended)}
                             className={`min-w-20 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${FOCUS} ${
                               active
                                 ? "text-danger bg-danger-bg hover:bg-danger-hover"
@@ -269,7 +265,7 @@ export default function UserManagement() {
                         )}
                         <button
                           type="button"
-                          aria-label={`More actions for ${user.name || user.email}`}
+                          aria-label={`More actions for ${user.full_name || user.email}`}
                           className={`p-1.5 text-text-soft hover:text-text hover:bg-surface-strong rounded-md transition-colors ${FOCUS}`}
                         >
                           <MoreVertical className="w-4 h-4" />

@@ -96,20 +96,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
 
-    if (allowedRoles && data.user) {
+    if (data.user) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, suspended")
         .eq("id", data.user.id)
         .maybeSingle()
+
       const userRole = profile?.role as Role | undefined
 
-      if (!userRole || !allowedRoles.includes(userRole)) {
+      if (profile?.suspended) {
         await supabase.auth.signOut()
-        return {
-          error: userRole
-            ? `This is a ${userRole} account. Please use the ${userRole} login.`
-            : "No profile found for this account.",
+        return { error: "This account has been suspended. Contact an administrator." }
+      }
+
+      if (allowedRoles) {
+        if (!userRole || !allowedRoles.includes(userRole)) {
+          await supabase.auth.signOut()
+          return {
+            error: userRole
+              ? `This is a ${userRole} account. Please use the ${userRole} login.`
+              : "No profile found for this account.",
+          }
         }
       }
     }

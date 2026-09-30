@@ -5,13 +5,13 @@ import {
   MapPin,
   CalendarDays,
   Clock,
-  CircleCheck,
   Ban,
   CalendarX,
   ExternalLink,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import RegistrationForm from "../components/ui/RegistrationForm";
+import TicketQR from "../components/ui/TicketQR";
 import BackButton from "../components/layout/BackButton";
 import type { Event } from "../types/event";
 
@@ -35,7 +35,7 @@ export default function EventDetail() {
   const [attendeeCount, setAttendeeCount] = useState(0);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [registeredAttendeeId, setRegisteredAttendeeId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -247,23 +247,12 @@ export default function EventDetail() {
 
         {/* Right: Registration */}
         <div className="md:sticky md:top-24 md:self-start">
-          {isRegistered ? (
-            <div
-              role="status"
-              className="bg-success-bg border border-success-border text-success p-8 rounded-xl text-center shadow-md shadow-shadow-soft"
-            >
-              <CircleCheck className="w-10 h-10 mx-auto mb-3" />
-              <h3 className="font-heading text-2xl font-bold mb-2">
-                {event.requires_approval
-                  ? "Request submitted"
-                  : "You're on the list!"}
-              </h3>
-              <p className="text-sm">
-                {event.requires_approval
-                  ? "The organizer will review your registration. You'll be notified once approved."
-                  : "You can now interact with our AI Assistant via SMS using the phone number you provided."}
-              </p>
-            </div>
+          {registeredAttendeeId ? (
+            <TicketQR
+              attendeeId={registeredAttendeeId}
+              eventId={event.id}
+              eventName={event.name}
+            />
           ) : isPast ? (
             <div
               role="status"
@@ -294,7 +283,7 @@ export default function EventDetail() {
           ) : (
             <RegistrationForm
               eventId={event.id}
-              onSuccess={() => setIsRegistered(true)}
+              onSuccess={(attendeeId) => setRegisteredAttendeeId(attendeeId)}
             />
           )}
         </div>
