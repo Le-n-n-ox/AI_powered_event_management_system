@@ -10,6 +10,7 @@ import {
   Link as LinkIcon,
   Check,
   Trash2,
+  ScanLine,
 } from "lucide-react";
 import type { Event } from "../../types/event";
 import { getCountdown } from "../../utils/dateHelpers";
@@ -188,7 +189,7 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
             asChild
             variant="ghost"
             size="icon"
-            className={ICON_BTN}
+            className={`${ICON_BASE} hover:text-warning hover:bg-warning-bg`}
             title="Check-in"
           >
             <Link to={`/events/${event.id}/checkin`} aria-label="Check-in">
