@@ -1,15 +1,19 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+
+const { processMessageWithAI, extractEventFromText } = require('./ai');
+const webhookAuth = require('./middleware/webhookAuth');
+const adminRoutes = require('./routes/admin');
+const { webhookLimiter, extractLimiter, adminLimiter } = require('./middleware/rateLimits');
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-const express = require('express');
-const cors = require('cors'); // Required for React frontend communication
-const { processMessageWithAI, extractEventFromText } = require('./ai');
-const multer = require('multer');
-const pdfParse = require('pdf-parse');
 
 // Handles the Magic Auto-Fill upload. Files are kept in memory only
 // (never written to disk) and capped so a huge upload can't hang the server.
@@ -17,7 +21,6 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024, files: 5 } // 5MB per file, 5 files max
 });
-
 
 const credentials = {
     apiKey: process.env.AT_API_KEY,
@@ -28,11 +31,16 @@ const sms = AfricasTalking.SMS;
 const voice = AfricasTalking.VOICE;
 
 const app = express();
-app.use(cors()); 
+
+// If you deploy behind a proxy (Render, Vercel, etc.), this makes
+// express-rate-limit key off the real client IP instead of the proxy's.
+app.set('trust proxy', 1);
+
+app.use(cors());
 app.use(express.json({ limit: '2mb' })); // raised from Express's 100kb default so uploaded knowledge-base text fits
 app.use(express.urlencoded({ extended: true }));
 
-
+app.use('/api/admin', adminLimiter, adminRoutes);
 
 let tasks = [
     { id: 1, description: "Check main lobby sound system", completed: false },
@@ -48,15 +56,15 @@ const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-KE', { timeZone: E
 const MAX_DOC_CHARS = 15000; // keeps the prompt within what small/local models can handle
 
 app.get('/', (req, res) => {
-    res.status(200).json({ 
-        status: 'online', 
-        message: 'Operations Engine API is running smoothly!' 
+    res.status(200).json({
+        status: 'online',
+        message: 'Operations Engine API is running smoothly!'
     });
 });
 
 // Magic Auto-Fill: takes raw text from an uploaded file (frontend reads the
 // file itself) and asks the AI to pull out structured event form fields.
-app.post('/api/extract-event', upload.array('files', 5), async (req, res) => {
+app.post('/api/extract-event', extractLimiter, upload.array('files', 5), async (req, res) => {
     const files = req.files || [];
     if (!files.length) {
         return res.status(400).json({ error: 'No files uploaded.' });
@@ -112,7 +120,7 @@ app.get('/webhook/incoming', (req, res) => {
 });
 
 // USSD Interactive Menu Endpoint
-app.post('/ussd', (req, res) => {
+app.post('/ussd', webhookAuth, webhookLimiter, (req, res) => {
     const { sessionId, serviceCode, phoneNumber, text } = req.body;
     let responseMessage = "";
     const arr = text.split('*');
@@ -155,7 +163,7 @@ app.post('/ussd', (req, res) => {
 });
 
 // SMS & Emergency Escalation Webhook with Debug Logging
-app.post('/webhook/incoming', async (req, res) => {
+app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
     res.sendStatus(200);
 
     console.log("📥 Raw SMS Webhook Payload Received:", req.body);
@@ -271,7 +279,7 @@ ${docText || 'None uploaded.'}
 
     if (aiResult.isEmergency) {
         console.log(`🚨 EMERGENCY DETECTED! Triggering voice call escalation...`);
-        
+
         // Check if running in Sandbox mode to prevent voice DNS resolution errors
         if (process.env.AT_USERNAME === 'sandbox') {
             console.log(`📞 [SANDBOX SIMULATION] Voice calls are restricted in the AT Sandbox environment.`);

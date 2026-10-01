@@ -57,6 +57,8 @@ const FIELD =
 const FOCUS =
   "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 function initials(user: Profile) {
   const source = (user.full_name || user.email || "?").trim();
   const parts = source.split(/\s+/);
@@ -97,12 +99,24 @@ export default function UserManagement() {
     setError(null);
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, suspended: next } : u)));
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ suspended: next })
-      .eq("id", id);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (updateError) {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users/${id}/suspend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ suspended: next }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Request failed");
+      }
+    } catch {
       setUsers((prev) =>
         prev.map((u) => (u.id === id ? { ...u, suspended: currentlySuspended } : u)),
       );
@@ -285,12 +299,3 @@ export default function UserManagement() {
           </tbody>
         </table>
       </div>
-
-      {!loading && (
-        <div className="px-4 sm:px-6 py-3 border-t border-border bg-surface-muted text-xs text-text-soft">
-          Showing {filteredUsers.length} of {users.length} users
-        </div>
-      )}
-    </motion.div>
-  );
-}

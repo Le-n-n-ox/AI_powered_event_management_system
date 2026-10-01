@@ -169,6 +169,12 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
         <p className="text-sm text-text-muted">
           Don't have an account?{" "}
           <Link
+            to="/forgot-password"
+            className="text-xs text-text-soft hover:text-text"
+          >
+            Forgot your password?
+          </Link>
+          <Link
             to={signupPath}
             className={`font-semibold text-brand-strong hover:text-tag-violet hover:underline ${FOCUS}`}
           >

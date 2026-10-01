@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
   MapPin,
@@ -10,9 +11,11 @@ import {
   XCircle,
   Hourglass,
   ListPlus,
+  X,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
+import TicketQR from "../../components/ui/TicketQR";
 import type { Attendee, Event } from "../../types/event";
 
 type Registration = Attendee & { events: Event };
@@ -43,11 +46,79 @@ const STATUS_CONFIG: Record<
   },
 };
 
+function TicketModal({
+  registration,
+  onClose,
+}: {
+  registration: Registration;
+  onClose: () => void;
+}) {
+  const event = registration.events;
+  const needsApproval = event.requires_approval && registration.status !== "approved";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-overlay flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm"
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="flex items-center gap-1 text-sm text-text-on-dark/90 hover:text-text-on-dark mb-3"
+        >
+          <X className="w-4 h-4" />
+          Close
+        </button>
+
+        {needsApproval ? (
+          <div
+            className={`bg-surface border rounded-xl shadow-lg p-6 text-center ${
+              STATUS_CONFIG[registration.status].className
+            }`}
+          >
+            {(() => {
+              const StatusIcon = STATUS_CONFIG[registration.status].icon;
+              return <StatusIcon className="w-8 h-8 mx-auto mb-3" />;
+            })()}
+            <h3 className="font-heading font-semibold text-text mb-1">
+              {STATUS_CONFIG[registration.status].label}
+            </h3>
+            <p className="text-sm text-text-soft">
+              {registration.status === "pending"
+                ? "Your ticket will appear here once the organizer approves your registration."
+                : registration.status === "waitlisted"
+                ? "You're on the waitlist. Your ticket will appear here if a spot opens up."
+                : "This registration wasn't approved for this event."}
+            </p>
+          </div>
+        ) : (
+          <TicketQR
+            attendeeId={registration.id}
+            eventId={event.id}
+            eventName={event.name}
+          />
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function MyEvents() {
   const { user } = useAuth();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Registration | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -74,7 +145,7 @@ export default function MyEvents() {
           My Events
         </h1>
         <p className="text-text-soft text-sm mb-6">
-          Events you've registered for, and their approval status.
+          Tap an event to view your ticket QR code.
         </p>
 
         {loading && (
@@ -118,10 +189,11 @@ export default function MyEvents() {
             if (!event) return null;
 
             return (
-              <Link
+              <button
                 key={reg.id}
-                to={`/events/${event.id}`}
-                className="bg-surface-muted border border-border rounded-xl shadow-sm p-4 hover:shadow-md hover:border-border-strong transition-all"
+                type="button"
+                onClick={() => setSelected(reg)}
+                className="w-full text-left bg-surface-muted border border-border rounded-xl shadow-sm p-4 hover:shadow-md hover:border-border-strong transition-all"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -152,11 +224,17 @@ export default function MyEvents() {
                     {status.label}
                   </span>
                 </div>
-              </Link>
+              </button>
             );
           })}
         </div>
       </div>
+
+      <AnimatePresence>
+        {selected && (
+          <TicketModal registration={selected} onClose={() => setSelected(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
