@@ -299,3 +299,12 @@ export default function UserManagement() {
           </tbody>
         </table>
       </div>
+
+      {!loading && (
+        <div className="px-4 sm:px-6 py-3 border-t border-border bg-surface-muted text-xs text-text-soft">
+          Showing {filteredUsers.length} of {users.length} users
+        </div>
+      )}
+    </motion.div>
+  );
+}
