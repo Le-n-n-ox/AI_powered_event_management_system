@@ -99,12 +99,20 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
       </motion.div>
 
       <motion.div variants={itemVariants} className="space-y-1.5">
-        <label
-          htmlFor={passwordId}
-          className="block text-sm font-medium text-text-muted"
-        >
-          Password
-        </label>
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor={passwordId}
+            className="block text-sm font-medium text-text-muted"
+          >
+            Password
+          </label>
+          <Link
+            to="/forgot-password"
+            className={`text-xs font-medium text-brand-strong hover:text-tag-violet hover:underline ${FOCUS}`}
+          >
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative group">
           <div className={ICON_WRAP}>
             <Lock size={18} />
@@ -168,12 +176,6 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
       >
         <p className="text-sm text-text-muted">
           Don't have an account?{" "}
-          <Link
-            to="/forgot-password"
-            className="text-xs text-text-soft hover:text-text"
-          >
-            Forgot your password?
-          </Link>
           <Link
             to={signupPath}
             className={`font-semibold text-brand-strong hover:text-tag-violet hover:underline ${FOCUS}`}
