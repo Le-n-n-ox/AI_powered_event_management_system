@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { CalendarDays, LogOut, LayoutDashboard, UserRound, Menu, X } from "lucide-react";
+import {
+  CalendarDays,
+  LogOut,
+  LayoutDashboard,
+  UserRound,
+  ListPlus,
+  Menu,
+  X,
+} from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
@@ -87,6 +95,13 @@ function Navbar() {
 
             {session ? (
               <>
+                <Link
+                  to="/my-events"
+                  className={linkClass("/my-events", "px-3.5 py-2")}
+                >
+                  <ListPlus className="w-4 h-4" />
+                  My Events
+                </Link>
                 {isStaff && (
                   <Link
                     to="/dashboard"
@@ -96,7 +111,10 @@ function Navbar() {
                     Dashboard
                   </Link>
                 )}
-                <Link to="/profile" className={linkClass("/profile", "px-3.5 py-2")}>
+                <Link
+                  to="/profile"
+                  className={linkClass("/profile", "px-3.5 py-2")}
+                >
                   <UserRound className="w-4 h-4" />
                   Profile
                 </Link>
@@ -154,6 +172,13 @@ function Navbar() {
 
             {session ? (
               <>
+                <Link
+                  to="/my-events"
+                  className={linkClass("/my-events", "gap-2 px-3 py-2.5")}
+                >
+                  <ListPlus className="w-4 h-4" />
+                  My Events
+                </Link>
                 {isStaff && (
                   <Link
                     to="/dashboard"
@@ -163,7 +188,10 @@ function Navbar() {
                     Dashboard
                   </Link>
                 )}
-                <Link to="/profile" className={linkClass("/profile", "gap-2 px-3 py-2.5")}>
+                <Link
+                  to="/profile"
+                  className={linkClass("/profile", "gap-2 px-3 py-2.5")}
+                >
                   <UserRound className="w-4 h-4" />
                   Profile
                 </Link>

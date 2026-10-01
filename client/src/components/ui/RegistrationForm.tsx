@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../context/AuthContext";
 
 import {
   Card,
@@ -33,7 +34,7 @@ import {
 } from "@/components/ui/select";
 interface Props {
   eventId: string;
-  onSuccess: () => void;
+  onSuccess: (attendeeId: string) => void;
 }
 
 const REFERRAL_OPTIONS = [
@@ -68,6 +69,7 @@ function Hint({ children }: { children: ReactNode }) {
 export default function RegistrationForm({ eventId, onSuccess }: Props) {
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
+  const { user } = useAuth();
 
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -92,21 +94,26 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
     setError(null);
 
     try {
-      const { error: supabaseError } = await supabase.from("attendees").insert([
-        {
-          event_id: eventId,
-          full_name: fullName.trim(),
-          phone_number: formatPhoneNumber(phoneNumber),
-          email: email.trim() || null,
-          organization: organization.trim() || null,
-          job_title: jobTitle.trim() || null,
-          dietary_notes: dietaryNotes.trim() || null,
-          referral_source: referralSource || null,
-        },
-      ]);
+      const { data, error: supabaseError } = await supabase
+        .from("attendees")
+        .insert([
+          {
+            event_id: eventId,
+            user_id: user?.id ?? null,
+            full_name: fullName.trim(),
+            phone_number: formatPhoneNumber(phoneNumber),
+            email: email.trim() || null,
+            organization: organization.trim() || null,
+            job_title: jobTitle.trim() || null,
+            dietary_notes: dietaryNotes.trim() || null,
+            referral_source: referralSource || null,
+          },
+        ])
+        .select()
+        .single();
 
       if (supabaseError) throw supabaseError;
-      onSuccess();
+      onSuccess(data.id);
     } catch (err) {
       console.error("Registration error:", err);
       setError(
