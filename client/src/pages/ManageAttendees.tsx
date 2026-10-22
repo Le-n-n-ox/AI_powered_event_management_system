@@ -13,6 +13,8 @@ import {
 import { supabase } from "../lib/supabase";
 import type { Attendee, Event } from "../types/event";
 import BackButton from "../components/layout/BackButton";
+import AppShell from "../components/layout/AppShell";
+import { eventNav } from "../components/layout/navItems";
 
 type AttendeeStatus = Attendee["status"];
 type PaymentStatus = Attendee["payment_status"];
@@ -129,42 +131,42 @@ export default function ManageAttendees() {
   const colCount = event.is_paid ? 6 : 5;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-12">
-        <div className="mb-6">
-          <BackButton
-            fallbackTo="/dashboard"
-            label="Back to dashboard"
-            className="mb-4"
-          />
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-text tracking-tight mb-3">
-            Manage attendees
-            <span className="block sm:inline sm:ml-2 text-text-soft font-medium text-lg sm:text-2xl">
-              {event.name}
-            </span>
-          </h1>
-          <div className="flex flex-wrap gap-2">
-            <span className={`${CHIP} bg-surface-strong text-text-muted`}>
-              Capacity: {event.capacity || "Unlimited"}
-            </span>
+    <AppShell
+      title="Manage attendees"
+      subtitle={event.name}
+      nav={eventNav(id ?? "")}
+      activeKey="attendees"
+      actions={
+        <>
+          <BackButton fallbackTo="/dashboard" label="Back" />
+          <span
+            className={`${CHIP} bg-surface-strong text-text-muted border border-border`}
+          >
+            Capacity: {event.capacity || "Unlimited"}
+          </span>
+          <span
+            className={`${CHIP} inline-flex items-center gap-1 bg-brand-soft text-brand-strong border border-brand-border`}
+          >
+            <Users className="w-3 h-3" />
+            {attendees.length} registered
+          </span>
+          {event.requires_approval && (
             <span
-              className={`${CHIP} inline-flex items-center gap-1 bg-brand-soft text-brand-strong`}
+              className={`${CHIP} bg-warning-bg text-warning border border-warning-border`}
             >
-              <Users className="w-3 h-3" />
-              {attendees.length} registered
+              Approval required
             </span>
-            {event.requires_approval && (
-              <span className={`${CHIP} bg-warning-bg text-warning`}>
-                Approval required
-              </span>
-            )}
-            {event.is_paid && (
-              <span className={`${CHIP} bg-success-bg text-success`}>
-                KES {event.ticket_price}
-              </span>
-            )}
-          </div>
-        </div>
+          )}
+          {event.is_paid && (
+            <span
+              className={`${CHIP} bg-success-bg text-success border border-success-border`}
+            >
+              KES {event.ticket_price}
+            </span>
+          )}
+        </>
+      }
+    >
 
         {error && (
           <div
@@ -325,7 +327,6 @@ export default function ManageAttendees() {
             </table>
           </div>
         </div>
-      </div>
-    </div>
+    </AppShell>
   );
 }

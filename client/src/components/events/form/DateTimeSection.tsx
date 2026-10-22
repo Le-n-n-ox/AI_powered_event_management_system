@@ -1,9 +1,10 @@
 import { useId } from "react";
 import { CalendarRange, Hourglass, TriangleAlert } from "lucide-react";
+import type { EventFormData, EventFormUpdater } from "../../../types/event";
 
 interface Props {
-  data: any;
-  updateData: (field: string, value: any) => void;
+  data: EventFormData;
+  updateData: EventFormUpdater;
   inputCls: string;
   isEdit?: boolean;
 }

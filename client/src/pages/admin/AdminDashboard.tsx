@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import UserManagement from "../../components/admin/UserManagement";
+import AdminAnalytics from "./AdminAnalytics";
 import EventCard from "@/components/ui/EventCard";
+import AppShell from "../../components/layout/AppShell";
 import { useEvents } from "../../hooks/useEvents";
 import { supabase } from "../../lib/supabase";
 import type { Event } from "../../types/event";
@@ -16,10 +18,12 @@ import {
   Loader2,
   UserRound,
   Check,
+  LayoutDashboard,
+  ChartColumn,
+  ScrollText,
 } from "lucide-react";
 
-const TABS = ["overview", "users", "events", "logs"] as const;
-type AdminTab = (typeof TABS)[number];
+type AdminTab = "overview" | "analytics" | "users" | "events" | "logs";
 
 const CARD = "bg-surface rounded-xl border border-border shadow-sm";
 
@@ -139,7 +143,20 @@ function AlertsPanel() {
   }
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+
+    async function initialLoad() {
+      // Yield first so the effect never sets state synchronously.
+      await Promise.resolve();
+      if (cancelled) return;
+      await load();
+    }
+
+    void initialLoad();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function resolve(id: string) {
@@ -304,46 +321,32 @@ export default function AdminDashboard() {
 
   const fmt = (n: number | null) => (statsLoading || n === null ? "…" : n.toLocaleString());
 
+  const nav = [
+    { key: "overview", label: "Overview", icon: LayoutDashboard },
+    { key: "analytics", label: "Analytics", icon: ChartColumn },
+    { key: "users", label: "Users", icon: UsersRound },
+    { key: "events", label: "Events", icon: CalendarDays },
+    { key: "logs", label: "Audit log", icon: ScrollText },
+  ];
+
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-text tracking-tight">System Admin</h1>
-            <p className="text-text-soft mt-1">Platform management and security overview.</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/profile"
-              className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-text-soft hover:text-text rounded-lg hover:bg-surface transition-colors"
-            >
-              <UserRound className="w-4 h-4" />
-              My Profile
-            </Link>
-            <div
-              role="tablist"
-              className="flex bg-surface rounded-lg p-1 shadow-sm border border-border overflow-x-auto"
-            >
-              {TABS.map((tab) => (
-                <button
-                  key={tab}
-                  role="tab"
-                  aria-selected={activeTab === tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md capitalize transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-                    activeTab === tab
-                      ? "bg-panel-admin text-text-on-dark"
-                      : "text-text-soft hover:text-text hover:bg-surface-muted"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
+    <AppShell
+      title="System Admin"
+      subtitle="Platform management, analytics and security overview."
+      nav={nav}
+      activeKey={activeTab}
+      onSelect={(key) => setActiveTab(key as AdminTab)}
+      actions={
+        <Link
+          to="/profile"
+          className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-text-soft hover:text-text rounded-lg hover:bg-surface border border-border transition-colors"
+        >
+          <UserRound className="w-4 h-4" />
+          My Profile
+        </Link>
+      }
+    >
+      <div className="space-y-6">
         {activeTab === "overview" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -385,17 +388,46 @@ export default function AdminDashboard() {
               <div className={`lg:col-span-2 ${CARD} p-6`}>
                 <h3 className="text-lg font-semibold text-text mb-4 flex items-center gap-2">
                   <LineChart size={20} className="text-brand" />
-                  System Health
+                  Platform health
                 </h3>
-                <div className="h-48 flex items-center justify-center border-2 border-dashed border-border-strong rounded-lg text-text-soft text-sm bg-surface-muted">
-                  [Chart Placeholder: Registrations over time]
-                </div>
+
+                <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: "Users", value: fmt(stats.totalUsers) },
+                    { label: "Organizers", value: fmt(stats.activeOrganizers) },
+                    { label: "Upcoming events", value: fmt(stats.upcomingEvents) },
+                    { label: "Suspended", value: fmt(stats.suspendedAccounts) },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-border bg-surface-muted px-4 py-3"
+                    >
+                      <dt className="text-xs font-medium text-text-soft uppercase tracking-wide">
+                        {item.label}
+                      </dt>
+                      <dd className="text-2xl font-bold text-text mt-1 tabular-nums">
+                        {item.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("analytics")}
+                  className="mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-strong bg-brand-soft border border-brand-border rounded-lg transition-colors hover:bg-brand/20"
+                >
+                  <ChartColumn className="w-4 h-4" />
+                  Open platform analytics
+                </button>
               </div>
 
               <AlertsPanel />
             </div>
           </motion.div>
         )}
+
+        {activeTab === "analytics" && <AdminAnalytics />}
 
         {activeTab === "users" && <UserManagement />}
 
@@ -411,6 +443,6 @@ export default function AdminDashboard() {
           </motion.div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }

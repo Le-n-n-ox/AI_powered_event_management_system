@@ -55,6 +55,75 @@ npm run dev
 
 Vite prints the frontend URL in its terminal, usually `http://localhost:5173`. The backend API is available at `http://localhost:3000`.
 
+## Database migrations
+
+Some features need new database objects. The SQL lives in `server/db/migrations/` and is meant to be pasted into the **Supabase SQL editor**, in this order:
+
+| File | What it adds |
+|------|--------------|
+| `000_helpers.sql` | `public.is_admin(uid uuid)` — a `SECURITY DEFINER` helper used by the RLS policies below |
+| `001_event_category.sql` | `events.category` — the niche/category of an event, plus an index |
+| `002_transactions.sql` | The `transactions` payment ledger, with RLS so organizers only see their own money |
+| `003_admin_role_management.sql` | `public.admin_set_user_role(...)` and `public.admin_platform_analytics()` |
+| `004_audit_triggers.sql` | Triggers that write event/attendee changes into `admin_audit_log` |
+
+Running them is optional in the sense that **the app still works without them** — every feature that depends on a migration degrades instead of breaking:
+
+- No `events.category` yet → the niche filter is hidden and event saves silently drop the niche (with a notice on the form).
+- No `transactions` table yet → the Transactions page derives the ledger from each attendee's `payment_status` and the event's ticket price, and labels itself as derived.
+- No `admin_platform_analytics()` yet → the admin analytics tab computes the same numbers in the browser.
+
+## M-Pesa (Daraja) payments
+
+Paid-event tickets are collected through Safaricom's M-Pesa Daraja. Add these to `server/.env`:
+
+```env
+# sandbox (default) or production
+MPESA_ENVIRONMENT=sandbox
+MPESA_CONSUMER_KEY=your_consumer_key
+MPESA_CONSUMER_SECRET=your_consumer_secret
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=your_passkey
+# must be reachable from Safaricom's servers
+MPESA_CALLBACK_URL=https://your-public-host/api/payments/callback
+```
+
+Notes:
+
+- Sandbox defaults (`MPESA_SHORTCODE=174379`, `MPESA_PASSKEY=passkey`, `MPESA_TIMESTAMP=20191213`) are applied automatically; set them explicitly for production.
+- `MPESA_CALLBACK_URL` has to point at a publicly reachable server. In production, use your deployed backend URL, not `localhost`.
+- Daraja does **not** sign its callbacks, so the server never trusts the callback body: it calls the Transaction Status Query API and only marks a ticket paid when Safaricom confirms `ResultCode 0`.
+- If M-Pesa is not configured, the API answers `503 mpesa_not_configured` and the organizer can still mark payments manually (cash, bank transfer) from the Transactions page.
+
+New payment endpoints (all require a signed-in user):
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/payments/stk-push` | Send an STK push to an attendee's phone for an event ticket |
+| `POST /api/payments/callback` | Daraja's confirmation webhook (verified against Daraja before acting) |
+| `GET /api/payments/transactions` | The organizer's ledger (admin sees all) |
+| `PATCH /api/payments/transactions/:id` | Mark a payment paid, refunded, or cancelled |
+
+## Features
+
+**Organizer**
+
+- `Statistics` (`/organizer/statistics`) — registrations over time, registration status breakdown, revenue by event, capacity used, and a per-event breakdown table.
+- `Transactions` (`/organizer/transactions`) — the payment ledger with search/filter, STK push requests, manual mark-paid/refund, and CSV export.
+- `Check-in` (`/events/:id/checkin`) — QR scanner for the door, with live counters, arrival progress, manual search, and undo.
+- Attendees can be listed per event and their status changed (approve, reject, waitlist, check in).
+
+**Attendee**
+
+- `My Events` (`/my-events`) — upcoming / past / all tabs, filtered by search, location, niche, and RSVP status.
+- `Find Events` (`/events`) — upcoming and past sections with location/niche/time filters; each card shows whether you are **Going**, **Pending**, **Waitlisted**, or **Cancelled**.
+
+**Admin**
+
+- User and role management (change any account's role; admins cannot demote themselves).
+- Platform analytics — registrations over time, top organizers, and account health.
+- An audit trail of admin actions and event/attendee changes.
+
 ```
 smart-help-desk
 ├─ client

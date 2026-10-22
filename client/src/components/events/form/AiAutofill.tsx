@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 interface AiAutofillProps {
-  onDataExtracted: (data: any) => void;
+  onDataExtracted: (data: Record<string, unknown>) => void;
 }
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
