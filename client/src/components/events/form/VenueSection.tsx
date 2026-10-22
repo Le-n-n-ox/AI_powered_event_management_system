@@ -1,18 +1,26 @@
+import { MapPinned } from "lucide-react";
+import type { EventFormData, EventFormUpdater } from "../../../types/event";
+
 interface Props {
-  data: any;
-  updateData: (field: string, value: any) => void;
+  data: EventFormData;
+  updateData: EventFormUpdater;
   inputCls: string;
 }
 
 export default function VenueSection({ data, updateData, inputCls }: Props) {
   return (
-    <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+    <div className="relative overflow-hidden bg-surface p-6 pt-7 rounded-2xl shadow-md shadow-shadow-soft border border-border flex flex-col gap-4">
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-tag-teal to-tag-sky" />
+
+      <h3 className="font-heading text-lg font-semibold text-text flex items-center gap-3">
+        <span className="inline-flex p-2 rounded-lg bg-tag-teal-bg text-tag-teal">
+          <MapPinned className="w-5 h-5" />
+        </span>
         Location & Venue
       </h3>
 
       <div>
-        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+        <label className="block text-sm font-medium text-text-muted mb-1">
           Venue Name
         </label>
         <input
@@ -25,7 +33,7 @@ export default function VenueSection({ data, updateData, inputCls }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+        <label className="block text-sm font-medium text-text-muted mb-1">
           Full Address
         </label>
         <input
@@ -38,7 +46,7 @@ export default function VenueSection({ data, updateData, inputCls }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+        <label className="block text-sm font-medium text-text-muted mb-1">
           Google Maps Link (Optional)
         </label>
         <input

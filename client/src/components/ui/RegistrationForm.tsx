@@ -1,18 +1,30 @@
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
-  User,
-  Phone,
-  Mail,
-  Briefcase,
-  Utensils,
-  MessageCircle,
-  TriangleAlert,
+  AtSign,
+  Check,
+  Hash,
+  ListChecks,
   Loader2,
+  MessageCircle,
+  Phone,
   ShieldCheck,
+  Square,
+  TriangleAlert,
+  Type,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/auth-context";
+import {
+  BUILT_IN_QUESTIONS,
+  missingRequired,
+  normalizeQuestions,
+  questionsFor,
+  splitAnswers,
+} from "../../lib/registrationQuestions";
+import { isMissingColumnError } from "../../lib/events";
+import type { Event, RegistrationQuestion } from "../../types/event";
 
 import {
   Card,
@@ -21,7 +33,6 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  // @ts-ignore The UI card module is JSX and is compiled by the application build.
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,19 +43,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 interface Props {
   eventId: string;
-  onSuccess: (attendeeId: string) => void;
+  /** The event, so the form can render the organizer's own questions. */
+  event?: Event | null;
+  onSuccess: (attendeeId: string, phone: string) => void;
 }
 
-const REFERRAL_OPTIONS = [
-  "Social Media",
-  "Friend or Colleague",
-  "Email",
-  "Event Website",
-  "Search Engine",
-  "Other",
-];
+/** The icon that represents a question, keyed by question type. */
+const TYPE_ICON: Record<RegistrationQuestion["type"], LucideIcon> = {
+  short_text: Type,
+  long_text: MessageCircle,
+  number: Hash,
+  email: AtSign,
+  phone: Phone,
+  select: ListChecks,
+  checkbox: Square,
+};
+
+/** The questions that sit in the "Your details" block. */
+const CORE_IDS = ["full_name", "phone_number"];
 
 const LABEL =
   "flex items-center gap-1.5 text-sm font-medium text-text-muted";
@@ -66,27 +85,43 @@ function Hint({ children }: { children: ReactNode }) {
   );
 }
 
-export default function RegistrationForm({ eventId, onSuccess }: Props) {
+export default function RegistrationForm({ eventId, event, onSuccess }: Props) {
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
   const { user } = useAuth();
 
-  const [fullName, setFullName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
-  const [organization, setOrganization] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [dietaryNotes, setDietaryNotes] = useState("");
-  const [referralSource, setReferralSource] = useState("");
+  // The organizer's questions, with anything unusable in the stored JSON
+  // filtered out. An event with no `registration_questions` column yet falls
+  // back to the built-in set.
+  const questions = useMemo(() => {
+    const stored = event ? normalizeQuestions(event.registration_questions) : null;
+    if (stored) return stored;
+    return event ? questionsFor(event) : BUILT_IN_QUESTIONS;
+  }, [event]);
+
+  const core = questions.filter((question) => CORE_IDS.includes(question.id));
+  const extra = questions.filter((question) => !CORE_IDS.includes(question.id));
+
+  const [values, setValues] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const setValue = (key: string, value: string) =>
+    setValues((previous) => ({ ...previous, [key]: value }));
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
     if (!agreedToTerms) {
       setError("Please agree to the terms before registering.");
+      return;
+    }
+
+    const missing = missingRequired(questions, values);
+    if (missing.length) {
+      setError(`Please answer: ${missing.join(", ")}.`);
       return;
     }
 
@@ -94,26 +129,49 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
     setError(null);
 
     try {
-      const { data, error: supabaseError } = await supabase
+      const { columns, custom } = splitAnswers(questions, values);
+
+      const row = {
+        event_id: eventId,
+        user_id: user?.id ?? null,
+        // The attendees table has these two columns as not-null, so they are
+        // always written even if the organizer removed the question.
+        full_name: columns.full_name?.trim() || "Guest",
+        phone_number: columns.phone_number
+          ? formatPhoneNumber(columns.phone_number)
+          : "",
+        email: columns.email?.trim() || null,
+        organization: columns.organization?.trim() || null,
+        job_title: columns.job_title?.trim() || null,
+        dietary_notes: columns.dietary_notes?.trim() || null,
+        referral_source: columns.referral_source || null,
+        custom_answers: Object.keys(custom).length ? custom : null,
+      };
+
+      let { data, error: supabaseError } = await supabase
         .from("attendees")
-        .insert([
-          {
-            event_id: eventId,
-            user_id: user?.id ?? null,
-            full_name: fullName.trim(),
-            phone_number: formatPhoneNumber(phoneNumber),
-            email: email.trim() || null,
-            organization: organization.trim() || null,
-            job_title: jobTitle.trim() || null,
-            dietary_notes: dietaryNotes.trim() || null,
-            referral_source: referralSource || null,
-          },
-        ])
+        .insert([row])
         .select()
         .single();
 
+      // The custom-answers column arrives with migration 005. If it is not
+      // there yet, register without it rather than losing the registration.
+      if (supabaseError && isMissingColumnError(supabaseError)) {
+        const withoutCustom = { ...row } as Record<string, unknown>;
+        delete withoutCustom.custom_answers;
+
+        const retry = await supabase
+          .from("attendees")
+          .insert([withoutCustom])
+          .select()
+          .single();
+
+        data = retry.data;
+        supabaseError = retry.error;
+      }
+
       if (supabaseError) throw supabaseError;
-      onSuccess(data.id);
+      onSuccess(data.id, row.phone_number);
     } catch (err) {
       console.error("Registration error:", err);
       setError(
@@ -125,6 +183,133 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
       setIsSubmitting(false);
     }
   };
+
+  const renderQuestion = (question: RegistrationQuestion) => {
+    const Icon = TYPE_ICON[question.type] ?? Type;
+    const value = values[question.id] ?? "";
+
+    if (question.type === "long_text") {
+      return (
+        <div className="space-y-1.5">
+          <label htmlFor={id(question.id)} className={LABEL}>
+            <Icon className="w-4 h-4 text-text-soft" /> {question.label}
+            {question.required && <span className="text-danger">*</span>}
+          </label>
+          <textarea
+            id={id(question.id)}
+            rows={2}
+            disabled={isSubmitting}
+            className={TEXTAREA}
+            value={value}
+            onChange={(e) => setValue(question.id, e.target.value)}
+            placeholder={question.placeholder}
+          />
+        </div>
+      );
+    }
+
+    if (question.type === "select") {
+      return (
+        <div className="space-y-1.5">
+          <label className={LABEL}>
+            <Icon className="w-4 h-4 text-text-soft" /> {question.label}
+            {question.required && <span className="text-danger">*</span>}
+          </label>
+          <Select
+            value={value}
+            onValueChange={(next: string | null) =>
+              setValue(question.id, next ?? "")
+            }
+          >
+            <SelectTrigger className="w-full" disabled={isSubmitting}>
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              {(question.options ?? []).map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
+    if (question.type === "checkbox") {
+      return (
+        <label
+          htmlFor={id(question.id)}
+          className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-text-muted cursor-pointer hover:border-brand-border transition-colors"
+        >
+          <input
+            id={id(question.id)}
+            type="checkbox"
+            disabled={isSubmitting}
+            checked={value === "Yes"}
+            onChange={(e) => setValue(question.id, e.target.checked ? "Yes" : "")}
+            className="w-4 h-4 rounded border-border text-brand focus:ring-focus accent-brand"
+          />
+          <span className="flex items-center gap-1.5">
+            <Icon className="w-4 h-4 text-text-soft" />
+            {question.label}
+            {question.required && <span className="text-danger">*</span>}
+          </span>
+        </label>
+      );
+    }
+
+    const inputType =
+      question.type === "email"
+        ? "email"
+        : question.type === "phone"
+          ? "tel"
+          : question.type === "number"
+            ? "number"
+            : "text";
+
+    return (
+      <div className="space-y-1.5">
+        <label htmlFor={id(question.id)} className={LABEL}>
+          <Icon className="w-4 h-4 text-text-soft" /> {question.label}
+          {question.required && <span className="text-danger">*</span>}
+          {!question.required && question.type === "phone" && (
+            <Hint>(for SMS updates)</Hint>
+          )}
+        </label>
+        <Input
+          id={id(question.id)}
+          type={inputType}
+          inputMode={
+            question.type === "email"
+              ? "email"
+              : question.type === "phone"
+                ? "tel"
+                : question.type === "number"
+                  ? "numeric"
+                  : undefined
+          }
+          autoComplete={
+            question.id === "full_name"
+              ? "name"
+              : question.id === "phone_number"
+                ? "tel"
+                : question.id === "email"
+                  ? "email"
+                  : question.id === "organization"
+                    ? "organization"
+                    : undefined
+          }
+          disabled={isSubmitting}
+          value={value}
+          onChange={(e) => setValue(question.id, e.target.value)}
+          placeholder={question.placeholder}
+        />
+      </div>
+    );
+  };
+
+  const hasQuestions = questions.length > 0;
 
   return (
     <motion.div
@@ -139,7 +324,9 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
               Register for this event
             </CardTitle>
             <CardDescription className="text-text-soft">
-              Fields marked with * are required.
+              {hasQuestions
+                ? "Fields marked with * are required."
+                : "The organizer has not asked for any details — just confirm below."}
             </CardDescription>
           </CardHeader>
 
@@ -154,142 +341,19 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
               </div>
             )}
 
-            {/* Your details */}
-            <div className="space-y-4">
-              <h4 className={SECTION_TITLE}>Your details</h4>
-
+            {core.length > 0 && (
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor={id("name")} className={LABEL}>
-                    <User className="w-4 h-4 text-text-soft" /> Full name *
-                  </label>
-                  <Input
-                    id={id("name")}
-                    required
-                    autoComplete="name"
-                    disabled={isSubmitting}
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor={id("phone")} className={LABEL}>
-                    <Phone className="w-4 h-4 text-text-soft" /> Phone number *
-                    <Hint>(for SMS updates)</Hint>
-                  </label>
-                  <Input
-                    id={id("phone")}
-                    required
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    disabled={isSubmitting}
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="e.g. 0711223344"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor={id("email")} className={LABEL}>
-                    <Mail className="w-4 h-4 text-text-soft" /> Email
-                    <Hint>(optional)</Hint>
-                  </label>
-                  <Input
-                    id={id("email")}
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    disabled={isSubmitting}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="john@example.com"
-                  />
-                </div>
+                <h4 className={SECTION_TITLE}>Your details</h4>
+                <div className="space-y-4">{core.map(renderQuestion)}</div>
               </div>
-            </div>
+            )}
 
-            {/* Professional info */}
-            <div className="space-y-4">
-              <h4 className={SECTION_TITLE}>Professional info (optional)</h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label htmlFor={id("org")} className={LABEL}>
-                    <Briefcase className="w-4 h-4 text-text-soft" />{" "}
-                    Organization
-                  </label>
-                  <Input
-                    id={id("org")}
-                    autoComplete="organization"
-                    disabled={isSubmitting}
-                    value={organization}
-                    onChange={(e) => setOrganization(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor={id("job")} className={LABEL}>
-                    Job title
-                  </label>
-                  <Input
-                    id={id("job")}
-                    autoComplete="organization-title"
-                    disabled={isSubmitting}
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Additional info */}
-            <div className="space-y-4">
-              <h4 className={SECTION_TITLE}>Additional info (optional)</h4>
-
+            {extra.length > 0 && (
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor={id("diet")} className={LABEL}>
-                    <Utensils className="w-4 h-4 text-text-soft" /> Dietary or
-                    accessibility needs
-                  </label>
-                  <textarea
-                    id={id("diet")}
-                    rows={2}
-                    disabled={isSubmitting}
-                    className={TEXTAREA}
-                    value={dietaryNotes}
-                    onChange={(e) => setDietaryNotes(e.target.value)}
-                    placeholder="e.g. Vegetarian, wheelchair access needed"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className={LABEL}>
-                    <MessageCircle className="w-4 h-4 text-text-soft" /> How did
-                    you hear about this event?
-                  </label>
-                  <Select
-                    value={referralSource}
-                    onValueChange={(value: any) => setReferralSource(value ?? "")}
-                  >
-                    <SelectTrigger className="w-full" disabled={isSubmitting}>
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REFERRAL_OPTIONS.map((opt) => (
-                        <SelectItem key={opt} value={opt}>
-                          {opt}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <h4 className={SECTION_TITLE}>Additional information</h4>
+                <div className="space-y-4">{extra.map(renderQuestion)}</div>
               </div>
-            </div>
+            )}
 
             {/* Terms */}
             <label
@@ -308,6 +372,20 @@ export default function RegistrationForm({ eventId, onSuccess }: Props) {
                 confirm the details above are accurate.
               </span>
             </label>
+
+            {event?.is_paid && (
+              <p className="flex items-start gap-2 rounded-lg border border-tag-teal/30 bg-tag-teal-bg px-3 py-2.5 text-xs text-text-muted leading-relaxed">
+                <Check className="w-3.5 h-3.5 mt-0.5 shrink-0 text-tag-teal" />
+                <span>
+                  This is a paid event. After registering, you will be asked to
+                  pay{" "}
+                  <strong className="text-text">
+                    KES {Number(event.ticket_price || 0).toLocaleString("en-KE")}
+                  </strong>{" "}
+                  by M-Pesa to secure your ticket.
+                </span>
+              </p>
+            )}
           </CardContent>
 
           <CardFooter className="flex-col items-stretch gap-3 border-border bg-surface-muted/50 sm:flex-row sm:items-center sm:justify-between">

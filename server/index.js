@@ -8,6 +8,7 @@ const pdfParse = require('pdf-parse');
 const { processMessageWithAI, extractEventFromText } = require('./ai');
 const webhookAuth = require('./middleware/webhookAuth');
 const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/payments');
 const { webhookLimiter, extractLimiter, adminLimiter } = require('./middleware/rateLimits');
 
 const supabase = createClient(
@@ -41,6 +42,7 @@ app.use(express.json({ limit: '2mb' })); // raised from Express's 100kb default 
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/admin', adminLimiter, adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 let tasks = [
     { id: 1, description: "Check main lobby sound system", completed: false },

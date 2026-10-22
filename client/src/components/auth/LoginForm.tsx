@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/auth-context";
 import { VARIANTS } from "./authVariants";
 import type { AuthVariant } from "./authVariants";
 import { ErrorBanner } from "./AuthUI";

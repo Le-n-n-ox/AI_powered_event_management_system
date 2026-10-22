@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Search,
   MoreVertical,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase";
+import { apiFetch } from "../../lib/api";
 
 interface Profile {
   id: string;
@@ -75,11 +76,7 @@ export default function UserManagement() {
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     const { data, error: dbError } = await supabase.rpc("admin_list_users");
@@ -90,7 +87,24 @@ export default function UserManagement() {
       setUsers(data);
     }
     setLoading(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      // Yield first so the effect never sets state synchronously.
+      await Promise.resolve();
+      if (cancelled) return;
+      await fetchUsers();
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchUsers]);
 
   async function toggleUserStatus(id: string, currentlySuspended: boolean) {
     const next = !currentlySuspended;
@@ -121,6 +135,32 @@ export default function UserManagement() {
         prev.map((u) => (u.id === id ? { ...u, suspended: currentlySuspended } : u)),
       );
       setError("Failed to update user status. Please try again.");
+    }
+    setPendingId(null);
+  }
+
+  async function changeRole(id: string, role: Profile["role"]) {
+    const previous = users.find((u) => u.id === id);
+    if (!previous || previous.role === role) return;
+
+    setPendingId(id);
+    setError(null);
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+
+    try {
+      await apiFetch(`/api/admin/users/${id}/role`, {
+        method: "POST",
+        body: JSON.stringify({ role }),
+      });
+    } catch (err) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, role: previous.role } : u)),
+      );
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to change that user's role.",
+      );
     }
     setPendingId(null);
   }
@@ -257,6 +297,20 @@ export default function UserManagement() {
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <select
+                          aria-label={`Role for ${user.full_name || user.email}`}
+                          value={user.role}
+                          disabled={busy}
+                          onChange={(e) =>
+                            changeRole(user.id, e.target.value as Profile["role"])
+                          }
+                          className={`h-8 rounded-md border border-border bg-surface px-2 text-xs text-text cursor-pointer focus:outline-none focus:ring-2 focus:ring-focus-soft disabled:opacity-60 disabled:cursor-not-allowed ${FOCUS}`}
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="organizer">Organizer</option>
+                          <option value="attendee">Attendee</option>
+                          <option value="floor_manager">Floor manager</option>
+                        </select>
                         {user.role !== "admin" && (
                           <button
                             type="button"

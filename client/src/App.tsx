@@ -4,6 +4,7 @@ import Navbar from "./components/layout/Navbar";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import EventGuard from "./components/layout/EventGuard";
 import RequireAuth from "./components/layout/RequireAuth";
+import PageTransition from "./components/layout/PageTransition";
 import Landing from "./pages/Landing";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -20,13 +21,13 @@ const OrganizerSignup = lazy(() => import("./pages/organizer/OrganizerSignup"));
 const AttendeeLogin = lazy(() => import("./pages/attendee/AttendeeLogin"));
 const AttendeeSignup = lazy(() => import("./pages/attendee/AttendeeSignup"));
 const EventFormPage = lazy(() => import("./pages/organizer/EventFormPage"));
+const Statistics = lazy(() => import("./pages/organizer/Statistics"));
+const Transactions = lazy(() => import("./pages/organizer/Transactions"));
 const Profile = lazy(() => import("./pages/Profile"));
 const CheckIn = lazy(() => import("./pages/CheckIn"));
 const MyEvents = lazy(() => import("./pages/attendee/MyEvents"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-
-// inside <Routes>:
 
 function PageFallback() {
   return (
@@ -52,104 +53,122 @@ function App() {
       <div className="pt-16">
         {" "}
         {/* Global fix: pushes all page routes below the fixed navbar */}
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            {/* Auth */}
-            <Route path="/login" element={<RoleSelect mode="login" />} />
-            <Route path="/signup" element={<RoleSelect mode="signup" />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/signup" element={<AdminSignup />} />
-            <Route path="/organizer/login" element={<OrganizerLogin />} />
-            <Route path="/organizer/signup" element={<OrganizerSignup />} />
-            <Route path="/attendee/login" element={<AttendeeLogin />} />
-            <Route path="/attendee/signup" element={<AttendeeSignup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+        <PageTransition>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              {/* Auth */}
+              <Route path="/login" element={<RoleSelect mode="login" />} />
+              <Route path="/signup" element={<RoleSelect mode="signup" />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/signup" element={<AdminSignup />} />
+              <Route path="/organizer/login" element={<OrganizerLogin />} />
+              <Route path="/organizer/signup" element={<OrganizerSignup />} />
+              <Route path="/attendee/login" element={<AttendeeLogin />} />
+              <Route path="/attendee/signup" element={<AttendeeSignup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Any logged-in user */}
-            <Route
-              path="/my-events"
-              element={
-                <RequireAuth>
-                  <MyEvents />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <RequireAuth>
-                  <Profile />
-                </RequireAuth>
-              }
-            />
+              {/* Any logged-in user */}
+              <Route
+                path="/my-events"
+                element={
+                  <RequireAuth>
+                    <MyEvents />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <RequireAuth>
+                    <Profile />
+                  </RequireAuth>
+                }
+              />
 
-            {/* Event Form Management */}
-            <Route
-              path="/organizer/events/new"
-              element={
-                <ProtectedRoute>
-                  <EventFormPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/organizer/events/:id/edit"
-              element={
-                <Managed>
-                  <EventFormPage />
-                </Managed>
-              }
-            />
+              {/* Event Form Management */}
+              <Route
+                path="/organizer/events/new"
+                element={
+                  <ProtectedRoute>
+                    <EventFormPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/organizer/events/:id/edit"
+                element={
+                  <Managed>
+                    <EventFormPage />
+                  </Managed>
+                }
+              />
 
-            {/* Public */}
-            <Route path="/events" element={<EventsList />} />
-            <Route path="/events/:id" element={<EventDetail />} />
+              {/* Public */}
+              <Route path="/events" element={<EventsList />} />
+              <Route path="/events/:id" element={<EventDetail />} />
 
-            {/* Staff only */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events/:id/manage"
-              element={
-                <Managed>
-                  <ManageAttendees />
-                </Managed>
-              }
-            />
-            <Route
-              path="/events/:id/schedule"
-              element={
-                <Managed>
-                  <ManageSchedule />
-                </Managed>
-              }
-            />
-            <Route
-              path="/events/:id/locations"
-              element={
-                <Managed>
-                  <ManageVenueLocations />
-                </Managed>
-              }
-            />
-            <Route
-              path="/events/:id/checkin"
-              element={
-                <Managed>
-                  <CheckIn />
-                </Managed>
-              }
-            />
-          </Routes>
-        </Suspense>
+              {/* Staff only */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/organizer/statistics"
+                element={
+                  <ProtectedRoute>
+                    <Statistics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/organizer/transactions"
+                element={
+                  <ProtectedRoute>
+                    <Transactions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/events/:id/manage"
+                element={
+                  <Managed>
+                    <ManageAttendees />
+                  </Managed>
+                }
+              />
+              <Route
+                path="/events/:id/schedule"
+                element={
+                  <Managed>
+                    <ManageSchedule />
+                  </Managed>
+                }
+              />
+              <Route
+                path="/events/:id/locations"
+                element={
+                  <Managed>
+                    <ManageVenueLocations />
+                  </Managed>
+                }
+              />
+              <Route
+                path="/events/:id/checkin"
+                element={
+                  <Managed>
+                    <CheckIn />
+                  </Managed>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </PageTransition>
       </div>
     </>
   );

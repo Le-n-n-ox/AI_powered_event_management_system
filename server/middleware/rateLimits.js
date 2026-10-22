@@ -37,4 +37,12 @@ const adminLimiter = makeLimiter({
     message: 'Too many admin requests, slow down.',
 });
 
-module.exports = { webhookLimiter, extractLimiter, adminLimiter };
+// Payment prompts: each STK push costs a Daraja call and can cost the
+// organizer real money, so cap how fast one organizer can fire them.
+const paymentLimiter = makeLimiter({
+    windowMs: 60 * 1000,
+    max: 15,
+    message: 'Too many payment requests. Wait a moment and try again.',
+});
+
+module.exports = { webhookLimiter, extractLimiter, adminLimiter, paymentLimiter };
