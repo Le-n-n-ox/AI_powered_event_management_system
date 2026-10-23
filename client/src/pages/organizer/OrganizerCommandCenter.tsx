@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,7 +95,7 @@ export default function OrganizerCommandCenter() {
           <h1 className="text-3xl font-bold tracking-tight">Organizer Command Center</h1>
           <p className="text-muted-foreground">Real-time AI operational intelligence for Event ID: {eventId}</p>
         </div>
-        <Badge variant={connected ? "success" : "destructive"} className={connected ? "bg-green-500" : "bg-red-500"}>
+        <Badge variant={connected ? "default" : "destructive"} className={connected ? "bg-green-500" : "bg-red-500"}>
           {connected ? "● Live" : "○ Disconnected"}
         </Badge>
       </div>
