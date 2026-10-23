@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, CheckCircle2, Clock, MapPin, MessageSquare, Zap } from 'lucide-react';
 
 // Connect to the backend server
-const socket = io(process.env.VITE_API_URL || 'http://localhost:3000');
+const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+  transports: ['websocket', 'polling'],
+});
 
 interface OperationalInsight {
   type: 'CROWD_ALERT' | 'PREDICTION' | 'FEEDBACK';
@@ -23,18 +25,27 @@ export default function OrganizerCommandCenter() {
   const { eventId } = useParams();
   const [insights, setInsights] = useState<OperationalInsight[]>([]);
   const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!eventId) return;
+    if (!eventId) {
+      setError("No event ID provided.");
+      return;
+    }
 
     socket.on('connect', () => {
+      console.log('✅ Client: Socket connected');
       setConnected(true);
-      console.log('Connected to Command Center Socket');
-      // Join the room specific to this event
       socket.emit('join_event_room', eventId);
     });
 
-    socket.on('disconnect', () => {
+    socket.on('connect_error', (err) => {
+      console.error('❌ Client: Connection error:', err.message);
+      setError(`Connection error: ${err.message}`);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('⚠️ Client: Socket disconnected, reason:', reason);
       setConnected(false);
     });
 
@@ -47,8 +58,17 @@ export default function OrganizerCommandCenter() {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('operational_insight');
+      socket.off('connect_error');
     };
   }, [eventId]);
+
+  if (error) {
+    return (
+      <div className="p-6 text-center text-danger font-semibold">
+        {error}
+      </div>
+    );
+  }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -75,7 +95,7 @@ export default function OrganizerCommandCenter() {
           <h1 className="text-3xl font-bold tracking-tight">Organizer Command Center</h1>
           <p className="text-muted-foreground">Real-time AI operational intelligence for Event ID: {eventId}</p>
         </div>
-        <Badge variant={connected ? "success" : "destructive"} className={connected ? "bg-green-500" : "bg-red-500"}>
+        <Badge variant={connected ? "default" : "destructive"} className={connected ? "bg-green-500" : "bg-red-500"}>
           {connected ? "● Live" : "○ Disconnected"}
         </Badge>
       </div>

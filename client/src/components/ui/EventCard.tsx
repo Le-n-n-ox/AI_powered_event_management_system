@@ -14,6 +14,7 @@ import {
   Sparkles,
   Banknote,
   Ticket,
+  Zap,
 } from "lucide-react";
 import type { Event, Attendee } from "../../types/event";
 import { getCountdown } from "../../utils/dateHelpers";
@@ -294,17 +295,28 @@ export default function EventCard({
             </Link>
           </Button>
 
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            className={`${ICON_BASE} hover:text-warning hover:bg-warning-bg`}
-            title="Check-in"
-          >
-            <Link to={`/events/${event.id}/checkin`} aria-label="Check-in">
-              <ScanLine className="w-4 h-4" />
-            </Link>
-          </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className={`${ICON_BASE} hover:text-tag-violet hover:bg-tag-violet-bg`}
+                title="Command Center"
+              >
+                <Link to={`/organizer/command-center/${event.id}`} aria-label="Command Center">
+                  <Zap className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className={`${ICON_BASE} hover:text-warning hover:bg-warning-bg`}
+                title="Check-in"
+              >
+                <Link to={`/events/${event.id}/checkin`} aria-label="Check-in">
+                  <ScanLine className="w-4 h-4" />
+                </Link>
+              </Button>
 
           <div className="flex items-center gap-0.5 ml-1">
             {!isPastEvent && (
