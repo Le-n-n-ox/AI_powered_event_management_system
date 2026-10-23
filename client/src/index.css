@@ -1,41 +1,59 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/sora";
+@import "@fontsource-variable/inter";
 
-/* Dark mode is driven by a class on <html>, not the OS setting, so the
+/* ==========================================================================
+   EventOS design system
+   --------------------------------------------------------------------------
+   Every colour in the app is a token. Tokens are declared once as plain CSS
+   custom properties (so a theme can override them) and then exposed to
+   Tailwind through `@theme inline`, which makes the generated utilities read
+   the variable at paint time rather than baking in a value.
+
+   Dark mode is driven by a class on <html>, not the OS setting, so the
    toggle in the top bar can override what the system asks for. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-heading: "Sora", sans-serif;
   --font-body: "Inter", sans-serif;
+}
 
-  /* Surfaces: airy, white-based, with cool blue tints */
-  --color-surface: #ffffff;              /* Default card/modal surface */
-  --color-surface-muted: #eef4ff;        /* Inset containers */
-  --color-surface-strong: #e0eaff;       /* Raised cards / popovers / active states */
-  --color-surface-alt: #f3f0ff;          /* Secondary structural containers (soft lavender) */
-  --color-surface-translucent: rgba(255, 255, 255, 0.82);
+   That is what makes the dark theme below work: flip `[data-theme="dark"]`
+   and every `bg-surface`, `text-text-muted`, `border-line` in the codebase
+   repaints, with no component-level branching.
+   ========================================================================== */
 
-  /* Borders */
-  --color-border-strong: #b7c6f0;
-  --color-brand-border: #8ea6f2;
+:root {
+  color-scheme: light;
 
-  /* Text (dark on light) */
-  --color-text: #14203d;
-  --color-text-muted: #3d4c73;
-  --color-text-soft: #64749b;
-  --color-text-on-dark: #ffffff;
-  --color-transparent: transparent;
+  /* -- Neutrals: a single cool ramp, no ad-hoc greys ------------------- */
+  --canvas: #f5f7fd;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eef2fb;
+  --surface-muted: #e8eef9;
+  --surface-strong: #dbe4f5;
+  --line: #dde4f2;
+  --line-strong: #c3cee6;
 
-  /* Focus */
-  --color-focus: #0ea5e9;
-  --color-focus-soft: rgba(14, 165, 233, 0.28);
+  /* -- Text ------------------------------------------------------------ */
+  --text: #0f1729;
+  --text-muted: #43506f;
+  --text-soft: #64719a;
+  --text-inverse: #ffffff;
 
-  /* Primary brand: vivid indigo-blue */
-  --color-brand: #5152e8;
-  --color-brand-hover: #4041d4;
-  --color-brand-soft: rgba(81, 82, 232, 0.12);
-  --color-brand-strong: #3d3fc4;
+  /* -- Brand ----------------------------------------------------------- */
+  --brand: #5b4be0;
+  --brand-hover: #4a3bd0;
+  --brand-strong: #3f32b8;
+  --brand-soft: rgba(91, 75, 224, 0.1);
+  --brand-border: #c7bff5;
+
+  /* -- Focus: the brand hue, so the ring reads as part of the system --- */
+  --focus: #4f46e5;
+  --focus-soft: rgba(91, 75, 224, 0.22);
 
   /* Role-based navigation & panels (vivid, still dark enough for white text) */
   --color-panel-admin: #2b2a8f;
@@ -45,55 +63,282 @@
   --color-panel-attendee: #0b6e83;
   --color-panel-attendee-hover: #095a6c;
 
-  --color-accent-admin: #67e8f9;
-  --color-accent-organizer: #dbeafe;
-  --color-accent-attendee: #ccfbf1;
+  /* -- Semantic feedback ---------------------------------------------- */
+  --success: #047857;
+  --success-bg: #d9f7e8;
+  --success-border: #7ce0b4;
+  --success-hover: #b9ecd3;
 
-  --color-role-admin: #3d3fc4;
-  --color-role-admin-bg: #eef0ff;
-  --color-role-admin-border: #c3c7fa;
-  --color-role-organizer: #1d4ed8;
-  --color-role-organizer-bg: #e6f0ff;
-  --color-role-organizer-border: #b3cdfb;
+  --warning: #b45309;
+  --warning-bg: #fff8e7;
+  --warning-border: #f2d29b;
+  --warning-hover: #fbe9c8;
 
-  /* Fun category / tag colours for events */
-  --color-tag-violet: #7c3aed;
-  --color-tag-violet-bg: #f1e9ff;
-  --color-tag-teal: #0d9488;
-  --color-tag-teal-bg: #dcfaf5;
-  --color-tag-sky: #0284c7;
-  --color-tag-sky-bg: #e0f3ff;
-  --color-tag-pink: #db2777;
-  --color-tag-pink-bg: #ffe6f2;
-  --color-tag-amber: #d97706;
-  --color-tag-amber-bg: #fff1d6;
+  --danger: #be123c;
+  --danger-bg: #ffe4ea;
+  --danger-border: #fda4b8;
+  --danger-hover: #ffd0da;
 
-  /* Semantic feedback */
-  --color-success: #059669;
-  --color-success-bg: #d9f7e8;
-  --color-success-border: #7ce0b4;
-  --color-success-hover: #c2f0da;
+  --info: #0369a1;
+  --info-bg: #e0f3ff;
+  --info-border: #8fd3f7;
+  --info-hover: #c9e9fb;
 
-  --color-warning: #b45309;
-  --color-warning-bg: #fff3d0;
-  --color-warning-border: #f5cd63;
+  /* -- Role accents: admin / organizer / attendee --------------------- */
+  --panel-admin: #2b2a8f;
+  --panel-admin-hover: #3735b0;
+  --panel-organizer: #2563eb;
+  --panel-organizer-hover: #1d4ed8;
+  --panel-attendee: #0b7285;
+  --panel-attendee-hover: #095f6f;
 
-  --color-danger: #e11d48;
-  --color-danger-bg: #ffe4ea;
-  --color-danger-border: #fda4b8;
-  --color-danger-hover: #ffd0da;
+  --accent-admin: #67e8f9;
+  --accent-organizer: #dbeafe;
+  --accent-attendee: #ccfbf1;
 
-  --color-info: #0284c7;
-  --color-info-bg: #e0f3ff;
-  --color-info-border: #8fd3f7;
+  --role-admin: #4338ca;
+  --role-admin-bg: #eef2ff;
+  --role-admin-border: #c7d2fe;
+  --role-organizer: #1d4ed8;
+  --role-organizer-bg: #e6f0ff;
+  --role-organizer-border: #b3cdfb;
+  --role-attendee: #0e7490;
+  --role-attendee-bg: #e0f7fb;
+  --role-attendee-border: #a5dbe8;
 
-  /* Elevation & shadows (tinted blue instead of black) */
-  --color-shadow-soft: rgba(52, 72, 150, 0.16);
-  --color-shadow-brand: rgba(81, 82, 232, 0.38);
-  --color-overlay: rgba(20, 32, 61, 0.45);
+  /* -- Event category tags -------------------------------------------- */
+  --tag-violet: #6d28d9;
+  --tag-violet-bg: #f1e9ff;
+  --tag-violet-border: #ddd0fb;
+  --tag-teal: #0f766e;
+  --tag-teal-bg: #dcfaf5;
+  --tag-teal-border: #a7e8de;
+  --tag-sky: #0369a1;
+  --tag-sky-bg: #e0f3ff;
+  --tag-sky-border: #a5d9f7;
+  --tag-pink: #be185d;
+  --tag-pink-bg: #ffe6f2;
+  --tag-pink-border: #fbc2d8;
+  --tag-amber: #b45309;
+  --tag-amber-bg: #fff8e7;
+  --tag-amber-border: #f2d29b;
+
+  /* -- Elevation: tinted with the brand hue, never pure black --------- */
+  --shadow-color: 15 23 41;
+  --overlay: rgba(10, 18, 36, 0.5);
+
+  /* -- Motion ---------------------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* -- Gradients ------------------------------------------------------- */
+  --gradient-brand: linear-gradient(135deg, #5b4be0 0%, #3b7fe8 55%, #0d9aa8 100%);
+  --gradient-warm: linear-gradient(135deg, #6d28d9 0%, #be185d 100%);
+  --gradient-fresh: linear-gradient(135deg, #0e7490 0%, #059669 100%);
+  --gradient-hero: linear-gradient(135deg, #2b2a8f 0%, #5b4be0 45%, #0b7285 100%);
+
+  /* -- shadcn-compatible aliases (used by components/ui/*) ------------- */
+  --background: var(--canvas);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--brand);
+  --primary-foreground: var(--text-inverse);
+  --secondary: var(--surface-muted);
+  --secondary-foreground: var(--text-muted);
+  --muted: var(--surface-muted);
+  --muted-foreground: var(--text-soft);
+  --accent: var(--surface-strong);
+  --accent-foreground: var(--text);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--brand);
+  --radius: 0.625rem;
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #0a0f1e;
+  --surface: #121a2e;
+  --surface-raised: #18213a;
+  --surface-sunken: #0d1426;
+  --surface-muted: #1b2440;
+  --surface-strong: #243052;
+  --line: #263154;
+  --line-strong: #36456e;
+
+  --text: #eef2fb;
+  --text-muted: #b3c0dd;
+  --text-soft: #8f9dc4;
+  --text-inverse: #0a0f1e;
+
+  --brand: #8b7cff;
+  --brand-hover: #a196ff;
+  --brand-strong: #c3bbff;
+  --brand-soft: rgba(139, 124, 255, 0.16);
+  --brand-border: #453c86;
+
+  --focus: #8b7cff;
+  --focus-soft: rgba(139, 124, 255, 0.3);
+
+  --success: #34d399;
+  --success-bg: rgba(16, 185, 129, 0.14);
+  --success-border: rgba(52, 211, 153, 0.4);
+  --success-hover: rgba(52, 211, 153, 0.24);
+
+  --warning: #fbbf24;
+  --warning-bg: rgba(245, 158, 11, 0.14);
+  --warning-border: rgba(251, 191, 36, 0.4);
+  --warning-hover: rgba(251, 191, 36, 0.24);
+
+  --danger: #fb7185;
+  --danger-bg: rgba(244, 63, 94, 0.14);
+  --danger-border: rgba(251, 113, 133, 0.42);
+  --danger-hover: rgba(251, 113, 133, 0.24);
+
+  --info: #38bdf8;
+  --info-bg: rgba(14, 165, 233, 0.14);
+  --info-border: rgba(56, 189, 248, 0.4);
+  --info-hover: rgba(56, 189, 248, 0.24);
+
+  --panel-admin: #191545;
+  --panel-admin-hover: #221d5c;
+  --panel-organizer: #14264d;
+  --panel-organizer-hover: #1a3163;
+  --panel-attendee: #0c2c34;
+  --panel-attendee-hover: #103a45;
+
+  --accent-admin: #67e8f9;
+  --accent-organizer: #93c5fd;
+  --accent-attendee: #5eead4;
+
+  --role-admin: #a5b4fc;
+  --role-admin-bg: rgba(99, 102, 241, 0.16);
+  --role-admin-border: rgba(129, 140, 248, 0.42);
+  --role-organizer: #93c5fd;
+  --role-organizer-bg: rgba(59, 130, 246, 0.16);
+  --role-organizer-border: rgba(96, 165, 250, 0.42);
+  --role-attendee: #5eead4;
+  --role-attendee-bg: rgba(13, 148, 136, 0.16);
+  --role-attendee-border: rgba(45, 212, 191, 0.42);
+
+  --tag-violet: #c4b5fd;
+  --tag-violet-bg: rgba(139, 92, 246, 0.16);
+  --tag-violet-border: rgba(167, 139, 250, 0.4);
+  --tag-teal: #5eead4;
+  --tag-teal-bg: rgba(13, 148, 136, 0.16);
+  --tag-teal-border: rgba(45, 212, 191, 0.4);
+  --tag-sky: #7dd3fc;
+  --tag-sky-bg: rgba(14, 165, 233, 0.16);
+  --tag-sky-border: rgba(56, 189, 248, 0.4);
+  --tag-pink: #f9a8d4;
+  --tag-pink-bg: rgba(219, 39, 119, 0.16);
+  --tag-pink-border: rgba(244, 114, 182, 0.4);
+  --tag-amber: #fcd34d;
+  --tag-amber-bg: rgba(217, 119, 6, 0.16);
+  --tag-amber-border: rgba(252, 211, 77, 0.4);
+
+  --overlay: rgba(2, 6, 16, 0.66);
+
+  --gradient-brand: linear-gradient(135deg, #6d5cf0 0%, #3b7fe8 55%, #0d9aa8 100%);
+  --gradient-warm: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  --gradient-fresh: linear-gradient(135deg, #0d9488 0%, #10b981 100%);
+  --gradient-hero: linear-gradient(135deg, #191545 0%, #3b318f 45%, #0c2c34 100%);
+}
+
+/* --------------------------------------------------------------------------
+   Tailwind token mapping
+   `inline` keeps the utility pointing at the custom property, so a theme
+   swap repaints without regenerating classes.
+   -------------------------------------------------------------------------- */
 @theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-strong: var(--surface-strong);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-soft: var(--text-soft);
+  --color-text-on-dark: var(--text-inverse);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-border: var(--brand-border);
+
+  --color-focus: var(--focus);
+  --color-focus-soft: var(--focus-soft);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-success-hover: var(--success-hover);
+
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
+  --color-warning-hover: var(--warning-hover);
+
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-danger-hover: var(--danger-hover);
+
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-info-border: var(--info-border);
+  --color-info-hover: var(--info-hover);
+
+  --color-panel-admin: var(--panel-admin);
+  --color-panel-admin-hover: var(--panel-admin-hover);
+  --color-panel-organizer: var(--panel-organizer);
+  --color-panel-organizer-hover: var(--panel-organizer-hover);
+  --color-panel-attendee: var(--panel-attendee);
+  --color-panel-attendee-hover: var(--panel-attendee-hover);
+
+  --color-accent-admin: var(--accent-admin);
+  --color-accent-organizer: var(--accent-organizer);
+  --color-accent-attendee: var(--accent-attendee);
+
+  --color-role-admin: var(--role-admin);
+  --color-role-admin-bg: var(--role-admin-bg);
+  --color-role-admin-border: var(--role-admin-border);
+  --color-role-organizer: var(--role-organizer);
+  --color-role-organizer-bg: var(--role-organizer-bg);
+  --color-role-organizer-border: var(--role-organizer-border);
+  --color-role-attendee: var(--role-attendee);
+  --color-role-attendee-bg: var(--role-attendee-bg);
+  --color-role-attendee-border: var(--role-attendee-border);
+
+  --color-tag-violet: var(--tag-violet);
+  --color-tag-violet-bg: var(--tag-violet-bg);
+  --color-tag-violet-border: var(--tag-violet-border);
+  --color-tag-teal: var(--tag-teal);
+  --color-tag-teal-bg: var(--tag-teal-bg);
+  --color-tag-teal-border: var(--tag-teal-border);
+  --color-tag-sky: var(--tag-sky);
+  --color-tag-sky-bg: var(--tag-sky-bg);
+  --color-tag-sky-border: var(--tag-sky-border);
+  --color-tag-pink: var(--tag-pink);
+  --color-tag-pink-bg: var(--tag-pink-bg);
+  --color-tag-pink-border: var(--tag-pink-border);
+  --color-tag-amber: var(--tag-amber);
+  --color-tag-amber-bg: var(--tag-amber-bg);
+  --color-tag-amber-border: var(--tag-amber-border);
+
+  --color-overlay: var(--overlay);
+
+  /* shadcn aliases, kept so components/ui/* keep working */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -112,42 +357,21 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+
+  --font-heading: "Sora Variable", "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
-}
+  --radius-2xl: calc(var(--radius) * 1.8);
 
-:root {
-  --background: #f3f7ff;
-  --foreground: #14203d;
-  --card: #ffffff;
-  --card-foreground: #14203d;
-  --popover: #ffffff;
-  --popover-foreground: #14203d;
-  --primary: #5152e8;
-  --primary-foreground: #ffffff;
-  --secondary: #e8eeff;
-  --secondary-foreground: #3d3fc4;
-  --muted: #e6edfb;
-  --muted-foreground: #64749b;
-  --accent: #dff3ff;
-  --accent-foreground: #0b7a91;
-  --destructive: #e11d48;
-  --border: #d3def5;
-  --input: #c3d1ef;
-  --ring: #5152e8;
-  --radius: 0.75rem;
-
-  /* Ambient background blooms (overridden for dark mode) */
-  --bloom-1: rgba(139, 124, 255, 0.22);
-  --bloom-2: rgba(56, 189, 248, 0.22);
-  --bloom-3: rgba(45, 212, 191, 0.16);
-
-  /* Reusable gradients */
-  --gradient-brand: linear-gradient(135deg, #5152e8 0%, #2f8ff0 55%, #14b8c4 100%);
-  --gradient-warm: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
-  --gradient-fresh: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+  --shadow-xs: 0 1px 2px rgb(var(--shadow-color) / 0.05);
+  --shadow-sm: 0 1px 3px rgb(var(--shadow-color) / 0.07), 0 1px 2px rgb(var(--shadow-color) / 0.04);
+  --shadow-md: 0 4px 12px -2px rgb(var(--shadow-color) / 0.08), 0 2px 6px -2px rgb(var(--shadow-color) / 0.05);
+  --shadow-lg: 0 12px 28px -6px rgb(var(--shadow-color) / 0.12), 0 6px 12px -6px rgb(var(--shadow-color) / 0.06);
+  --shadow-brand: 0 10px 24px -6px rgb(var(--shadow-color) / 0.22);
 }
 
 /* ---------------------------------------------------------------------------
@@ -265,17 +489,16 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--line);
   }
 
   html {
-    color-scheme: light;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply text-foreground;
-    /* Soft colour blooms: lavender top-left, sky top-right, mint bottom */
     background:
       radial-gradient(60rem 30rem at 0% -10%, var(--bloom-1), transparent 60%),
       radial-gradient(50rem 28rem at 100% 0%, var(--bloom-2), transparent 60%),
@@ -285,6 +508,7 @@
     transition: background-color 240ms ease, color 240ms ease;
 
     font-family: var(--font-body);
+    font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -292,17 +516,27 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    letter-spacing: -0.015em;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-focus);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
   }
 
   ::selection {
-    background-color: #c7d2fe;
-    color: #14203d;
+    background-color: color-mix(in oklab, var(--brand) 22%, transparent);
+    color: var(--text);
   }
 
   .dark ::selection {
@@ -320,13 +554,23 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #b7c6f0;
+    background: var(--line-strong);
     border-radius: 9999px;
-    border: 2px solid var(--background);
+    border: 2px solid var(--canvas);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #8ea6f2;
+    background: var(--text-soft);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 
   .dark ::-webkit-scrollbar-thumb {
@@ -338,55 +582,55 @@
   }
 }
 
-/* ------------------------------------------------------------------
-   Interactive utilities. Use as normal classes, e.g.
-   <div className="bg-surface rounded-xl border card-interactive">
-   ------------------------------------------------------------------ */
+/* --------------------------------------------------------------------------
+   Utilities
+   -------------------------------------------------------------------------- */
 
-/* Cards that lift and glow on hover, press down on click */
-@utility card-interactive {
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-  cursor: pointer;
+@utility surface-card {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@utility surface-card-interactive {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 180ms var(--ease-out-expo),
+    box-shadow 180ms var(--ease-out-expo),
+    border-color 180ms var(--ease-out-expo);
 
   &:hover {
-    transform: translateY(-3px);
-    border-color: var(--color-brand-border);
-    box-shadow: 0 12px 28px -8px var(--color-shadow-soft), 0 0 0 3px var(--color-brand-soft);
+    transform: translateY(-2px);
+    border-color: var(--brand-border);
+    box-shadow: var(--shadow-md);
   }
 
   &:active {
-    transform: translateY(-1px) scale(0.99);
+    transform: translateY(0);
   }
 }
 
-/* Gradient primary button */
-@utility btn-gradient {
-  background-image: var(--gradient-brand);
-  background-size: 160% 100%;
-  background-position: 0% 0%;
-  color: var(--color-text-on-dark);
-  transition: background-position 300ms ease, transform 150ms ease, box-shadow 200ms ease;
+@utility focus-ring {
+  outline: none;
 
-  &:hover {
-    background-position: 100% 0%;
-    box-shadow: 0 10px 24px -6px var(--color-shadow-brand);
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
+}
+
+@utility press {
+  transition: transform 120ms var(--ease-out-expo);
 
   &:active {
     transform: scale(0.97);
   }
 }
 
-/* Quick press feedback for any clickable element */
-@utility press {
-  transition: transform 120ms ease;
-
-  &:active {
-    transform: scale(0.96);
-  }
-}
-
-/* Gradient text for headings and key numbers */
 @utility text-gradient {
   background-image: var(--gradient-brand);
   -webkit-background-clip: text;
@@ -394,8 +638,7 @@
   color: transparent;
 }
 
-/* Colourful top accent bar for cards (pick a gradient with the classes below) */
-@utility accent-bar {
+@utility accent-top {
   position: relative;
   overflow: hidden;
 
@@ -403,7 +646,7 @@
     content: "";
     position: absolute;
     inset: 0 0 auto 0;
-    height: 4px;
+    height: 3px;
     background-image: var(--gradient-brand);
   }
 }
@@ -420,19 +663,16 @@
   }
 }
 
-/* Frosted panel — the top bar and the side bars */
 @utility glass {
   background-color: color-mix(in oklab, var(--color-surface) 82%, transparent);
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
 
-/* Hairline top border that reads on both themes */
 @utility hairline {
   border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
 }
 
-/* Faint blueprint grid used behind hero sections */
 @utility bg-grid {
   background-image:
     linear-gradient(
@@ -448,7 +688,6 @@
   background-size: 56px 56px;
 }
 
-/* Fades the grid out towards the edges so it never reads as a table */
 @utility grid-fade {
   mask-image: radial-gradient(
     ellipse 80% 60% at 50% 35%,
@@ -462,7 +701,6 @@
   );
 }
 
-/* Diagonal hatch for accent panels */
 @utility hatch {
   background-image: repeating-linear-gradient(
     45deg,
@@ -471,9 +709,13 @@
   );
 }
 
-/* Loading skeleton with a soft colour shimmer */
 @utility skeleton {
-  background: linear-gradient(90deg, #e6edfb 25%, #f3f0ff 50%, #e6edfb 75%);
+  background: linear-gradient(
+    90deg,
+    var(--surface-muted) 25%,
+    var(--surface-strong) 50%,
+    var(--surface-muted) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: var(--radius-md);
@@ -484,7 +726,24 @@
   to { background-position: -200% 0; }
 }
 
-/* Respect users who prefer less motion */
+@utility skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100px;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--brand);
+  color: var(--text-inverse);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: top 150ms var(--ease-out-expo);
+
+  &:focus {
+    top: 1rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -494,5 +753,6 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
