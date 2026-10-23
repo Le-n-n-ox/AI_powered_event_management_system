@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
+const { Server } = require('socket.io');
+const http = require('http');
 
 const { processMessageWithAI, extractEventFromText, draftBroadcastMessage } = require('./ai');
 const webhookAuth = require('./middleware/webhookAuth');
@@ -31,7 +33,32 @@ const AfricasTalking = require('africastalking')(credentials);
 const sms = AfricasTalking.SMS;
 const voice = AfricasTalking.VOICE;
 
+// ... (existing imports)
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    }
+});
+
+// Handle Socket connections for targeted alerts
+io.on('connection', (socket) => {
+    console.log('🔌 New Socket Connection:', socket.id);
+
+    socket.on('join_event_room', (eventId) => {
+        socket.join(`event_${eventId}`);
+        console.log(`🏠 Socket ${socket.id} joined room: event_${eventId}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔌 Socket disconnected:', socket.id);
+    });
+});
+
+// ... (rest of the middleware/app setup)
+
 
 // If you deploy behind a proxy (Render, Vercel, etc.), this makes
 // express-rate-limit key off the real client IP instead of the proxy's.
@@ -265,9 +292,6 @@ app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
             } else {
                 await sms.send({ to: [from], message: `❌ Task #${taskId} not found.` });
             }
-            } else {
-                await sms.send({ to: [from], message: `❌ Task #${taskId} not found.` });
-            }
             console.log(`📤 Sent Task reply to ${from}`);
         } catch (err) {
             console.error("❌ Error sending Task SMS:", err);
@@ -308,7 +332,7 @@ app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
     }
 
     if (!attendeeRecords || attendeeRecords.length === 0) {
-        await sms.send({ to: [from], message: 'You are not registered for any active events in our 시스템.' });
+        await sms.send({ to: [from], message: 'You are not registered for any active events in our system.' });
         return;
     }
 
@@ -320,7 +344,13 @@ app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
 
     const eventIds = [...new Set(attendeeRecords.map(record => record.event_id).filter(Boolean))];
     if (eventIds.length === 0) {
-        await sms.send({ to: merge a result in my request, merge conflicts in the la
+        await sms.send({ to: [from], message: 'No active events are available for your registration.' });
+        return;
+    }
+
+    const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
         .in('id', eventIds);
     if (eventsError) {
         console.error('❌ Event lookup failed:', eventsError.message);
@@ -356,10 +386,15 @@ app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
         await sms.send({ to: [from], message: promptMsg });
         const { error: selectionHistoryError } = await supabase.from('chat_messages').insert([
             { attendee_phone: from, role: 'user', message: cleanText },
-            { attendee_phone: { la
-        }
+            { attendee_phone: from, role: 'assistant', message: promptMsg }
         ]);
+
+        if (selectionHistoryError) {
+            console.error('❌ Saving event selection prompt failed:', selectionHistoryError.message);
+        }
+        return;
     }
+
     if (!activeEventId && eventsData.length === 1) {
         activeEventId = eventsData[0].id;
         activeEventSessions.set(from, activeEventId);
@@ -418,9 +453,22 @@ ${relevantDocs}
     const liveContext = {
         supabase,
         tasks,
-        eventId: targetEvent.id
+        eventId: targetEvent.id,
+        attendeePhone: from
     };
     const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName, chatHistory, liveContext);
+
+    if (aiResult.insight) {
+        console.log("🌟 GHOST ORGANIZER INSIGHT:", aiResult.insight);
+        // Emit only to the room for this specific event
+        io.to(`event_${targetEvent.id}`).emit('operational_insight', {
+            ...aiResult.insight,
+            eventId: targetEvent.id,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+
     let replyMessage = aiResult.reply;
 
     if (aiResult.isEmergency) {
@@ -457,6 +505,6 @@ ${relevantDocs}
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Operations Engine Server running on port ${PORT}`);
 });
