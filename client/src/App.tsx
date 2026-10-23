@@ -120,11 +120,11 @@ function App() {
                 }
               />
               <Route
-                path="/admin/command-center"
+                path="/organizer/command-center/:eventId"
                 element={
-                  <ProtectedRoute>
+                  <Managed>
                     <AdminCommandCenter />
-                  </ProtectedRoute>
+                  </Managed>
                 }
               />
               <Route
