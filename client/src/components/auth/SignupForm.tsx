@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/auth-context";
 import { formatPhoneNumber } from "../../utils/phone";
 import { VARIANTS } from "./authVariants";
 import type { AuthVariant } from "./authVariants";

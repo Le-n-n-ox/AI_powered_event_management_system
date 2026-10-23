@@ -30,7 +30,7 @@ export function groupEventsByPeriod<T extends { start_date: string }>(events: T[
 
   const groups: Record<string, T[]> = {}
   const order: string[] = []
-  let pastEvents: T[] = []
+  const pastEvents: T[] = []
 
   function addTo(key: string, event: T) {
     if (!groups[key]) {

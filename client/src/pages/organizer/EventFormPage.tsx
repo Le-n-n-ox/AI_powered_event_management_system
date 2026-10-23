@@ -3,8 +3,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../context/AuthContext";
-import type { Event } from "../../types/event";
+import { useAuth } from "../../context/auth-context";
+import { isMissingColumnError, missingColumnName } from "../../lib/events";
+import { BUILT_IN_QUESTIONS } from "../../lib/registrationQuestions";
+import type { Event, EventFormData } from "../../types/event";
 import { Button } from "../../components/ui/button";
 import BackButton from "../../components/layout/BackButton";
 
@@ -39,9 +41,10 @@ export default function EventFormPage() {
   const event = location.state?.event as Event | null;
   const isEdit = !!event;
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EventFormData>({
     name: event?.name ?? "",
     description: event?.description ?? "",
+    category: event?.category ?? "",
     status: event?.status ?? "upcoming",
     venueName: event?.venue_name ?? "",
     venueAddress: event?.venue_address ?? "",
@@ -55,17 +58,30 @@ export default function EventFormPage() {
     ticketPrice: event?.ticket_price ? String(event.ticket_price) : "",
     // Full text of uploaded documents, so the SMS assistant can answer from them
     knowledgeText: event?.knowledge_text ?? "",
+    // The organizer's questions. `null` in the database means "not configured",
+    // which is different from an empty list, which means "ask nothing".
+    registrationQuestions:
+      event?.registration_questions !== undefined &&
+      event?.registration_questions !== null
+        ? event.registration_questions
+        : [...BUILT_IN_QUESTIONS],
+    // The paybill the ticket money is credited to.
+    mpesaAccno: event?.mpesa_accno ?? "",
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const updateData = (field: string, value: any) => {
+  const updateData = <K extends keyof EventFormData>(
+    field: K,
+    value: EventFormData[K],
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAiExtraction = (extractedData: any) => {
+  const handleAiExtraction = (extractedData: Record<string, unknown>) => {
     const cleaned = Object.fromEntries(
       Object.entries(extractedData ?? {}).map(([key, value]) => [
         key,
@@ -119,6 +135,7 @@ export default function EventFormPage() {
     const payload = {
       name: formData.name,
       description: formData.description || null,
+      category: formData.category || null,
       venue_name: formData.venueName || null,
       venue_address: formData.venueAddress || null,
       venue_map_url: formData.venueMapUrl || null,
@@ -135,16 +152,58 @@ export default function EventFormPage() {
           ? parseFloat(formData.ticketPrice)
           : null,
       knowledge_text: formData.knowledgeText || null,
+      // The organizer's questions. An empty array means "ask nothing".
+      registration_questions: formData.registrationQuestions,
+      // The paybill the ticket money is credited to.
+      mpesa_accno: formData.mpesaAccno || null,
     };
 
-    const { error: dbError } = isEdit
-      ? await supabase
-          .from("events")
-          .update({ ...payload, status: formData.status })
-          .eq("id", event!.id)
-      : await supabase
-          .from("events")
-          .insert({ ...payload, status: "upcoming", organizer_id: user?.id });
+    type Saveable = Partial<typeof payload>;
+
+    const save = async (fields: Saveable) =>
+      isEdit
+        ? supabase
+            .from("events")
+            .update({ ...fields, status: formData.status })
+            .eq("id", event!.id)
+        : supabase
+            .from("events")
+            .insert({ ...fields, status: "upcoming", organizer_id: user?.id });
+
+    let fields: Saveable = payload;
+    let { error: dbError } = await save(fields);
+
+    // The optional columns arrive with their migrations (001 for the niche,
+    // 005 for the registration questions and the paybill). If the database
+    // does not have one yet, save the event without it rather than losing the
+    // whole form — and say so afterwards.
+    const dropped: string[] = [];
+
+    while (dbError && isMissingColumnError(dbError)) {
+      const column = missingColumnName(dbError);
+      if (!column || !(column in fields)) break;
+
+      dropped.push(column);
+      fields = Object.fromEntries(
+        Object.entries(fields).filter(([key]) => key !== column),
+      ) as Saveable;
+
+      const retry = await save(fields);
+      dbError = retry.error;
+    }
+
+    if (!dbError && dropped.length) {
+      const list = dropped.join(", ");
+      setNotice(
+        `Saved, but ${list} ${dropped.length > 1 ? "were" : "was"} not stored — the ${
+          dropped.length > 1 ? "columns are" : "column is"
+        } missing. Run the migrations in server/db/migrations to enable ${
+          dropped.length > 1 ? "them" : "it"
+        }.`,
+      );
+      setSubmitting(false);
+      return;
+    }
 
     setSubmitting(false);
 
@@ -283,6 +342,19 @@ export default function EventFormPage() {
             </div>
           )}
 
+          {notice && (
+            <div className="bg-warning-bg/80 text-warning p-4 rounded-xl border border-warning-border shadow-sm text-sm flex flex-wrap items-center gap-3">
+              <span>{notice}</span>
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard")}
+                className="ml-auto font-semibold underline underline-offset-2 shrink-0"
+              >
+                Go to dashboard
+              </button>
+            </div>
+          )}
+
           {/* Polished Bottom Action Bar */}
           <div className="flex justify-end gap-3 pt-6 mt-8 border-t border-border/50">
             <Button
@@ -295,7 +367,7 @@ export default function EventFormPage() {
             <Button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 text-sm font-medium text-white bg-brand rounded-xl hover:bg-brand-hover hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center gap-2 shadow-[0_0_20px_rgba(59,92,212,0.3)] transition-all duration-200"
+              className="px-6 py-2.5 text-sm font-semibold text-text-on-dark bg-linear-to-r from-brand to-tag-violet rounded-xl shadow-md shadow-shadow-brand/30 hover:brightness-110 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center gap-2 transition-all duration-200"
             >
               {submitting
                 ? "Saving..."

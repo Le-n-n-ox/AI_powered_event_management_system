@@ -2,32 +2,52 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/auth-context";
 import AccessDenied from "./AccessDenied";
 
 function EventGuard({ children }: { children: ReactNode }) {
   const { id } = useParams<{ id: string }>();
   const { user, isAdmin } = useAuth();
+  const userId = user?.id ?? null;
   const [status, setStatus] = useState<"checking" | "allowed" | "denied">(
     "checking",
   );
 
   useEffect(() => {
-    if (!id || !user) return;
-    if (isAdmin) {
-      setStatus("allowed");
-      return;
-    }
-    setStatus("checking");
-    supabase
-      .from("events")
-      .select("organizer_id")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data }) =>
-        setStatus(data?.organizer_id === user.id ? "allowed" : "denied"),
+    if (!id || !userId) return;
+
+    const currentUserId = userId;
+    let cancelled = false;
+
+    async function checkAccess() {
+      // Yield first so the effect never sets state synchronously.
+      await Promise.resolve();
+      if (cancelled) return;
+
+      if (isAdmin) {
+        setStatus("allowed");
+        return;
+      }
+
+      const { data } = await supabase
+        .from("events")
+        .select("organizer_id")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      setStatus(
+        data?.organizer_id === currentUserId ? "allowed" : "denied",
       );
-  }, [id, user?.id, isAdmin]);
+    }
+
+    void checkAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, userId, isAdmin]);
 
   if (status === "checking")
     return (

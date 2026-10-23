@@ -1,15 +1,20 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+
+const { processMessageWithAI, extractEventFromText, draftBroadcastMessage } = require('./ai');
+const webhookAuth = require('./middleware/webhookAuth');
+const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/payments');
+const { webhookLimiter, extractLimiter, adminLimiter } = require('./middleware/rateLimits');
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-const express = require('express');
-const cors = require('cors'); // Required for React frontend communication
-const { processMessageWithAI, extractEventFromText, draftBroadcastMessage } = require('./ai');
-const multer = require('multer');
-const pdfParse = require('pdf-parse');
 
 // Handles the Magic Auto-Fill upload. Files are kept in memory only
 // (never written to disk) and capped so a huge upload can't hang the server.
@@ -17,7 +22,6 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024, files: 5 } // 5MB per file, 5 files max
 });
-
 
 const credentials = {
     apiKey: process.env.AT_API_KEY,
@@ -28,11 +32,17 @@ const sms = AfricasTalking.SMS;
 const voice = AfricasTalking.VOICE;
 
 const app = express();
-app.use(cors()); 
+
+// If you deploy behind a proxy (Render, Vercel, etc.), this makes
+// express-rate-limit key off the real client IP instead of the proxy's.
+app.set('trust proxy', 1);
+
+app.use(cors());
 app.use(express.json({ limit: '2mb' })); // raised from Express's 100kb default so uploaded knowledge-base text fits
 app.use(express.urlencoded({ extended: true }));
 
-
+app.use('/api/admin', adminLimiter, adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 let tasks = [
     { id: 1, description: "Check main lobby sound system", completed: false },
@@ -70,15 +80,15 @@ function getRelevantChunks(text, query, maxChunks = 3) {
 }
 
 app.get('/', (req, res) => {
-    res.status(200).json({ 
-        status: 'online', 
-        message: 'Operations Engine API is running smoothly!' 
+    res.status(200).json({
+        status: 'online',
+        message: 'Operations Engine API is running smoothly!'
     });
 });
 
 // Magic Auto-Fill: takes raw text from an uploaded file (frontend reads the
 // file itself) and asks the AI to pull out structured event form fields.
-app.post('/api/extract-event', upload.array('files', 5), async (req, res) => {
+app.post('/api/extract-event', extractLimiter, upload.array('files', 5), async (req, res) => {
     const files = req.files || [];
     if (!files.length) {
         return res.status(400).json({ error: 'No files uploaded.' });
@@ -174,7 +184,7 @@ app.get('/webhook/incoming', (req, res) => {
 });
 
 // USSD Interactive Menu Endpoint
-app.post('/ussd', (req, res) => {
+app.post('/ussd', webhookAuth, webhookLimiter, (req, res) => {
     const { sessionId, serviceCode, phoneNumber, text } = req.body;
     let responseMessage = "";
     const arr = text.split('*');
@@ -217,7 +227,7 @@ app.post('/ussd', (req, res) => {
 });
 
 // SMS & Emergency Escalation Webhook with Debug Logging
-app.post('/webhook/incoming', async (req, res) => {
+app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
     res.sendStatus(200);
 
     console.log("📥 Raw SMS Webhook Payload Received:", req.body);
@@ -252,6 +262,9 @@ app.post('/webhook/incoming', async (req, res) => {
             if (task) {
                 task.completed = true;
                 await sms.send({ to: [from], message: `✅ Task #${taskId} marked completed.` });
+            } else {
+                await sms.send({ to: [from], message: `❌ Task #${taskId} not found.` });
+            }
             } else {
                 await sms.send({ to: [from], message: `❌ Task #${taskId} not found.` });
             }
@@ -295,7 +308,7 @@ app.post('/webhook/incoming', async (req, res) => {
     }
 
     if (!attendeeRecords || attendeeRecords.length === 0) {
-        await sms.send({ to: [from], message: 'You are not registered for any active events in our system.' });
+        await sms.send({ to: [from], message: 'You are not registered for any active events in our 시스템.' });
         return;
     }
 
@@ -307,13 +320,7 @@ app.post('/webhook/incoming', async (req, res) => {
 
     const eventIds = [...new Set(attendeeRecords.map(record => record.event_id).filter(Boolean))];
     if (eventIds.length === 0) {
-        await sms.send({ to: [from], message: 'No active events are available for your registration.' });
-        return;
-    }
-
-    const { data: eventsData, error: eventsError } = await supabase
-        .from('events')
-        .select('*')
+        await sms.send({ to: merge a result in my request, merge conflicts in the la
         .in('id', eventIds);
     if (eventsError) {
         console.error('❌ Event lookup failed:', eventsError.message);
@@ -349,14 +356,10 @@ app.post('/webhook/incoming', async (req, res) => {
         await sms.send({ to: [from], message: promptMsg });
         const { error: selectionHistoryError } = await supabase.from('chat_messages').insert([
             { attendee_phone: from, role: 'user', message: cleanText },
-            { attendee_phone: from, role: 'assistant', message: promptMsg }
-        ]);
-        if (selectionHistoryError) {
-            console.error('❌ Saving event selection prompt failed:', selectionHistoryError.message);
+            { attendee_phone: { la
         }
-        return;
+        ]);
     }
-
     if (!activeEventId && eventsData.length === 1) {
         activeEventId = eventsData[0].id;
         activeEventSessions.set(from, activeEventId);

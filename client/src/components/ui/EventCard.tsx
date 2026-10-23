@@ -10,10 +10,15 @@ import {
   Link as LinkIcon,
   Check,
   Trash2,
+  ScanLine,
+  Sparkles,
+  Banknote,
+  Ticket,
 } from "lucide-react";
-import type { Event } from "../../types/event";
+import type { Event, Attendee } from "../../types/event";
 import { getCountdown } from "../../utils/dateHelpers";
 import { supabase } from "../../lib/supabase";
+import { RSVP_LABELS, RSVP_STYLES, rsvpState } from "../../lib/events";
 
 import {
   Card,
@@ -28,41 +33,78 @@ import { Button } from "@/components/ui/button";
 interface EventCardProps {
   event: Event;
   onDeleted?: (id: string) => void;
+  /**
+   * The current attendee's registration status, when they have one.
+   * Renders a Going / Pending / Waitlisted / Cancelled badge on the card.
+   */
+  registrationStatus?: Attendee["status"];
 }
 
 interface StatusStyle {
   variant: "default" | "secondary" | "destructive";
   badge: string;
   bar: string;
+  /** The soft wash behind the card's top panel. */
+  wash: string;
+  /** The icon tile colour. */
+  tile: string;
 }
 
 const STATUS_STYLES: { [key: string]: StatusStyle } = {
   upcoming: {
     variant: "default",
     badge: "bg-info-bg text-info border-info-border hover:bg-info-bg",
-    bar: "bg-linear-to-r from-info to-brand",
+    bar: "bg-linear-to-r from-info via-tag-sky to-brand",
+    wash: "from-info/20 via-tag-sky/10 to-transparent",
+    tile: "bg-info-bg text-info border-info-border",
   },
   ongoing: {
     variant: "default",
-    badge: "bg-success-bg text-success border-success-border hover:bg-success-bg",
-    bar: "bg-linear-to-r from-success to-tag-teal",
+    badge:
+      "bg-success-bg text-success border-success-border hover:bg-success-bg",
+    bar: "bg-linear-to-r from-success via-tag-teal to-brand",
+    wash: "from-success/20 via-tag-teal/10 to-transparent",
+    tile: "bg-success-bg text-success border-success-border",
   },
   cancelled: {
     variant: "destructive",
     badge: "bg-danger-bg text-danger border-danger-border hover:bg-danger-bg",
-    bar: "bg-linear-to-r from-danger to-tag-pink",
+    bar: "bg-linear-to-r from-danger via-tag-pink to-tag-violet",
+    wash: "from-danger/20 via-tag-pink/10 to-transparent",
+    tile: "bg-danger-bg text-danger border-danger-border",
   },
   completed: {
     variant: "secondary",
     badge: "bg-surface-strong text-text-soft border-border",
-    bar: "bg-border-strong",
+    bar: "bg-linear-to-r from-border-strong via-text-soft to-border-strong",
+    wash: "from-border-strong/25 via-text-soft/10 to-transparent",
+    tile: "bg-surface-strong text-text-soft border-border",
   },
 };
 
 const ICON_BASE =
   "text-text-soft rounded-lg transition-all duration-200 hover:scale-110 active:scale-95";
 
-export default function EventCard({ event, onDeleted }: EventCardProps) {
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+export default function EventCard({
+  event,
+  onDeleted,
+  registrationStatus,
+}: EventCardProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -71,10 +113,18 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
   const isCancelled = event.status === "cancelled";
   const showAsPast = isPastEvent && !isCancelled;
 
+  const rsvp = registrationStatus ? rsvpState(registrationStatus) : null;
+
   const style = showAsPast
     ? STATUS_STYLES.completed
-    : STATUS_STYLES[event.status] ?? STATUS_STYLES.completed;
+    : (STATUS_STYLES[event.status] ?? STATUS_STYLES.completed);
   const statusLabel = showAsPast ? "past" : event.status;
+
+  const start = new Date(event.start_date);
+  const day = Number.isNaN(start.getTime()) ? "--" : start.getDate();
+  const month = Number.isNaN(start.getTime())
+    ? "---"
+    : MONTHS[start.getMonth()];
 
   async function handleCopyLink() {
     const url = `${window.location.origin}/events/${event.id}`;
@@ -90,7 +140,7 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
   async function handleDelete() {
     if (
       !confirm(
-        `Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`
+        `Delete "${event.name}"? This will also remove its attendees, schedule, and venue locations. This cannot be undone.`,
       )
     ) {
       return;
@@ -110,38 +160,90 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -6 }}
       whileTap={{ scale: 0.99 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`h-full ${showAsPast ? "opacity-80 hover:opacity-100" : ""}`}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className={`h-full group ${showAsPast ? "opacity-85 hover:opacity-100" : ""}`}
     >
-      <Card className="h-full flex flex-col relative bg-surface rounded-xl overflow-hidden border border-border shadow-lg shadow-shadow-soft hover:shadow-xl hover:shadow-shadow-brand/40 hover:border-brand-border transition-all duration-300">
+      <Card className="h-full flex flex-col relative bg-surface rounded-2xl overflow-hidden border border-border shadow-lg shadow-shadow-soft hover:shadow-2xl hover:shadow-shadow-brand/30 hover:border-brand-border transition-all duration-300">
         {/* Status colour bar */}
-        <div className={`absolute top-0 left-0 w-full h-2 ${style.bar}`} />
+        <div className={`absolute top-0 left-0 w-full h-1.5 ${style.bar}`} />
 
-        <CardHeader className="pt-6 pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="font-heading text-lg leading-snug text-text">
-              {event.name}
-            </CardTitle>
-            <Badge
-              variant={style.variant}
-              className={`capitalize shrink-0 font-semibold shadow-sm rounded-md px-2.5 py-0.5 ${style.badge}`}
+        {/* The coloured wash behind the top of the card */}
+        <div
+          className={`absolute inset-x-0 top-0 h-40 bg-linear-to-b ${style.wash} pointer-events-none`}
+          aria-hidden
+        />
+        <div
+          className="absolute -top-16 -right-10 w-44 h-44 rounded-full bg-brand/10 blur-2xl transition-all duration-500 group-hover:bg-brand/20 group-hover:scale-125 pointer-events-none"
+          aria-hidden
+        />
+
+        <CardHeader className="pt-7 pb-3 relative">
+          <div className="flex items-start gap-3.5">
+            {/* The floating date tile */}
+            <div
+              className={`shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-2xl border shadow-md shadow-shadow-soft ${style.tile}`}
             >
-              {statusLabel}
-            </Badge>
+              <span className="font-heading text-xl font-bold leading-none">
+                {day}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">
+                {month}
+              </span>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <CardTitle className="font-heading text-lg leading-snug text-text line-clamp-2 min-h-14">
+                {event.name}
+              </CardTitle>
+
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <Badge
+                  variant={style.variant}
+                  className={`capitalize shrink-0 font-semibold shadow-sm rounded-md px-2.5 py-0.5 ${style.badge}`}
+                >
+                  {statusLabel}
+                </Badge>
+                {rsvp && (
+                  <Badge
+                    className={`shrink-0 font-semibold rounded-md px-2.5 py-0.5 ${RSVP_STYLES[rsvp]}`}
+                  >
+                    {RSVP_LABELS[rsvp]}
+                  </Badge>
+                )}
+                {event.category && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-tag-violet bg-tag-violet-bg border border-tag-violet/20 rounded-full px-2.5 py-0.5">
+                    <Sparkles className="w-3 h-3" />
+                    {event.category}
+                  </span>
+                )}
+                {event.is_paid ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-success bg-success-bg border border-success-border rounded-full px-2.5 py-0.5">
+                    <Banknote className="w-3 h-3" />
+                    KES {Number(event.ticket_price || 0).toLocaleString("en-KE")}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-tag-teal bg-tag-teal-bg border border-tag-teal/30 rounded-full px-2.5 py-0.5">
+                    <Ticket className="w-3 h-3" />
+                    Free
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
+
           {event.description && (
-            <p className="text-sm text-text-soft line-clamp-2 mt-2 leading-relaxed">
+            <p className="text-sm text-text-soft line-clamp-2 h-10 mt-3 leading-relaxed">
               {event.description}
             </p>
           )}
         </CardHeader>
 
-        <CardContent className="flex-1 pb-4">
-          <div className="flex flex-col gap-2.5 text-sm bg-surface-muted rounded-lg p-3.5 border border-border mt-1">
+        <CardContent className="flex-1 pb-4 relative">
+          <div className="flex flex-col gap-2.5 text-sm bg-surface-muted/70 rounded-xl p-3.5 border border-border">
             {event.venue_name && (
               <div className="flex items-center gap-2.5 text-text-muted">
                 <MapPinned className="w-4 h-4 text-tag-teal shrink-0" />
@@ -150,7 +252,16 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
             )}
             <div className="flex items-center gap-2.5 text-text-muted">
               <CalendarDays className="w-4 h-4 text-tag-violet shrink-0" />
-              <span>{new Date(event.start_date).toLocaleDateString()}</span>
+              <span>
+                {Number.isNaN(start.getTime())
+                  ? "Date to be announced"
+                  : start.toLocaleDateString(undefined, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+              </span>
               <span
                 className={`font-semibold ml-auto text-xs px-2 py-0.5 rounded-full ${
                   isPastEvent
@@ -183,6 +294,18 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
             </Link>
           </Button>
 
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className={`${ICON_BASE} hover:text-warning hover:bg-warning-bg`}
+            title="Check-in"
+          >
+            <Link to={`/events/${event.id}/checkin`} aria-label="Check-in">
+              <ScanLine className="w-4 h-4" />
+            </Link>
+          </Button>
+
           <div className="flex items-center gap-0.5 ml-1">
             {!isPastEvent && (
               <Button
@@ -190,7 +313,9 @@ export default function EventCard({ event, onDeleted }: EventCardProps) {
                 size="icon"
                 className={`${ICON_BASE} hover:text-brand-strong hover:bg-brand-soft`}
                 onClick={() =>
-                  navigate(`/organizer/events/${event.id}/edit`, { state: { event } })
+                  navigate(`/organizer/events/${event.id}/edit`, {
+                    state: { event },
+                  })
                 }
                 title="Edit Event"
                 aria-label="Edit Event"

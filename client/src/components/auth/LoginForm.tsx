@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/auth-context";
 import { VARIANTS } from "./authVariants";
 import type { AuthVariant } from "./authVariants";
 import { ErrorBanner } from "./AuthUI";
@@ -99,12 +99,20 @@ export default function LoginForm({ variant, redirectTo, signupPath }: Props) {
       </motion.div>
 
       <motion.div variants={itemVariants} className="space-y-1.5">
-        <label
-          htmlFor={passwordId}
-          className="block text-sm font-medium text-text-muted"
-        >
-          Password
-        </label>
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor={passwordId}
+            className="block text-sm font-medium text-text-muted"
+          >
+            Password
+          </label>
+          <Link
+            to="/forgot-password"
+            className={`text-xs font-medium text-brand-strong hover:text-tag-violet hover:underline ${FOCUS}`}
+          >
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative group">
           <div className={ICON_WRAP}>
             <Lock size={18} />

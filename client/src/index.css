@@ -11,6 +11,15 @@
    Tailwind through `@theme inline`, which makes the generated utilities read
    the variable at paint time rather than baking in a value.
 
+   Dark mode is driven by a class on <html>, not the OS setting, so the
+   toggle in the top bar can override what the system asks for. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-heading: "Sora", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
    That is what makes the dark theme below work: flip `[data-theme="dark"]`
    and every `bg-surface`, `text-text-muted`, `border-line` in the codebase
    repaints, with no component-level branching.
@@ -45,6 +54,14 @@
   /* -- Focus: the brand hue, so the ring reads as part of the system --- */
   --focus: #4f46e5;
   --focus-soft: rgba(91, 75, 224, 0.22);
+
+  /* Role-based navigation & panels (vivid, still dark enough for white text) */
+  --color-panel-admin: #2b2a8f;
+  --color-panel-admin-hover: #3735b0;
+  --color-panel-organizer: #2563eb;
+  --color-panel-organizer-hover: #1d4ed8;
+  --color-panel-attendee: #0b6e83;
+  --color-panel-attendee-hover: #095a6c;
 
   /* -- Semantic feedback ---------------------------------------------- */
   --success: #047857;
@@ -357,6 +374,119 @@
   --shadow-brand: 0 10px 24px -6px rgb(var(--shadow-color) / 0.22);
 }
 
+/* ---------------------------------------------------------------------------
+   Dark theme.
+
+   Every semantic token is re-stepped here rather than flipped: the dark
+   canvas is a deep indigo-navy, surfaces lift toward it, and the accent
+   colours are re-picked so they keep their contrast against the dark
+   surface (not simply inverted). This block is unlayered so it wins over
+   the @theme layer above.
+   --------------------------------------------------------------------------- */
+.dark {
+  color-scheme: dark;
+
+  --background: #080c18;
+  --foreground: #e9eefb;
+  --card: #121a2e;
+  --card-foreground: #e9eefb;
+  --popover: #151d33;
+  --popover-foreground: #e9eefb;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: #1b2439;
+  --secondary-foreground: #b9c2e6;
+  --muted: #172038;
+  --muted-foreground: #8492b8;
+  --accent: #1e2a48;
+  --accent-foreground: #a5b4fc;
+  --destructive: #f43f5e;
+  --border: #24304f;
+  --input: #2b3757;
+  --ring: #6366f1;
+
+  --color-surface: #121a2e;
+  --color-surface-muted: #172038;
+  --color-surface-strong: #1e2842;
+  --color-surface-alt: #1b1836;
+  --color-surface-translucent: rgba(18, 26, 46, 0.82);
+
+  --color-border-strong: #3a4870;
+  --color-brand-border: #4b4d9e;
+
+  --color-text: #e9eefb;
+  --color-text-muted: #b7c1e0;
+  --color-text-soft: #8492b8;
+  --color-text-on-dark: #ffffff;
+
+  --color-focus: #38bdf8;
+  --color-focus-soft: rgba(56, 189, 248, 0.32);
+
+  --color-brand: #6366f1;
+  --color-brand-hover: #7c7ef7;
+  --color-brand-soft: rgba(99, 102, 241, 0.18);
+  --color-brand-strong: #a5a6ff;
+
+  --color-panel-admin: #241f63;
+  --color-panel-admin-hover: #2f2880;
+  --color-panel-organizer: #1d3a8a;
+  --color-panel-organizer-hover: #24469f;
+  --color-panel-attendee: #0c4f61;
+  --color-panel-attendee-hover: #0d5e73;
+
+  --color-accent-admin: #67e8f9;
+  --color-accent-organizer: #bfdbfe;
+  --color-accent-attendee: #99f6e4;
+
+  --color-role-admin: #a5a6ff;
+  --color-role-admin-bg: rgba(99, 102, 241, 0.16);
+  --color-role-admin-border: #3b3f86;
+  --color-role-organizer: #7dd3fc;
+  --color-role-organizer-bg: rgba(2, 132, 199, 0.16);
+  --color-role-organizer-border: #1c4a72;
+
+  --color-tag-violet: #a78bfa;
+  --color-tag-violet-bg: rgba(124, 58, 237, 0.18);
+  --color-tag-teal: #2dd4bf;
+  --color-tag-teal-bg: rgba(13, 148, 136, 0.18);
+  --color-tag-sky: #38bdf8;
+  --color-tag-sky-bg: rgba(2, 132, 199, 0.18);
+  --color-tag-pink: #f472b6;
+  --color-tag-pink-bg: rgba(219, 39, 119, 0.18);
+  --color-tag-amber: #fbbf24;
+  --color-tag-amber-bg: rgba(217, 119, 6, 0.18);
+
+  --color-success: #34d399;
+  --color-success-bg: rgba(16, 185, 129, 0.15);
+  --color-success-border: rgba(52, 211, 153, 0.38);
+  --color-success-hover: rgba(16, 185, 129, 0.24);
+
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-warning-border: rgba(251, 191, 36, 0.38);
+
+  --color-danger: #fb7185;
+  --color-danger-bg: rgba(244, 63, 94, 0.15);
+  --color-danger-border: rgba(251, 113, 133, 0.38);
+  --color-danger-hover: rgba(244, 63, 94, 0.24);
+
+  --color-info: #38bdf8;
+  --color-info-bg: rgba(56, 189, 248, 0.15);
+  --color-info-border: rgba(56, 189, 248, 0.38);
+
+  --color-shadow-soft: rgba(2, 6, 23, 0.55);
+  --color-shadow-brand: rgba(99, 102, 241, 0.45);
+  --color-overlay: rgba(3, 7, 18, 0.72);
+
+  --bloom-1: rgba(99, 102, 241, 0.22);
+  --bloom-2: rgba(14, 165, 233, 0.16);
+  --bloom-3: rgba(13, 148, 136, 0.12);
+
+  --gradient-brand: linear-gradient(135deg, #6366f1 0%, #3b82f6 55%, #14b8c4 100%);
+  --gradient-warm: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  --gradient-fresh: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+}
+
 @layer base {
   * {
     border-color: var(--line);
@@ -368,8 +498,15 @@
   }
 
   body {
-    background-color: var(--canvas);
-    color: var(--text);
+    @apply text-foreground;
+    background:
+      radial-gradient(60rem 30rem at 0% -10%, var(--bloom-1), transparent 60%),
+      radial-gradient(50rem 28rem at 100% 0%, var(--bloom-2), transparent 60%),
+      radial-gradient(45rem 26rem at 50% 110%, var(--bloom-3), transparent 60%),
+      var(--background);
+    background-attachment: fixed;
+    transition: background-color 240ms ease, color 240ms ease;
+
     font-family: var(--font-body);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
@@ -387,14 +524,12 @@
     text-wrap: pretty;
   }
 
-  /* A single, consistent focus treatment across the whole app. */
   :focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
     border-radius: 4px;
   }
 
-  /* Never let a focus ring get clipped by an overflow container. */
   :focus:not(:focus-visible) {
     outline: none;
   }
@@ -402,6 +537,11 @@
   ::selection {
     background-color: color-mix(in oklab, var(--brand) 22%, transparent);
     color: var(--text);
+  }
+
+  .dark ::selection {
+    background-color: #3b3f86;
+    color: #e9eefb;
   }
 
   ::-webkit-scrollbar {
@@ -429,9 +569,16 @@
     scrollbar-color: var(--line-strong) transparent;
   }
 
-  /* Numeric columns line up when the digits are tabular. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #33406a;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #44538a;
   }
 }
 
@@ -439,7 +586,6 @@
    Utilities
    -------------------------------------------------------------------------- */
 
-/* The house card: a raised surface that lifts on hover. */
 @utility surface-card {
   background-color: var(--surface);
   border: 1px solid var(--line);
@@ -468,7 +614,6 @@
   }
 }
 
-/* Focus ring that works on top of any surface. */
 @utility focus-ring {
   outline: none;
 
@@ -478,7 +623,6 @@
   }
 }
 
-/* Press feedback for anything clickable. */
 @utility press {
   transition: transform 120ms var(--ease-out-expo);
 
@@ -487,7 +631,6 @@
   }
 }
 
-/* Gradient text for headline words and key numbers. */
 @utility text-gradient {
   background-image: var(--gradient-brand);
   -webkit-background-clip: text;
@@ -495,7 +638,6 @@
   color: transparent;
 }
 
-/* A coloured hairline along the top edge of a card. */
 @utility accent-top {
   position: relative;
   overflow: hidden;
@@ -509,7 +651,64 @@
   }
 }
 
-/* Loading placeholder with a soft shimmer. */
+@utility accent-bar-warm {
+  &::before {
+    background-image: var(--gradient-warm);
+  }
+}
+
+@utility accent-bar-fresh {
+  &::before {
+    background-image: var(--gradient-fresh);
+  }
+}
+
+@utility glass {
+  background-color: color-mix(in oklab, var(--color-surface) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+@utility hairline {
+  border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--color-border) 55%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-border) 55%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+}
+
+@utility grid-fade {
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 35%,
+    black 20%,
+    transparent 78%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 35%,
+    black 20%,
+    transparent 78%
+  );
+}
+
+@utility hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in oklab, currentColor 8%, transparent) 0 2px,
+    transparent 2px 10px
+  );
+}
+
 @utility skeleton {
   background: linear-gradient(
     90deg,
@@ -527,7 +726,6 @@
   to { background-position: -200% 0; }
 }
 
-/* Skip link: hidden until focused, then pinned to the top-left. */
 @utility skip-link {
   position: absolute;
   left: 1rem;

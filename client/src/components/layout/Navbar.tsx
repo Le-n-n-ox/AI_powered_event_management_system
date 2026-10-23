@@ -1,30 +1,47 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { CalendarDays, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  CalendarDays,
+  LogOut,
+  LayoutDashboard,
+  UserRound,
+  ListPlus,
+  Menu,
+  X,
+  ChartColumn,
+  Wallet,
+  ShieldCheck,
+} from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/auth-context";
 import { Button } from "@/components/ui/button";
+import ThemeToggle from "./ThemeToggle";
 
 const FOCUS =
-  "outline-none focus-visible:ring-2 focus-visible:ring-text-on-dark focus-visible:ring-offset-2 focus-visible:ring-offset-panel-admin";
+  "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface";
 
 const LINK_BASE =
   "flex items-center gap-1.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-95";
 const LINK_ACTIVE =
-  "text-text-on-dark bg-text-on-dark/20 border-text-on-dark/30 shadow-sm";
+  "text-brand-strong bg-brand-soft border-brand-border shadow-sm";
 const LINK_IDLE =
-  "text-text-on-dark/85 border-[var(--color-transparent)] hover:text-text-on-dark hover:bg-text-on-dark/15 hover:border-text-on-dark/20";
-const LOGOUT =
-  "text-text-on-dark/85 hover:text-text-on-dark hover:bg-danger/60 active:scale-95";
+  "text-text-muted border-transparent hover:text-text hover:bg-surface-muted hover:border-border";
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  organizer: "Organizer",
+  attendee: "Attendee",
+  floor_manager: "Floor manager",
+};
 
 function Navbar() {
   const [session, setSession] = useState<Session | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const { role, isStaff } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isStaff } = useAuth();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -37,49 +54,37 @@ function Navbar() {
       setSession(session);
     });
 
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      subscription.unsubscribe();
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
   };
 
+  /** Close the mobile sheet as soon as a destination is picked. */
+  const closeMenu = () => setMobileOpen(false);
+
   const isActive = (path: string) => location.pathname === path;
   const linkClass = (path: string, pad: string) =>
     `${LINK_BASE} ${pad} ${isActive(path) ? LINK_ACTIVE : LINK_IDLE} ${FOCUS}`;
 
   return (
-    <nav
-      className={`fixed top-0 w-full z-50 border-b border-text-on-dark/15 bg-linear-to-r transition-all duration-300 ${
-        isScrolled
-          ? "from-panel-admin/95 via-brand/95 to-panel-attendee-hover/95 backdrop-blur-md shadow-lg shadow-shadow-brand"
-          : "from-panel-admin via-brand to-panel-attendee-hover"
-      }`}
-    >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
+    <nav className="fixed top-0 w-full z-50 border-b border-border glass shadow-sm shadow-shadow-soft">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16 gap-3">
+          {/* Brand */}
           <Link
             to="/"
-            className={`group flex items-center gap-2 font-heading font-bold text-lg text-text-on-dark rounded-lg ${FOCUS}`}
+            className={`group flex items-center gap-2.5 font-heading font-bold text-lg text-text rounded-lg ${FOCUS}`}
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[image:var(--gradient-warm)] shadow-md shadow-shadow-soft transition-transform duration-200 group-hover:rotate-6 group-hover:scale-110">
+            <span className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-linear-to-br from-brand via-tag-violet to-tag-teal shadow-md shadow-shadow-brand transition-transform duration-200 group-hover:rotate-6 group-hover:scale-105">
               <CalendarDays className="w-4.5 h-4.5 text-text-on-dark" />
-            </div>
-            EventOS
+            </span>
+            <span className="hidden sm:block">EventOS</span>
           </Link>
 
+          {/* Desktop navigation */}
           <div className="hidden md:flex items-center gap-1.5">
             <Link to="/events" className={linkClass("/events", "px-3.5 py-2")}>
               Find Events
@@ -87,24 +92,47 @@ function Navbar() {
 
             {session ? (
               <>
-                {isStaff && (
-                  <Link
-                    to="/dashboard"
-                    className={linkClass("/dashboard", "px-3.5 py-2")}
-                  >
-                    <LayoutDashboard className="w-4 h-4 text-accent-admin" />
-                    Dashboard
-                  </Link>
-                )}
-                <div className="w-px h-6 bg-text-on-dark/25 mx-2" />
-                <Button
-                  variant="ghost"
-                  onClick={handleLogout}
-                  className={`gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg ${LOGOUT}`}
+                <Link
+                  to="/my-events"
+                  className={linkClass("/my-events", "px-3.5 py-2")}
                 >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </Button>
+                  <ListPlus className="w-4 h-4" />
+                  My Events
+                </Link>
+
+                {isStaff && (
+                  <>
+                    <Link
+                      to="/dashboard"
+                      className={linkClass("/dashboard", "px-3.5 py-2")}
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      Dashboard
+                    </Link>
+                    <Link
+                      to="/organizer/statistics"
+                      className={linkClass("/organizer/statistics", "px-3.5 py-2")}
+                    >
+                      <ChartColumn className="w-4 h-4" />
+                      Statistics
+                    </Link>
+                    <Link
+                      to="/organizer/transactions"
+                      className={linkClass("/organizer/transactions", "px-3.5 py-2")}
+                    >
+                      <Wallet className="w-4 h-4" />
+                      Transactions
+                    </Link>
+                  </>
+                )}
+
+                <Link
+                  to="/profile"
+                  className={linkClass("/profile", "px-3.5 py-2")}
+                >
+                  <UserRound className="w-4 h-4" />
+                  Profile
+                </Link>
               </>
             ) : (
               <>
@@ -116,7 +144,7 @@ function Navbar() {
                 </Link>
                 <Link
                   to="/signup"
-                  className={`text-sm font-semibold bg-surface text-brand-strong px-5 py-2 rounded-lg shadow-md shadow-shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-strong hover:shadow-lg active:translate-y-0 active:scale-95 ${FOCUS}`}
+                  className={`text-sm font-semibold bg-linear-to-r from-brand to-panel-organizer text-text-on-dark px-5 py-2 rounded-lg shadow-md shadow-shadow-brand transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-95 ${FOCUS}`}
                 >
                   Sign Up
                 </Link>
@@ -124,69 +152,149 @@ function Navbar() {
             )}
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden text-text-on-dark/85 hover:text-text-on-dark hover:bg-text-on-dark/15 transition-colors active:scale-95"
-            aria-label={
-              mobileOpen ? "Close navigation menu" : "Open navigation menu"
-            }
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </Button>
-        </div>
-
-        {mobileOpen && (
-          <div className="md:hidden flex flex-col gap-1.5 border-t border-text-on-dark/20 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <Link to="/events" className={linkClass("/events", "px-3 py-2.5")}>
-              Find Events
-            </Link>
-
-            {session ? (
-              <>
-                {isStaff && (
-                  <Link
-                    to="/dashboard"
-                    className={linkClass("/dashboard", "gap-2 px-3 py-2.5")}
-                  >
-                    <LayoutDashboard className="w-4 h-4 text-accent-admin" />
-                    Dashboard
-                  </Link>
+          {/* Right-hand controls */}
+          <div className="flex items-center gap-2">
+            {session && role && (
+              <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface-muted text-text-muted border border-border">
+                {role === "admin" ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-role-admin" />
+                ) : (
+                  <UserRound className="w-3.5 h-3.5 text-text-soft" />
                 )}
-                <Button
-                  variant="ghost"
-                  onClick={handleLogout}
-                  className={`justify-start gap-2 px-3 py-2.5 text-sm font-medium rounded-lg ${LOGOUT}`}
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className={`${LINK_BASE} ${LINK_IDLE} px-3 py-2.5 ${FOCUS}`}
-                >
-                  Log In
-                </Link>
-                <Link
-                  to="/signup"
-                  className={`px-3 py-2.5 text-sm font-semibold text-brand-strong bg-surface rounded-lg text-center shadow-md shadow-shadow-soft transition-all hover:bg-surface-strong active:scale-95 ${FOCUS}`}
-                >
-                  Sign Up
-                </Link>
-              </>
+                {ROLE_LABEL[role] ?? role}
+              </span>
             )}
+
+            <ThemeToggle />
+
+            {session && (
+              <Button
+                variant="ghost"
+                onClick={handleLogout}
+                className={`hidden md:inline-flex gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg text-text-muted hover:text-danger hover:bg-danger-bg transition-colors ${FOCUS}`}
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className={`md:hidden text-text-muted hover:text-text hover:bg-surface-muted transition-colors active:scale-95 ${FOCUS}`}
+              aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </Button>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="md:hidden overflow-hidden border-t border-border bg-surface/95 backdrop-blur-md"
+          >
+            <div className="flex flex-col gap-1 px-4 pt-3 pb-4">
+              <Link
+                to="/events"
+                onClick={closeMenu}
+                className={linkClass("/events", "gap-2 px-3 py-2.5")}
+              >
+                Find Events
+              </Link>
+
+              {session ? (
+                <>
+                  <Link
+                    to="/my-events"
+                    onClick={closeMenu}
+                    className={linkClass("/my-events", "gap-2 px-3 py-2.5")}
+                  >
+                    <ListPlus className="w-4 h-4" />
+                    My Events
+                  </Link>
+
+                  {isStaff && (
+                    <>
+                      <Link
+                        to="/dashboard"
+                        onClick={closeMenu}
+                        className={linkClass("/dashboard", "gap-2 px-3 py-2.5")}
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard
+                      </Link>
+                      <Link
+                        to="/organizer/statistics"
+                        onClick={closeMenu}
+                        className={linkClass("/organizer/statistics", "gap-2 px-3 py-2.5")}
+                      >
+                        <ChartColumn className="w-4 h-4" />
+                        Statistics
+                      </Link>
+                      <Link
+                        to="/organizer/transactions"
+                        onClick={closeMenu}
+                        className={linkClass("/organizer/transactions", "gap-2 px-3 py-2.5")}
+                      >
+                        <Wallet className="w-4 h-4" />
+                        Transactions
+                      </Link>
+                    </>
+                  )}
+
+                  <Link
+                    to="/profile"
+                    onClick={closeMenu}
+                    className={linkClass("/profile", "gap-2 px-3 py-2.5")}
+                  >
+                    <UserRound className="w-4 h-4" />
+                    Profile
+                  </Link>
+
+                  <Button
+                    variant="ghost"
+                    onClick={handleLogout}
+                    className={`justify-start gap-2 px-3 py-2.5 text-sm font-medium rounded-lg text-text-muted hover:text-danger hover:bg-danger-bg ${FOCUS}`}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={closeMenu}
+                    className={`${LINK_BASE} ${LINK_IDLE} gap-2 px-3 py-2.5 ${FOCUS}`}
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={closeMenu}
+                    className={`px-3 py-2.5 text-sm font-semibold text-text-on-dark bg-linear-to-r from-brand to-panel-organizer rounded-lg text-center shadow-md shadow-shadow-brand transition-all hover:brightness-110 active:scale-95 ${FOCUS}`}
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
