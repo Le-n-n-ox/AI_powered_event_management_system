@@ -385,8 +385,8 @@ app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
 
         await sms.send({ to: [from], message: promptMsg });
         const { error: selectionHistoryError } = await supabase.from('chat_messages').insert([
-            { attendee_phone: from, role: 'user', message: cleanText },
-            { attendee_phone: from, role: 'assistant', message: promptMsg }
+            { attendee_phone: from, role: 'user', sender: 'attendee', message: cleanText },
+            { attendee_phone: from, role: 'assistant', sender: 'ai', message: promptMsg }
         ]);
 
         if (selectionHistoryError) {
@@ -488,8 +488,8 @@ ${relevantDocs}
         replyMessage = `🚨 EMERGENCY LOGGED${attendeeName ? `, ${attendeeName}` : ''}: Floor security has been dispatched via phone call and SMS alert.`;
     } else {
         const { error: saveHistoryError } = await supabase.from('chat_messages').insert([
-            { attendee_phone: from, role: 'user', message: cleanText },
-            { attendee_phone: from, role: 'assistant', message: replyMessage }
+            { attendee_phone: from, role: 'user', sender: 'attendee', message: cleanText },
+            { attendee_phone: from, role: 'assistant', sender: 'ai', message: replyMessage }
         ]);
         if (saveHistoryError) {
             console.error('❌ Saving chat history failed:', saveHistoryError.message);
