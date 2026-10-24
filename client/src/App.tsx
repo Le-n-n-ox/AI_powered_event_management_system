@@ -28,6 +28,7 @@ const CheckIn = lazy(() => import("./pages/CheckIn"));
 const MyEvents = lazy(() => import("./pages/attendee/MyEvents"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AdminCommandCenter = lazy(() => import("./pages/organizer/OrganizerCommandCenter"));
 
 function PageFallback() {
   return (
@@ -116,6 +117,14 @@ function App() {
                   <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/organizer/command-center/:eventId"
+                element={
+                  <Managed>
+                    <AdminCommandCenter />
+                  </Managed>
                 }
               />
               <Route

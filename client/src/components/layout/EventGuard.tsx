@@ -6,7 +6,8 @@ import { useAuth } from "../../context/auth-context";
 import AccessDenied from "./AccessDenied";
 
 function EventGuard({ children }: { children: ReactNode }) {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams();
+  const id = params.id || params.eventId;
   const { user, isAdmin } = useAuth();
   const userId = user?.id ?? null;
   const [status, setStatus] = useState<"checking" | "allowed" | "denied">(
