@@ -114,33 +114,44 @@ export default function RegistrationSection({
 
             <div>
               <label className="block text-sm font-medium text-text-muted mb-1">
-                M-Pesa Paybill / Accno
-                <span className="text-text-soft font-normal text-xs ml-1">
-                  (optional)
-                </span>
+                Payout Method
               </label>
-              <div className="relative">
-                <Wallet className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-soft pointer-events-none" />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="e.g. 522533"
-                  value={data.mpesaAccno}
-                  onChange={(e) =>
-                    updateData("mpesaAccno", e.target.value.replace(/\D/g, ""))
-                  }
-                  className={`w-full !pl-9 ${inputCls}`}
-                />
-              </div>
+              <select
+                value={data.payoutMethod || ""}
+                onChange={(e) => updateData("payoutMethod", e.target.value)}
+                className={`w-full ${inputCls}`}
+              >
+                <option value="" disabled>Select settlement method...</option>
+                <option value="mpesa_till">M-Pesa Buy Goods (Till)</option>
+                <option value="mpesa_paybill">M-Pesa Paybill</option>
+                <option value="bank_account">Bank Account</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-muted mb-1">
+              Account / Till / Paybill Number
+              <span className="text-text-soft font-normal text-xs ml-1">
+                (optional)
+              </span>
+            </label>
+            <div className="relative">
+              <Wallet className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-soft pointer-events-none" />
+              <input
+                type="text"
+                placeholder={data.payoutMethod === "bank_account" ? "Enter Bank Account Number" : "e.g., 522533 or Till No."}
+                value={data.payoutAccount || ""}
+                onChange={(e) => updateData("payoutAccount", e.target.value)}
+                className={`w-full !pl-9 ${inputCls}`}
+              />
             </div>
           </div>
 
           <p className="flex items-start gap-2 text-xs text-text-soft leading-relaxed">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-tag-sky" />
             <span>
-              Attendees are prompted to pay by M-Pesa STK push, and the money
-              is credited to this accno. Leave it blank to use the
-              platform&rsquo;s default paybill.
+              Attendees can pay securely via Card or Mobile Money through Paystack. Funds will be routed according to your selected payout details.
             </span>
           </p>
         </motion.div>

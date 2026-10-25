@@ -168,43 +168,27 @@ export default function EventDetail() {
     let cancelled = false;
 
     async function checkPayment() {
-      try {
-        const status = await apiFetch<AttendeePayment>(
-          `/api/payments/attendee-status?attendeeId=${encodeURIComponent(
-            attendeeId,
-          )}&phone=${encodeURIComponent(phone)}`,
-        );
+    if (!attendeeId) return;
 
-        if (cancelled) return;
+    try {
+      // Fetch the attendee's current record directly from Supabase or your attendees API
+      const { data: attendee } = await supabase
+        .from("attendees")
+        .select("payment_status")
+        .eq("id", attendeeId)
+        .maybeSingle();
 
-        if (status.paid) {
-          setPaymentComplete(true);
-          setPendingPayment(null);
-          return;
-        }
+      if (cancelled) return;
 
-        // Only a payment still in flight is worth resuming — a failed one
-        // should let the attendee start again.
-        if (
-          status.transactionStatus === "pending" &&
-          status.transactionId &&
-          status.paymentToken
-        ) {
-          setPendingPayment({
-            transactionId: status.transactionId,
-            paymentToken: status.paymentToken,
-          });
-        }
-      } catch (err) {
-        if (cancelled) return;
-
-        // The server does not know this registration, so it is stale.
-        if (err instanceof ApiError && err.status === 404) {
-          writeRegistration(id, null);
-          setRegistration(null);
-        }
+      if (attendee?.payment_status === "paid") {
+        setPaymentComplete(true);
+        setPendingPayment(null);
       }
+    } catch (err) {
+      if (cancelled) return;
+      console.error("Could not verify payment status:", err);
     }
+  }
 
     void checkPayment();
 

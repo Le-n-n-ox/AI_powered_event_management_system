@@ -1,182 +1,125 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeCheck,
   CircleAlert,
   Loader2,
-  PhoneCall,
+  CreditCard,
   Smartphone,
   TriangleAlert,
 } from "lucide-react";
-import { apiFetch, ApiError } from "../../lib/api";
+import { apiFetch } from "../../lib/api";
 import { formatMoney } from "../../lib/events";
 import { Button } from "./button";
 
+declare global {
+  interface Window {
+    PaystackPop: {
+      setup: (options: any) => { openIframe: () => void };
+    };
+  }
+}
+
 interface Props {
   attendeeId: string;
-  /** The phone number on the registration — the one the prompt goes to. */
   phone: string;
   amount: number;
-  /** The paybill the money is credited to, when the organizer set one. */
+  email?: string;
   paybill?: string | null;
-  /**
-   * An existing payment to pick up — e.g. after a page refresh. When this is
-   * set the prompt goes straight to "waiting" instead of pushing a second
-   * prompt for a ticket that is already being paid.
-   */
   resume?: { transactionId: string; paymentToken: string } | null;
   onPaid?: () => void;
 }
 
-type Stage = "idle" | "pushing" | "awaiting" | "paid" | "failed";
+type Stage = "idle" | "initializing" | "processing" | "paid" | "failed";
 
-interface PushResponse {
-  transactionId: string;
-  checkoutRequestId: string;
-  paymentToken: string;
-  amount: number;
-  currency: string;
-  paybill: string | null;
-  phone: string;
-  message: string;
+interface PaystackInitResponse {
+  accessCode: string;
+  reference: string;
+  publicKey: string;
 }
-
-interface StatusResponse {
-  status: "pending" | "paid" | "failed" | "refunded" | "cancelled";
-  amount: number;
-  currency: string;
-  receiptNumber: string | null;
-  paidAt: string | null;
-  paybill: string | null;
-}
-
-/** How often we ask Daraja how the payment went. */
-const POLL_INTERVAL_MS = 3000;
-/** How long we keep asking before we let the attendee try again. */
-const POLL_TIMEOUT_MS = 3 * 60 * 1000;
 
 export default function PaymentPrompt({
   attendeeId,
   phone,
   amount,
+  email,
   paybill,
-  resume,
   onPaid,
 }: Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<string | null>(null);
-  const [promptPhone, setPromptPhone] = useState(phone);
-
-  // The polling loop keeps its state here so a re-render does not restart it.
-  const transactionRef = useRef<{
-    id: string;
-    token: string;
-  } | null>(null);
-
-  const stopPolling = useRef(false);
-
-  const checkStatus = useCallback(async () => {
-    const pending = transactionRef.current;
-    if (!pending) return;
-
-    try {
-      const status = await apiFetch<StatusResponse>(
-        `/api/payments/status/${pending.id}?token=${encodeURIComponent(pending.token)}`,
-      );
-
-      if (status.status === "paid") {
-        stopPolling.current = true;
-        setReceipt(status.receiptNumber);
-        setStage("paid");
-        onPaid?.();
-        return;
-      }
-
-      if (status.status === "failed" || status.status === "cancelled") {
-        stopPolling.current = true;
-        setError("The payment was declined. You can try again.");
-        setStage("failed");
-      }
-    } catch (err) {
-      // A hiccup while polling is not a failure — keep trying until the
-      // timeout runs out.
-      if (err instanceof ApiError && err.status === 403) {
-        stopPolling.current = true;
-        setError("This payment session expired. Please start the payment again.");
-        setStage("failed");
-      }
-    }
-  }, [onPaid]);
 
   useEffect(() => {
-    if (stage !== "awaiting") return;
-
-    const started = Date.now();
-    const timer = setInterval(() => {
-      if (stopPolling.current) {
-        clearInterval(timer);
-        return;
-      }
-      if (Date.now() - started > POLL_TIMEOUT_MS) {
-        clearInterval(timer);
-        setError(
-          "We have not heard back from M-Pesa yet. If you completed the payment, it will still go through.",
-        );
-        setStage("failed");
-        return;
-      }
-      void checkStatus();
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(timer);
-  }, [stage, checkStatus]);
-
-  // Pick an existing payment back up — after a refresh, the attendee should
-  // keep waiting on the prompt they already have rather than get a second one.
-  // The update is deferred a frame so it does not cascade a render out of the
-  // effect.
-  useEffect(() => {
-    if (!resume?.transactionId || !resume.paymentToken) return;
-    if (stage !== "idle") return;
-
-    const frame = requestAnimationFrame(() => {
-      transactionRef.current = {
-        id: resume.transactionId,
-        token: resume.paymentToken,
-      };
-      stopPolling.current = false;
-      setStage("awaiting");
-    });
-
-    return () => cancelAnimationFrame(frame);
-  }, [resume, stage]);
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const startPayment = async () => {
-    setStage("pushing");
+    setStage("initializing");
     setError(null);
-    stopPolling.current = false;
+
+    if (!window.PaystackPop) {
+      setError("Payment gateway is still loading. Please try again in a moment.");
+      setStage("failed");
+      return;
+    }
 
     try {
-      const response = await apiFetch<PushResponse>(
-        "/api/payments/attendee-stk-push",
+      const initData = await apiFetch<PaystackInitResponse>(
+        "/api/payments/paystack/init",
         {
           method: "POST",
-          body: JSON.stringify({ attendeeId, phone }),
-        },
+          body: JSON.stringify({ attendeeId, phone, amount }),
+        }
       );
 
-      transactionRef.current = {
-        id: response.transactionId,
-        token: response.paymentToken,
-      };
-      setPromptPhone(response.phone);
-      setStage("awaiting");
+      const handler = window.PaystackPop.setup({
+        key: initData.publicKey,
+        email: email || `${phone.replace(/\D/g, "")}@guest.eventos.app`,
+        amount: amount * 100,
+        currency: "KES",
+        ref: initData.reference,
+        access_code: initData.accessCode,
+        
+        // standard function instead of async to pass Paystack's strict validation
+        callback: (response: { reference: string; trans: string }) => {
+          setStage("processing");
+          
+          apiFetch(`/api/payments/paystack/verify/${response.reference}`, {
+            method: "POST",
+          })
+            .then(() => {
+              setReceipt(response.trans || response.reference);
+              setStage("paid");
+              onPaid?.();
+            })
+            .catch(() => {
+              setError(
+                "Payment received, but verification failed. Please contact support."
+              );
+              setStage("failed");
+            });
+        },
+        
+        onClose: () => {
+          setError("Payment was cancelled.");
+          setStage("failed");
+        },
+      });
+
+      handler.openIframe();
+
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not start the payment. Please try again.",
+          : "Could not start the payment. Please try again."
       );
       setStage("failed");
     }
@@ -201,13 +144,11 @@ export default function PaymentPrompt({
               Complete your payment
             </h3>
             <p className="text-sm text-text-soft mt-0.5">
-              This is a paid event. Pay {formatMoney(amount)} with M-Pesa to
-              secure your ticket.
+              This is a paid event. Pay {formatMoney(amount)} via Mobile Money or Card to secure your ticket.
             </p>
           </div>
         </div>
 
-        {/* The amount, big and clear */}
         <div className="rounded-xl border border-border bg-surface-muted/60 p-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-text-soft">
@@ -243,57 +184,24 @@ export default function PaymentPrompt({
                 onClick={startPayment}
                 className="w-full h-12 btn-gradient font-semibold shadow-lg shadow-shadow-brand/40"
               >
-                <PhoneCall className="w-4 h-4" />
-                Pay {formatMoney(amount)} with M-Pesa
+                <CreditCard className="w-4 h-4 mr-2" />
+                Pay {formatMoney(amount)} Now
               </Button>
-              <p className="text-xs text-text-soft text-center">
-                You will get a prompt on {promptPhone} asking you to enter your
-                M-Pesa PIN.
-              </p>
             </motion.div>
           )}
 
-          {stage === "pushing" && (
+          {(stage === "initializing" || stage === "processing") && (
             <motion.div
-              key="pushing"
+              key="loading"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex items-center justify-center gap-2 py-3 text-sm text-text-muted"
             >
               <Loader2 className="w-4 h-4 animate-spin" />
-              Sending the payment request…
-            </motion.div>
-          )}
-
-          {stage === "awaiting" && (
-            <motion.div
-              key="awaiting"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col gap-3"
-            >
-              <div className="flex items-center gap-3 rounded-xl border border-info-border bg-info-bg px-4 py-3">
-                <Loader2 className="w-5 h-5 animate-spin text-info shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-text">
-                    Waiting for you to approve the payment
-                  </p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    Check {promptPhone} for the M-Pesa prompt and enter your
-                    PIN.
-                  </p>
-                </div>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-strong">
-                <motion.div
-                  className="h-full rounded-full bg-linear-to-r from-tag-teal to-brand"
-                  initial={{ width: "8%" }}
-                  animate={{ width: "92%" }}
-                  transition={{ duration: 45, ease: "easeOut" }}
-                />
-              </div>
+              {stage === "initializing"
+                ? "Connecting to secure gateway..."
+                : "Verifying payment..."}
             </motion.div>
           )}
 
@@ -313,7 +221,7 @@ export default function PaymentPrompt({
               </div>
               {receipt && (
                 <p className="text-xs text-text-muted">
-                  M-Pesa receipt{" "}
+                  Transaction ref{" "}
                   <span className="font-mono font-semibold text-text">
                     {receipt}
                   </span>
@@ -345,7 +253,7 @@ export default function PaymentPrompt({
                 variant="outline"
                 className="w-full h-11 font-semibold"
               >
-                <CircleAlert className="w-4 h-4" />
+                <CircleAlert className="w-4 h-4 mr-2" />
                 Try the payment again
               </Button>
             </motion.div>
