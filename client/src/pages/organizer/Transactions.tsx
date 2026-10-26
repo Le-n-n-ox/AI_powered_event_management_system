@@ -43,7 +43,7 @@ const STATUS_LABELS: Record<TransactionStatus, string> = {
 type StatusFilter = "all" | TransactionStatus;
 
 export default function Transactions() {
-  const { events, attendees, entries, ledgerSource, loading, error, refresh } =
+  const { events, entries, ledgerSource, loading, error, refresh } =
     useOrganizerWorkspace();
 
   const [eventId, setEventId] = useState("all");
@@ -338,9 +338,6 @@ export default function Transactions() {
               ) : (
                 filtered.map((entry) => {
                   const busy = busyId === entry.id;
-                  const attendee = attendees.find(
-                    (a) => a.id === entry.attendee_id,
-                  );
 
                   return (
                     <tr

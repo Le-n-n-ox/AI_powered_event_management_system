@@ -13,7 +13,6 @@ import {
   Lock,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { apiFetch, ApiError } from "../lib/api";
 import RegistrationForm from "../components/ui/RegistrationForm";
 import PaymentPrompt from "../components/ui/PaymentPrompt";
 import TicketQR from "../components/ui/TicketQR";
@@ -34,20 +33,6 @@ interface Registration {
   phone: string;
   /** The event this registration belongs to — the page is reused between events. */
   eventId: string;
-}
-
-/** What the backend knows about an attendee's payment. */
-interface AttendeePayment {
-  paid: boolean;
-  paymentStatus: string;
-  amount: number | null;
-  currency: string;
-  paybill: string | null;
-  receiptNumber: string | null;
-  paidAt: string | null;
-  transactionStatus: string | null;
-  transactionId: string | null;
-  paymentToken: string | null;
 }
 
 const PILL = "text-xs font-semibold px-2.5 py-1 rounded-full border";
@@ -164,7 +149,7 @@ export default function EventDetail() {
     // A registration from another event must never unlock this one's ticket.
     if (registration.eventId !== id) return;
 
-    const { id: attendeeId, phone } = registration;
+    const { id: attendeeId } = registration;
     let cancelled = false;
 
     async function checkPayment() {
@@ -444,7 +429,7 @@ export default function EventDetail() {
                   attendeeId={registration.id}
                   phone={registration.phone}
                   amount={Number(event.ticket_price || 0)}
-                  paybill={event.mpesa_accno}
+                  paybill={event.payout_account}
                   resume={pendingPayment}
                   onPaid={() => {
                     setPaymentComplete(true);
