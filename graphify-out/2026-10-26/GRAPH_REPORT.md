@@ -1,17 +1,17 @@
 # Graph Report - smart-help-desk  (2026-10-26)
 
 ## Corpus Check
-- 122 files · ~62,616 words
+- 128 files · ~65,072 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 3, .css 1, .tsbuildinfo 1)
 
 ## Summary
-- 818 nodes · 1894 edges · 41 communities (37 shown, 4 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.86)
+- 846 nodes · 1940 edges · 36 communities (32 shown, 4 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 28 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `debf2bed`
+- Built from commit: `9a4a47e3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,29 +19,24 @@
 - RegistrationForm.tsx
 - Statistics.tsx
 - MyEvents.tsx
-- event.ts
+- EventFormPage.tsx
 - App.tsx
-- EventDetail.tsx
 - AdminDashboard.tsx
+- auth-context.ts
 - dependencies
-- lucide-react
-- ManageAttendees.tsx
+- LoginForm.tsx
+- scripts
 - components.json
-- supabase.ts
 - compilerOptions
 - devDependencies
-- theme-context.ts
 - format.ts
 - client/package.json
 - @supabase/server
 - compilerOptions
 - index.js
 - rateLimits.js
-- Transactions.tsx
-- Dashboard.tsx
-- AI-Powered Event Management System
-- Event
-- AddScheduleItemForm.tsx
+- react
+- paystack.js
 - server/package.json
 - vite.config.ts
 - mpesa.js
@@ -53,7 +48,7 @@
 - admin.js
 - axios
 - scripts
-- scripts
+- createUssdHandler
 - tsconfig.json
 - devDependencies
 - vercel.json
@@ -75,65 +70,61 @@
   README.md → client/src/pages/organizer/Statistics.tsx
 - `Features` --references--> `Transactions()`  [INFERRED]
   README.md → client/src/pages/organizer/Transactions.tsx
-- `App()` --calls--> `Navbar()`  [EXTRACTED]
-  client/src/App.tsx → client/src/components/layout/Navbar.tsx
-- `AdminDashboard()` --calls--> `UserManagement()`  [EXTRACTED]
-  client/src/pages/admin/AdminDashboard.tsx → client/src/components/admin/UserManagement.tsx
-- `changeRole()` --calls--> `apiFetch()`  [EXTRACTED]
-  client/src/components/admin/UserManagement.tsx → client/src/lib/api.ts
+- `useCategoricalColors()` --calls--> `useTheme()`  [EXTRACTED]
+  client/src/components/charts/chart-utils.ts → client/src/context/theme-context.ts
+- `Props` --references--> `Event`  [EXTRACTED]
+  client/src/components/ui/RegistrationForm.tsx → client/src/types/event.ts
+- `EventRow` --references--> `Event`  [EXTRACTED]
+  client/src/pages/organizer/Statistics.tsx → client/src/types/event.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (41 total, 4 thin omitted)
+## Communities (36 total, 4 thin omitted)
 
 ### Community 0 - "RegistrationForm.tsx"
 Cohesion: 0.08
-Nodes (49): @base-ui/react@^1.8.0, Badge(), badgeVariants, Card(), CardAction(), CardContent(), CardDescription(), CardFooter() (+41 more)
+Nodes (48): Badge(), badgeVariants, Card(), CardAction(), CardContent(), CardDescription(), CardFooter(), CardHeader() (+40 more)
 
 ### Community 1 - "Statistics.tsx"
 Cohesion: 0.08
-Nodes (45): BarChart(), BarDatum, barPath(), Props, truncate(), axisTicks(), ChartInk, ChartPalette (+37 more)
+Nodes (41): BarChart(), BarDatum, barPath(), Props, truncate(), axisTicks(), ChartInk, ChartPalette (+33 more)
 
 ### Community 2 - "MyEvents.tsx"
-Cohesion: 0.08
-Nodes (37): EventFilterBar(), EventFilterBarProps, EventCardProps, Props, TicketQR(), isMissingTableError(), LedgerEntry, LedgerSource (+29 more)
+Cohesion: 0.07
+Nodes (50): EventFilterBar(), EventFilterBarProps, PageHeader(), Props, EventCardProps, MONTHS, STATUS_STYLES, StatusStyle (+42 more)
 
-### Community 3 - "event.ts"
-Cohesion: 0.08
-Nodes (41): AiAutofill(), AiAutofillProps, BasicInfoSection(), Props, DateTimeSection(), describeDuration(), Props, toLocalInput() (+33 more)
+### Community 3 - "EventFormPage.tsx"
+Cohesion: 0.09
+Nodes (36): AiAutofill(), AiAutofillProps, BasicInfoSection(), Props, DateTimeSection(), describeDuration(), Props, toLocalInput() (+28 more)
 
 ### Community 4 - "App.tsx"
 Cohesion: 0.08
 Nodes (39): AdminCommandCenter, AdminLogin, AdminSignup, App(), AttendeeLogin, AttendeeSignup, CheckIn, Dashboard (+31 more)
 
-### Community 5 - "EventDetail.tsx"
-Cohesion: 0.09
-Nodes (21): FALLBACK_ROLE, initials(), Profile, ROLE_STYLES, RoleFilter, RoleStyle, UserManagement(), changeRole() (+13 more)
+### Community 5 - "AdminDashboard.tsx"
+Cohesion: 0.06
+Nodes (33): FALLBACK_ROLE, initials(), Profile, ROLE_STYLES, RoleFilter, RoleStyle, UserManagement(), changeRole() (+25 more)
 
-### Community 6 - "AdminDashboard.tsx"
-Cohesion: 0.16
-Nodes (13): useEvents(), AdminDashboard(), AdminTab, Alert, AlertsPanel(), initialLoad(), load(), AuditEntry (+5 more)
+### Community 6 - "auth-context.ts"
+Cohesion: 0.11
+Nodes (15): Navbar(), ROLE_LABEL, ThemeToggle(), AuthContext, AuthContextType, Role, SignUpInput, AuthProvider() (+7 more)
 
 ### Community 7 - "dependencies"
 Cohesion: 0.08
-Nodes (25): dependencies, class-variance-authority@^0.7.1, cn@^0.4.0, @fontsource-variable/inter@^5.3.0, @fontsource-variable/sora@^5.3.0, framer-motion@^13.4.4, html5-qrcode@^2.3.8, lucide-react@^1.47.0 (+17 more)
+Nodes (24): dependencies, @base-ui/react@^1.8.0, cn@^0.4.0, @fontsource-variable/inter@^5.3.0, @fontsource-variable/sora@^5.3.0, framer-motion@^13.4.4, html5-qrcode@^2.3.8, lucide-react@^1.47.0 (+16 more)
 
-### Community 8 - "lucide-react"
+### Community 8 - "LoginForm.tsx"
 Cohesion: 0.08
-Nodes (44): AuthLayout(), PanelBackdrop(), Props, ErrorBanner(), Field(), InfoBanner(), AuthVariant, VariantConfig (+36 more)
+Nodes (37): AuthLayout(), PanelBackdrop(), Props, ErrorBanner(), Field(), InfoBanner(), AuthVariant, VariantConfig (+29 more)
 
-### Community 9 - "ManageAttendees.tsx"
-Cohesion: 0.22
-Nodes (7): eventNav(), AttendeeStatus, ManageAttendees(), PAYMENT_STYLES, PaymentStatus, STATUS_STYLES, StyleMap
+### Community 9 - "scripts"
+Cohesion: 0.50
+Nodes (4): scripts, dev, start, test
 
 ### Community 10 - "components.json"
 Cohesion: 0.09
 Nodes (21): aliases, components, hooks, lib, ui, utils, iconLibrary, menuAccent (+13 more)
-
-### Community 11 - "supabase.ts"
-Cohesion: 0.20
-Nodes (7): AddVenueLocationForm(), AddVenueLocationFormProps, supabase, FMT, ManageVenueLocations(), ScheduleItem, VenueLocation
 
 ### Community 12 - "compilerOptions"
 Cohesion: 0.10
@@ -143,17 +134,13 @@ Nodes (20): compilerOptions, allowArbitraryExtensions, allowImportingTsExtension
 Cohesion: 0.15
 Nodes (12): eslint@^10.10.0, @eslint/js@^10.0.1, eslint-plugin-react-hooks@^7.1.1, eslint-plugin-react-refresh@^0.5.6, globals@^17.12.0, typescript-eslint@^8.69.0, eslint, @eslint/js (+4 more)
 
-### Community 14 - "theme-context.ts"
-Cohesion: 0.11
-Nodes (16): useCategoricalColors(), Navbar(), ROLE_LABEL, ThemeToggle(), AuthContext, AuthContextType, Role, SignUpInput (+8 more)
-
 ### Community 15 - "format.ts"
 Cohesion: 0.19
 Nodes (17): CURRENCY, daysUntil(), formatCountdown(), formatDate(), formatDateShort(), formatDateTime(), formatDayLabel(), formatNumber() (+9 more)
 
 ### Community 16 - "client/package.json"
-Cohesion: 0.13
-Nodes (14): clsx@^2.1.1, @headlessui/react@^2.2.10, @supabase/supabase-js@^2.117.1, tailwind-merge@^3.7.0, tw-animate-css@^1.4.0, @supabase/supabase-js, name, private (+6 more)
+Cohesion: 0.12
+Nodes (16): class-variance-authority@^0.7.1, clsx@^2.1.1, @headlessui/react@^2.2.10, qrcode.react@^4.2.0, shadcn@^4.21.0, tailwind-merge@^3.7.0, name, private (+8 more)
 
 ### Community 17 - "@supabase/server"
 Cohesion: 0.11
@@ -164,36 +151,24 @@ Cohesion: 0.12
 Nodes (16): compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection, noEmit, noFallthroughCasesInSwitch (+8 more)
 
 ### Community 19 - "index.js"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (13): activeEventSessions, AfricasTalking, app, credentials, io, server, supabase, tasks (+5 more)
 
 ### Community 20 - "rateLimits.js"
 Cohesion: 0.38
 Nodes (3): requireAuth(), supabaseAdmin, router
 
-### Community 21 - "Transactions.tsx"
-Cohesion: 0.31
-Nodes (6): AppShellNavItem, AppShellProps, ORGANIZER_NAV, STATUS_LABELS, STATUS_STYLES, StatusFilter
+### Community 21 - "react"
+Cohesion: 0.05
+Nodes (51): Props, TableData, Props, StackedBarChart(), StackedBarDatum, StackedSegment, Props, TONES (+43 more)
 
-### Community 22 - "Dashboard.tsx"
-Cohesion: 0.39
-Nodes (4): AppShell(), Dashboard(), EventSection(), groupEventsByPeriod()
-
-### Community 23 - "AI-Powered Event Management System"
-Cohesion: 0.25
-Nodes (7): AI-Powered Event Management System, Code navigation (graphify), Database migrations, M-Pesa (Daraja) payments, Prerequisites, Setup, Start the app
-
-### Community 24 - "Event"
-Cohesion: 0.29
-Nodes (6): Props, ScanResult, STATUS_ICONS, STATUS_STYLES, EventRow, Event
-
-### Community 25 - "AddScheduleItemForm.tsx"
-Cohesion: 0.20
-Nodes (9): AddScheduleItemForm(), handleSubmit(), AddScheduleItemFormProps, FMT, ManageSchedule(), isWithinWindow(), pad(), toDatetimeLocal() (+1 more)
+### Community 24 - "paystack.js"
+Cohesion: 0.17
+Nodes (7): handleUssd, initializeUssdPaystackCheckout(), settlePaystackTransaction(), verifyPaystackReference(), TRANSACTION, ATTENDEE, EVENT
 
 ### Community 26 - "server/package.json"
 Cohesion: 0.07
-Nodes (37): africastalking, bcryptjs, body-parser, cors, dotenv, express-rate-limit, jsonwebtoken, multer (+29 more)
+Nodes (40): africastalking, bcryptjs, body-parser, cors, dotenv, express-rate-limit, jsonwebtoken, multer (+32 more)
 
 ### Community 27 - "vite.config.ts"
 Cohesion: 0.20
@@ -227,9 +202,9 @@ Nodes (5): express, express@^5.2.1, ROLES, router, supabaseAdmin
 Cohesion: 0.40
 Nodes (5): scripts, build, dev, lint, preview
 
-### Community 39 - "scripts"
-Cohesion: 0.24
-Nodes (7): nodemon, devDependencies, nodemon@^3.1.7, scripts, dev, start, test
+### Community 40 - "createUssdHandler"
+Cohesion: 0.29
+Nodes (9): createUssdHandler(), loadEvents(), showEvents(), eventLabel(), isEventAvailable(), normalizePhoneNumber(), createHarness(), FREE_EVENT (+1 more)
 
 ### Community 42 - "devDependencies"
 Cohesion: 0.13
@@ -241,17 +216,17 @@ Nodes (15): devDependencies, autoprefixer@^10.6.1, postcss@^8.5.28, tailwindcss@
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `Statistics.tsx` to `RegistrationForm.tsx`, `MyEvents.tsx`, `event.ts`, `App.tsx`, `EventDetail.tsx`, `AdminDashboard.tsx`, `dependencies`, `lucide-react`, `ManageAttendees.tsx`, `supabase.ts`, `theme-context.ts`, `client/package.json`, `Transactions.tsx`, `Dashboard.tsx`, `Event`, `AddScheduleItemForm.tsx`?**
-  _High betweenness centrality (0.156) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `RegistrationForm.tsx`, `Statistics.tsx`, `MyEvents.tsx`, `EventFormPage.tsx`, `App.tsx`, `AdminDashboard.tsx`, `auth-context.ts`, `dependencies`, `LoginForm.tsx`, `client/package.json`?**
+  _High betweenness centrality (0.153) - this node is a cross-community bridge._
 - **Should `RegistrationForm.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.0825136612021858 - nodes in this community are weakly interconnected._
-- **Why does `lucide-react` connect `lucide-react` to `RegistrationForm.tsx`, `Statistics.tsx`, `MyEvents.tsx`, `event.ts`, `App.tsx`, `EventDetail.tsx`, `AdminDashboard.tsx`, `dependencies`, `ManageAttendees.tsx`, `supabase.ts`, `theme-context.ts`, `client/package.json`, `Transactions.tsx`, `Dashboard.tsx`, `Event`, `AddScheduleItemForm.tsx`?**
-  _High betweenness centrality (0.082) - this node is a cross-community bridge._
+  _Cohesion score 0.08361581920903954 - nodes in this community are weakly interconnected._
+- **Why does `lucide-react` connect `react` to `RegistrationForm.tsx`, `Statistics.tsx`, `MyEvents.tsx`, `EventFormPage.tsx`, `App.tsx`, `AdminDashboard.tsx`, `auth-context.ts`, `dependencies`, `LoginForm.tsx`, `client/package.json`?**
+  _High betweenness centrality (0.078) - this node is a cross-community bridge._
 - **Should `Statistics.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.08020050125313283 - nodes in this community are weakly interconnected._
-- **Why does `framer-motion` connect `lucide-react` to `RegistrationForm.tsx`, `Statistics.tsx`, `MyEvents.tsx`, `event.ts`, `App.tsx`, `EventDetail.tsx`, `AdminDashboard.tsx`, `dependencies`, `supabase.ts`, `theme-context.ts`, `client/package.json`, `Transactions.tsx`, `AddScheduleItemForm.tsx`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+  _Cohesion score 0.0782312925170068 - nodes in this community are weakly interconnected._
+- **Why does `framer-motion` connect `react` to `RegistrationForm.tsx`, `Statistics.tsx`, `MyEvents.tsx`, `EventFormPage.tsx`, `App.tsx`, `AdminDashboard.tsx`, `auth-context.ts`, `dependencies`, `LoginForm.tsx`, `client/package.json`?**
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **Should `MyEvents.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.07712765957446809 - nodes in this community are weakly interconnected._
-- **Should `event.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.08441558441558442 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06680080482897384 - nodes in this community are weakly interconnected._
+- **Should `EventFormPage.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.08843537414965986 - nodes in this community are weakly interconnected._

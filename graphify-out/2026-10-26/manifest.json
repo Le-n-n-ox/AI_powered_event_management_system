@@ -606,10 +606,10 @@
     "semantic_hash": "0011cd662b6b748ec1c0e5961754e98e"
   },
   "server/index.js": {
-    "mtime": 1792756718.2008197,
-    "seen": 1792994201.6457112,
-    "ast_hash": "ba6f1a4d692586680bf168794ad9805c",
-    "semantic_hash": "ba6f1a4d692586680bf168794ad9805c"
+    "mtime": 1792996297.6854177,
+    "seen": 1792996410.6852782,
+    "ast_hash": "ace02fd01a957d173888c225406278f2",
+    "semantic_hash": ""
   },
   "server/lib/mpesa.js": {
     "mtime": 1792750031.1584668,
@@ -636,10 +636,10 @@
     "semantic_hash": "0df09191f9636df51d5a0d26d1ae9c78"
   },
   "server/package.json": {
-    "mtime": 1792750043.9893427,
-    "seen": 1792994201.6478775,
-    "ast_hash": "058cc338cfc090875a4efa2a06b4ed7b",
-    "semantic_hash": "058cc338cfc090875a4efa2a06b4ed7b"
+    "mtime": 1792996178.8563952,
+    "seen": 1792996240.0270095,
+    "ast_hash": "5a4547b1a9ba225c3cb19ee33ff885fc",
+    "semantic_hash": ""
   },
   "server/routes/admin.js": {
     "mtime": 1792750031.1584668,
@@ -648,10 +648,10 @@
     "semantic_hash": "ddd6b35fa30fbe9e1ce383dc5a1f308a"
   },
   "server/routes/payments.js": {
-    "mtime": 1792993980.8477144,
-    "seen": 1792994201.64889,
-    "ast_hash": "82153f3a171b6f0de268ef946796c3b2",
-    "semantic_hash": "82153f3a171b6f0de268ef946796c3b2"
+    "mtime": 1792996357.4675353,
+    "seen": 1792996410.6881063,
+    "ast_hash": "e4e3d1cb20315133789680316a4bf184",
+    "semantic_hash": ""
   },
   "server/skills-lock.json": {
     "mtime": 1790160381.0486338,
@@ -673,9 +673,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1792994263.3614373,
-    "seen": 1792994297.8992026,
-    "ast_hash": "2696c8cb1ea3f52547ca3f5720fdd215",
+    "mtime": 1792994314.5812643,
+    "seen": 1792996240.029278,
+    "ast_hash": "932393e9e2cf9d1edb0f794a52794172",
     "semantic_hash": ""
   },
   "client/README.md": {
@@ -724,6 +724,78 @@
     "mtime": 1792862691.8733122,
     "seen": 1792994297.8992436,
     "ast_hash": "6d5180a782d64c8cf51ba01c2a2184d8",
+    "semantic_hash": ""
+  },
+  "server/lib/paystack.js": {
+    "mtime": 1792995965.0779421,
+    "seen": 1792996240.0259762,
+    "ast_hash": "b2e02ce865aff969d7cffa1ec5d999ba",
+    "semantic_hash": ""
+  },
+  "server/lib/ussd.js": {
+    "mtime": 1792998347.2022128,
+    "seen": 1792998417.0234346,
+    "ast_hash": "3d69381abb4c556a0e4aec46b7ac8955",
+    "semantic_hash": ""
+  },
+  "server/test-paystack-callback.js": {
+    "mtime": 1792995944.1615996,
+    "seen": 1792996240.0280395,
+    "ast_hash": "824acfe891416f704227c2ca0a1e1960",
+    "semantic_hash": ""
+  },
+  "server/test-paystack-ussd.js": {
+    "mtime": 1792996316.7380452,
+    "seen": 1792996410.6897388,
+    "ast_hash": "80b621dfbe1f0979a49ba82faf44331b",
+    "semantic_hash": ""
+  },
+  "server/test-ussd.js": {
+    "mtime": 1792998223.7672603,
+    "seen": 1792998417.0277762,
+    "ast_hash": "b0a2956836a1eb6d9998a2d8d2fa7ffa",
+    "semantic_hash": ""
+  },
+  "server/chat_messages.sql": {
+    "mtime": 1792750043.9777765,
+    "seen": 1792997200.5070326,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/000_helpers.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.50704,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/001_event_category.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070438,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/002_transactions.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070472,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/003_admin_role_management.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070503,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/004_audit_triggers.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070531,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/005_registration_questions.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070555,
+    "ast_hash": "",
     "semantic_hash": ""
   }
 }

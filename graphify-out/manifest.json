@@ -733,9 +733,9 @@
     "semantic_hash": ""
   },
   "server/lib/ussd.js": {
-    "mtime": 1792996128.449915,
-    "seen": 1792996240.0259826,
-    "ast_hash": "c91772f5909b8259a5d3d8afd0084631",
+    "mtime": 1792999745.730613,
+    "seen": 1792999796.1209095,
+    "ast_hash": "d6eeaa78819517ecca534600efca2a79",
     "semantic_hash": ""
   },
   "server/test-paystack-callback.js": {
@@ -751,9 +751,51 @@
     "semantic_hash": ""
   },
   "server/test-ussd.js": {
-    "mtime": 1792996193.4925241,
-    "seen": 1792996240.0280495,
-    "ast_hash": "c0e9b1bfc5f1eed503f47293ed8184a9",
+    "mtime": 1792999665.708703,
+    "seen": 1792999796.1244686,
+    "ast_hash": "59f4f0f6578201a8937180f0849446a9",
+    "semantic_hash": ""
+  },
+  "server/chat_messages.sql": {
+    "mtime": 1792750043.9777765,
+    "seen": 1792997200.5070326,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/000_helpers.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.50704,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/001_event_category.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070438,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/002_transactions.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070472,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/003_admin_role_management.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070503,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/004_audit_triggers.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070531,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "server/db/migrations/005_registration_questions.sql": {
+    "mtime": 1792750031.1504717,
+    "seen": 1792997200.5070555,
+    "ast_hash": "",
     "semantic_hash": ""
   }
 }
