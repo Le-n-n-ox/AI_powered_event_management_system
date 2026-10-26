@@ -55,11 +55,13 @@ export interface Event {
    * built-in default set"; an empty array means "ask nothing extra".
    */
   registration_questions?: RegistrationQuestion[] | null;
-  /**
-   * The paybill / accno the organizer wants ticket payments credited to.
-   * Added by migration 005 — optional until that is applied.
-   */
-  mpesa_accno?: string | null;
+  
+  // -- Paystack Payout Configuration --
+  /** How the organizer receives their funds (e.g., bank_account, mpesa_till) */
+  payout_method?: string | null;
+  /** The specific account number, till, or paybill for the settlement */
+  payout_account?: string | null;
+  
   created_at: string;
 }
 
@@ -112,7 +114,7 @@ export type TransactionStatus =
   | "refunded"
   | "cancelled";
 
-export type PaymentMethod = "mpesa" | "cash" | "bank" | "card" | "other";
+export type PaymentMethod = "paystack" | "mpesa" | "cash" | "bank" | "card" | "other";
 
 /** A row in the payment ledger. Added by migration 002. */
 export interface Transaction {
@@ -170,8 +172,10 @@ export interface EventFormData {
   knowledgeText: string;
   /** The questions the attendee will be asked, in order. */
   registrationQuestions: RegistrationQuestion[];
-  /** The paybill / accno the organizer wants ticket money credited to. */
-  mpesaAccno: string;
+  /** How the organizer wants to receive the Paystack payout */
+  payoutMethod?: string;
+  /** The account or till number for the payout */
+  payoutAccount?: string;
 }
 
 /** Updates one field of the event form, keeping the field/value pair typed. */

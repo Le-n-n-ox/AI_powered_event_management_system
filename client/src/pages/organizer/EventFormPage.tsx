@@ -56,17 +56,15 @@ export default function EventFormPage() {
     requiresApproval: event?.requires_approval ?? false,
     isPaid: event?.is_paid ?? false,
     ticketPrice: event?.ticket_price ? String(event.ticket_price) : "",
-    // Full text of uploaded documents, so the SMS assistant can answer from them
     knowledgeText: event?.knowledge_text ?? "",
-    // The organizer's questions. `null` in the database means "not configured",
-    // which is different from an empty list, which means "ask nothing".
     registrationQuestions:
       event?.registration_questions !== undefined &&
       event?.registration_questions !== null
         ? event.registration_questions
         : [...BUILT_IN_QUESTIONS],
-    // The paybill the ticket money is credited to.
-    mpesaAccno: event?.mpesa_accno ?? "",
+    // Add the Paystack payout configurations
+    payoutMethod: event?.payout_method ?? "",
+    payoutAccount: event?.payout_account ?? "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -154,8 +152,9 @@ export default function EventFormPage() {
       knowledge_text: formData.knowledgeText || null,
       // The organizer's questions. An empty array means "ask nothing".
       registration_questions: formData.registrationQuestions,
-      // The paybill the ticket money is credited to.
-      mpesa_accno: formData.mpesaAccno || null,
+      // Paystack payout configurations
+      payout_method: formData.isPaid ? (formData.payoutMethod || null) : null,
+      payout_account: formData.isPaid ? (formData.payoutAccount || null) : null,
     };
 
     type Saveable = Partial<typeof payload>;
@@ -174,9 +173,8 @@ export default function EventFormPage() {
     let { error: dbError } = await save(fields);
 
     // The optional columns arrive with their migrations (001 for the niche,
-    // 005 for the registration questions and the paybill). If the database
-    // does not have one yet, save the event without it rather than losing the
-    // whole form — and say so afterwards.
+    // 005 for the registration questions). If the database does not have one yet,
+    // save the event without it rather than losing the whole form — and say so afterwards.
     const dropped: string[] = [];
 
     while (dbError && isMissingColumnError(dbError)) {

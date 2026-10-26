@@ -55,6 +55,27 @@ npm run dev
 
 Vite prints the frontend URL in its terminal, usually `http://localhost:5173`. The backend API is available at `http://localhost:3000`.
 
+## Code navigation (graphify)
+
+The repo is mapped into a queryable knowledge graph in `graphify-out/` — every function, component, route, and module with its cross-file relationships. Instead of grepping through files, open `graphify-out/graph.html` in a browser and click around, or query the graph from a terminal:
+
+```powershell
+graphify query "how does event registration work"   # scoped subgraph for a question
+graphify explain "useAuth"                          # a component/function and its neighbours
+graphify path "RegistrationForm.tsx" "useAuth"      # how two things connect
+graphify god-nodes                                  # the most connected hubs
+```
+
+The graph is generated from code only (local AST parsing, no API key, nothing leaves the machine). Rebuild or refresh it with:
+
+```powershell
+npm run graph:build     # full rebuild after large changes
+npm run graph:update    # fast AST-only refresh after editing code
+npm run graph:open      # regenerate graphify-out/graph.html
+```
+
+Git hooks installed by `graphify hook install` refresh the graph automatically after commits, checkouts, merges, and rebases, so it stays current. `graphify-out/GRAPH_REPORT.md` holds the architecture summary (communities, hub files, suggested questions) if you want a written tour instead. AI assistants working in this repo are pointed at the graph by `AGENTS.md`.
+
 ## Database migrations
 
 Some features need new database objects. The SQL lives in `server/db/migrations/` and is meant to be pasted into the **Supabase SQL editor**, in this order:

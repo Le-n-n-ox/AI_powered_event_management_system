@@ -5,14 +5,12 @@ import {
   Loader2,
   TriangleAlert,
   Search,
-  CircleCheckBig,
   RotateCcw,
   Smartphone,
   Receipt,
   Info,
 } from "lucide-react";
 import { useOrganizerWorkspace } from "../../hooks/useOrganizerWorkspace";
-import { apiFetch } from "../../lib/api";
 import { formatMoney } from "../../lib/events";
 import { supabase } from "../../lib/supabase";
 import StatTile from "../../components/charts/StatTile";
@@ -45,7 +43,7 @@ const STATUS_LABELS: Record<TransactionStatus, string> = {
 type StatusFilter = "all" | TransactionStatus;
 
 export default function Transactions() {
-  const { events, attendees, entries, ledgerSource, loading, error, refresh } =
+  const { events, entries, ledgerSource, loading, error, refresh } =
     useOrganizerWorkspace();
 
   const [eventId, setEventId] = useState("all");
@@ -53,7 +51,6 @@ export default function Transactions() {
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const paidEvents = useMemo(() => events.filter((e) => e.is_paid), [events]);
 
@@ -136,33 +133,6 @@ export default function Transactions() {
     }
   }
 
-  async function requestPayment(eventIdToPay: string, attendeeId: string) {
-    setBusyId(attendeeId);
-    setActionError(null);
-    setNotice(null);
-
-    try {
-      const result = await apiFetch<{ message: string }>(
-        "/api/payments/stk-push",
-        {
-          method: "POST",
-          body: JSON.stringify({ eventId: eventIdToPay, attendeeId }),
-        },
-      );
-
-      setNotice(result.message);
-      await refresh();
-    } catch (err) {
-      setActionError(
-        err instanceof Error
-          ? err.message
-          : "Could not start the payment request.",
-      );
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   function exportCsv() {
     const header = [
       "Attendee",
@@ -230,266 +200,234 @@ export default function Transactions() {
       }
     >
       {error && (
-          <div
-            role="alert"
-            className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-danger-border bg-danger-bg text-danger text-sm"
-          >
-            <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-danger-border bg-danger-bg text-danger text-sm"
+        >
+          <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
-        {ledgerSource === "attendees" && paidEvents.length > 0 && (
-          <div className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-info-border bg-info-bg text-info text-sm">
-            <Info className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>
-              Showing payments derived from attendee records. Run the database
-              migrations in{" "}
-              <code className="font-mono text-xs">server/db/migrations</code> to
-              turn on the full M-Pesa ledger.
-            </span>
-          </div>
-        )}
+      {ledgerSource === "attendees" && paidEvents.length > 0 && (
+        <div className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-info-border bg-info-bg text-info text-sm">
+          <Info className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            Showing payments derived from attendee records. Run the database
+            migrations in{" "}
+            <code className="font-mono text-xs">server/db/migrations</code> to
+            turn on the full payment ledger.
+          </span>
+        </div>
+      )}
 
-        {actionError && (
-          <div
-            role="alert"
-            className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-danger-border bg-danger-bg text-danger text-sm"
-          >
-            <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{actionError}</span>
-          </div>
-        )}
+      {actionError && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-danger-border bg-danger-bg text-danger text-sm"
+        >
+          <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
 
-        {notice && (
-          <div
-            role="status"
-            className="mb-4 flex items-start gap-2 p-3 rounded-lg border border-success-border bg-success-bg text-success text-sm"
-          >
-            <CircleCheckBig className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{notice}</span>
-          </div>
-        )}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <StatTile
+          label="Collected"
+          value={formatMoney(totals.collected)}
+          icon={<Wallet className="w-5 h-5" />}
+          tone="success"
+        />
+        <StatTile
+          label="Outstanding"
+          value={formatMoney(totals.outstanding)}
+          icon={<Receipt className="w-5 h-5" />}
+          tone="warning"
+        />
+        <StatTile
+          label="Refunded"
+          value={formatMoney(totals.refunded)}
+          icon={<RotateCcw className="w-5 h-5" />}
+          tone="info"
+        />
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <StatTile
-            label="Collected"
-            value={formatMoney(totals.collected)}
-            icon={<Wallet className="w-5 h-5" />}
-            tone="success"
-          />
-          <StatTile
-            label="Outstanding"
-            value={formatMoney(totals.outstanding)}
-            icon={<Receipt className="w-5 h-5" />}
-            tone="warning"
-          />
-          <StatTile
-            label="Refunded"
-            value={formatMoney(totals.refunded)}
-            icon={<RotateCcw className="w-5 h-5" />}
-            tone="info"
+      {/* Filters */}
+      <div className={`${CARD} p-4 sm:p-5 border-b border-border flex flex-col sm:flex-row gap-3 sm:items-center`}>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-soft" />
+          <input
+            type="search"
+            aria-label="Search transactions"
+            placeholder="Search name, phone, receipt or event"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className={`${FIELD} w-full pl-9 pr-3 placeholder:text-text-soft`}
           />
         </div>
 
-        {/* Filters */}
-        <div className={`${CARD} p-4 sm:p-5 border-b border-border flex flex-col sm:flex-row gap-3 sm:items-center`}>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-soft" />
-            <input
-              type="search"
-              aria-label="Search transactions"
-              placeholder="Search name, phone, receipt or event"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className={`${FIELD} w-full pl-9 pr-3 placeholder:text-text-soft`}
-            />
-          </div>
+        <select
+          aria-label="Filter by event"
+          value={eventId}
+          onChange={(e) => setEventId(e.target.value)}
+          className={`${FIELD} px-3 cursor-pointer`}
+        >
+          <option value="all">All paid events</option>
+          {paidEvents.map((event) => (
+            <option key={event.id} value={event.id}>
+              {event.name}
+            </option>
+          ))}
+        </select>
 
-          <select
-            aria-label="Filter by event"
-            value={eventId}
-            onChange={(e) => setEventId(e.target.value)}
-            className={`${FIELD} px-3 cursor-pointer`}
-          >
-            <option value="all">All paid events</option>
-            {paidEvents.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.name}
-              </option>
-            ))}
-          </select>
+        <select
+          aria-label="Filter by status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+          className={`${FIELD} px-3 cursor-pointer`}
+        >
+          <option value="all">All statuses</option>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+          <option value="refunded">Refunded</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
 
-          <select
-            aria-label="Filter by status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className={`${FIELD} px-3 cursor-pointer`}
-          >
-            <option value="all">All statuses</option>
-            <option value="paid">Paid</option>
-            <option value="pending">Pending</option>
-            <option value="failed">Failed</option>
-            <option value="refunded">Refunded</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-
-        <div className={`${CARD} overflow-hidden mt-4`}>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[46rem] text-left text-sm">
-              <thead className="bg-surface-muted border-b border-border text-text-soft uppercase text-xs tracking-wide">
+      <div className={`${CARD} overflow-hidden mt-4`}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[46rem] text-left text-sm">
+            <thead className="bg-surface-muted border-b border-border text-text-soft uppercase text-xs tracking-wide">
+              <tr>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Attendee
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Event
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Amount
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Method
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Status
+                </th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.length === 0 ? (
                 <tr>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Attendee
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Event
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Amount
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Method
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Status
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">
-                    Actions
-                  </th>
+                  <td colSpan={6} className="px-6 py-12 text-center text-text-muted">
+                    <Wallet className="w-8 h-8 mx-auto mb-3 text-border-strong" />
+                    <p className="font-medium text-text">
+                      No transactions to show
+                    </p>
+                    <p className="text-sm mt-1">
+                      {entries.length === 0
+                        ? "Payments will appear here once your attendees start paying."
+                        : "No transactions match your filters."}
+                    </p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-text-muted">
-                      <Wallet className="w-8 h-8 mx-auto mb-3 text-border-strong" />
-                      <p className="font-medium text-text">
-                        No transactions to show
-                      </p>
-                      <p className="text-sm mt-1">
-                        {entries.length === 0
-                          ? "Payments will appear here once your attendees start paying."
-                          : "No transactions match your filters."}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((entry) => {
-                    const busy = busyId === entry.id;
-                    const requesting = busyId === entry.attendee_id;
-                    const attendee = attendees.find(
-                      (a) => a.id === entry.attendee_id,
-                    );
+              ) : (
+                filtered.map((entry) => {
+                  const busy = busyId === entry.id;
 
-                    return (
-                      <tr
-                        key={entry.id}
-                        className="hover:bg-surface-muted transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-text">
-                            {entry.attendee_name}
+                  return (
+                    <tr
+                      key={entry.id}
+                      className="hover:bg-surface-muted transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-text">
+                          {entry.attendee_name}
+                        </p>
+                        {entry.phone_number && (
+                          <p className="text-xs text-text-soft">
+                            {entry.phone_number}
                           </p>
-                          {entry.phone_number && (
-                            <p className="text-xs text-text-soft">
-                              {entry.phone_number}
-                            </p>
+                        )}
+                        {entry.receipt_number && (
+                          <p className="text-xs text-text-soft">
+                            Receipt {entry.receipt_number}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-text-muted">
+                        {eventNameById.get(entry.event_id) ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-text tabular-nums">
+                        {formatMoney(entry.amount, entry.currency)}
+                      </td>
+                      <td className="px-4 py-3 text-text-muted capitalize">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Smartphone className="w-3.5 h-3.5 text-text-soft" />
+                          {entry.method}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_STYLES[entry.status]}`}
+                        >
+                          {STATUS_LABELS[entry.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {entry.status !== "paid" && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                markStatus(
+                                  entry.id,
+                                  entry.attendee_id,
+                                  "paid",
+                                )
+                              }
+                              disabled={busy}
+                              className="text-xs font-medium text-success hover:text-success/80 disabled:opacity-50"
+                            >
+                              Mark paid
+                            </button>
                           )}
-                          {entry.receipt_number && (
-                            <p className="text-xs text-text-soft">
-                              Receipt {entry.receipt_number}
-                            </p>
+
+                          {entry.status === "paid" && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                markStatus(
+                                  entry.id,
+                                  entry.attendee_id,
+                                  "refunded",
+                                )
+                              }
+                              disabled={busy}
+                              className="text-xs font-medium text-info hover:text-info/80 disabled:opacity-50"
+                            >
+                              Refund
+                            </button>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-text-muted">
-                          {eventNameById.get(entry.event_id) ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-text tabular-nums">
-                          {formatMoney(entry.amount, entry.currency)}
-                        </td>
-                        <td className="px-4 py-3 text-text-muted capitalize">
-                          <span className="inline-flex items-center gap-1.5">
-                            <Smartphone className="w-3.5 h-3.5 text-text-soft" />
-                            {entry.method}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_STYLES[entry.status]}`}
-                          >
-                            {STATUS_LABELS[entry.status]}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-2">
-                            {entry.status !== "paid" && attendee && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  requestPayment(entry.event_id, attendee.id)
-                                }
-                                disabled={busy || requesting}
-                                className="text-xs font-medium text-brand hover:text-brand-hover disabled:opacity-50 inline-flex items-center gap-1"
-                              >
-                                {requesting ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Smartphone className="w-3.5 h-3.5" />
-                                )}
-                                Request
-                              </button>
-                            )}
-
-                            {entry.status !== "paid" && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  markStatus(
-                                    entry.id,
-                                    entry.attendee_id,
-                                    "paid",
-                                  )
-                                }
-                                disabled={busy}
-                                className="text-xs font-medium text-success hover:text-success/80 disabled:opacity-50"
-                              >
-                                Mark paid
-                              </button>
-                            )}
-
-                            {entry.status === "paid" && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  markStatus(
-                                    entry.id,
-                                    entry.attendee_id,
-                                    "refunded",
-                                  )
-                                }
-                                disabled={busy}
-                                className="text-xs font-medium text-info hover:text-info/80 disabled:opacity-50"
-                              >
-                                Refund
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="px-4 sm:px-6 py-3 border-t border-border bg-surface-muted text-xs text-text-soft">
-            Showing {filtered.length} of {entries.length} transactions
-            {totals.count > 0 && ` · ${formatMoney(totals.collected)} collected`}
-          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+
+        <div className="px-4 sm:px-6 py-3 border-t border-border bg-surface-muted text-xs text-text-soft">
+          Showing {filtered.length} of {entries.length} transactions
+          {totals.count > 0 && ` · ${formatMoney(totals.collected)} collected`}
+        </div>
+      </div>
     </AppShell>
   );
 }
