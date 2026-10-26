@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAuth, supabaseAdmin } = require('../middleware/auth');
 const { paymentLimiter } = require('../middleware/rateLimits');
+const { settlePaystackTransaction } = require('../lib/paystack');
 
 const router = express.Router();
 
@@ -124,59 +125,39 @@ router.post('/paystack/init', paymentLimiter, async (req, res) => {
 router.post('/paystack/verify/:reference', paymentLimiter, async (req, res) => {
     const { reference } = req.params;
 
-    const { data: transaction } = await supabaseAdmin
-        .from('transactions')
-        .select('*')
-        .eq('provider_reference', reference)
-        .maybeSingle();
-
-    if (!transaction) {
-        return res.status(404).json({ error: 'Transaction reference not found in ledger.' });
+    try {
+        const result = await settlePaystackTransaction({ supabase: supabaseAdmin, reference });
+        if (!result.success) {
+            return res.status(400).json({ error: 'Payment was not successful according to Paystack.' });
+        }
+        return res.json({ success: true });
+    } catch (error) {
+        const status = error.message === 'Payment reference not found.' ? 404 : 502;
+        return res.status(status).json({ error: 'Could not verify payment with Paystack server.' });
     }
+});
 
-    if (transaction.status === 'paid') {
-        return res.json({ success: true, message: 'Already verified' });
+/**
+ * GET /api/payments/paystack/callback?reference=...
+ * Paystack returns here after its hosted checkout. Always verify server-side
+ * before granting access to a paid event.
+ */
+router.get('/paystack/callback', async (req, res) => {
+    const reference = String(req.query.reference || '');
+    if (!reference) {
+        return res.status(400).type('text/plain').send('Missing payment reference.');
     }
 
     try {
-        const paystackRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-            headers: {
-                Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`
-            }
-        });
-
-        const paystackData = await paystackRes.json();
-
-        if (paystackData.data && paystackData.data.status === 'success') {
-            // Settle transaction in the database
-            await supabaseAdmin
-                .from('transactions')
-                .update({
-                    status: 'paid',
-                    receipt_number: paystackData.data.receipt_number || paystackData.data.reference,
-                    paid_at: paystackData.data.paid_at || new Date().toISOString()
-                })
-                .eq('id', transaction.id);
-
-            // Release the ticket
-            if (transaction.attendee_id) {
-                await supabaseAdmin
-                    .from('attendees')
-                    .update({ payment_status: 'paid' })
-                    .eq('id', transaction.attendee_id);
-            }
-
-            return res.json({ success: true });
-        } else {
-            await supabaseAdmin
-                .from('transactions')
-                .update({ status: 'failed' })
-                .eq('id', transaction.id);
-                
-            return res.status(400).json({ error: 'Payment was not successful according to Paystack.' });
+        const result = await settlePaystackTransaction({ supabase: supabaseAdmin, reference });
+        if (!result.success) {
+            return res.status(402).type('text/plain').send('Payment is not confirmed. No paid access was granted.');
         }
-    } catch (err) {
-        res.status(502).json({ error: 'Could not verify payment with Paystack server.' });
+        return res.type('text/plain').send('Payment verified. Your event registration is confirmed; you may return to the help desk.');
+    } catch (error) {
+        console.error('Paystack callback verification failed:', error.message);
+        const status = error.message === 'Payment reference not found.' ? 404 : 502;
+        return res.status(status).type('text/plain').send('Could not verify payment. Please contact the event help desk.');
     }
 });
 

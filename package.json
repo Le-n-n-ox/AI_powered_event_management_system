@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "graph:build": "graphify extract . --code-only",
+    "graph:update": "graphify update .",
+    "graph:query": "graphify query",
+    "graph:open": "graphify export html"
+  },
   "devDependencies": {
     "@types/node": "^26.6.3"
   },

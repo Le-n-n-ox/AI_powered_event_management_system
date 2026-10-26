@@ -12,6 +12,8 @@ const webhookAuth = require('./middleware/webhookAuth');
 const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payments');
 const { webhookLimiter, extractLimiter, adminLimiter } = require('./middleware/rateLimits');
+const { createUssdHandler } = require('./lib/ussd');
+const { initializeUssdPaystackCheckout } = require('./lib/paystack');
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -86,6 +88,57 @@ const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-KE', { timeZone: E
 const MAX_DOC_CHARS = 15000; // keeps the prompt within what small/local models can handle
 // Temporary in-memory session tracker: maps phone number to active event ID.
 const activeEventSessions = new Map();
+
+const handleUssd = createUssdHandler({
+    listEvents: async () => {
+        const { data, error } = await supabase
+            .from('events')
+            .select('*')
+            .in('status', ['upcoming', 'ongoing'])
+            .order('start_date', { ascending: true });
+        if (error) throw error;
+        return Promise.all((data || []).map(async (event) => {
+            if (event.capacity == null) return event;
+            const { data: attendeeCount, error: countError } = await supabase.rpc('attendee_count', { eid: event.id });
+            if (countError) throw countError;
+            return { ...event, is_full: Number(attendeeCount || 0) >= Number(event.capacity) };
+        }));
+    },
+    findRegistration: async (eventId, phoneNumber) => {
+        const { data, error } = await supabase
+            .from('attendees')
+            .select('id, event_id, full_name, phone_number, payment_status, status')
+            .eq('event_id', eventId)
+            .eq('phone_number', phoneNumber)
+            .limit(1)
+            .maybeSingle();
+        if (error) throw error;
+        return data;
+    },
+    createRegistration: async (row) => {
+        const { data, error } = await supabase
+            .from('attendees')
+            .insert(row)
+            .select('id, event_id, full_name, phone_number, payment_status, status')
+            .single();
+        if (error) throw error;
+        return data;
+    },
+    startPayment: (attendee, event, phoneNumber, callbackUrl) =>
+        initializeUssdPaystackCheckout({
+            supabase,
+            attendee,
+            event,
+            phone: phoneNumber,
+            callbackUrl,
+        }),
+    sendSms: (phoneNumber, message) => sms.send({ to: [phoneNumber], message }),
+});
+
+function paystackCallbackUrl(req) {
+    const baseUrl = process.env.PUBLIC_API_URL || `${req.protocol}://${req.get('host')}`;
+    return new URL('/api/payments/paystack/callback', baseUrl).toString();
+}
 
 // Chunk organizer documents and rank paragraphs by keyword matches to the SMS.
 function getRelevantChunks(text, query, maxChunks = 3) {
@@ -211,47 +264,18 @@ app.get('/webhook/incoming', (req, res) => {
     res.status(200).send('Webhook is active!');
 });
 
-// USSD Interactive Menu Endpoint
-app.post('/ussd', webhookAuth, webhookLimiter, (req, res) => {
-    const { sessionId, serviceCode, phoneNumber, text } = req.body;
-    let responseMessage = "";
-    const arr = text.split('*');
-    const level = arr.length;
-    const userChoice = arr[0];
-
-    if (text === "") {
-        responseMessage = `CON Welcome to Women in Tech Help Desk
-1. Register for Event
-2. Check Schedule
-3. Find a Location
-4. Emergency Help`;
-    } else if (level === 1) {
-        if (userChoice === "1") {
-            responseMessage = `END Successfully registered for the Women in Tech Hackathon!`;
-        } else if (userChoice === "2") {
-            responseMessage = `END Schedule: Registration (Main Lobby) | Lunch: 1:00 PM (Courtyard)`;
-        } else if (userChoice === "3") {
-            responseMessage = `CON Select location:
-1. Registration / Lobby
-2. Hall B
-3. Courtyard`;
-        } else if (userChoice === "4") {
-            responseMessage = `END EMERGENCY: Security has been alerted and a voice call escalation has been triggered.`;
-        } else {
-            responseMessage = `END Invalid choice.`;
-        }
-    } else if (level === 2 && userChoice === "3") {
-        const subChoice = arr[1];
-        if (subChoice === "1") responseMessage = `END Registration is at the Main Lobby.`;
-        else if (subChoice === "2") responseMessage = `END Hall B is on the 2nd floor.`;
-        else if (subChoice === "3") responseMessage = `END Lunch is in the Courtyard.`;
-        else responseMessage = `END Invalid location.`;
-    } else {
-        responseMessage = `END Invalid session input.`;
+// USSD event registration endpoint
+app.post('/ussd', webhookAuth, webhookLimiter, async (req, res) => {
+    try {
+        const responseMessage = await handleUssd({
+            ...req.body,
+            callbackUrl: paystackCallbackUrl(req),
+        });
+        res.type('text/plain').send(responseMessage);
+    } catch (error) {
+        console.error('USSD request failed:', error.message);
+        res.type('text/plain').send('END Service temporarily unavailable. Please try again later.');
     }
-
-    res.set('Content-Type', 'text/plain');
-    res.send(responseMessage);
 });
 
 // SMS & Emergency Escalation Webhook with Debug Logging

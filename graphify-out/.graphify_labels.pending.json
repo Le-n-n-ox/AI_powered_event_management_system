@@ -1,0 +1,22 @@
+{
+  "8": "LoginForm.tsx",
+  "9": "ManageSchedule.tsx",
+  "11": "supabase.ts",
+  "14": "useAuth",
+  "16": "client/package.json",
+  "17": "@supabase/server",
+  "21": "Transactions.tsx",
+  "22": "SignupForm.tsx",
+  "23": "AI-Powered Event Management System",
+  "24": "paystack.js",
+  "26": "server/package.json",
+  "31": "ai.js",
+  "32": "React + TypeScript + Vite",
+  "33": "AGENTS.md",
+  "35": "Profile.tsx",
+  "36": "UserManagement.tsx",
+  "40": "createUssdHandler",
+  "42": "devDependencies",
+  "44": "Landing.tsx",
+  "45": "AuthProvider"
+}
