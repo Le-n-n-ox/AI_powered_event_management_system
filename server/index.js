@@ -1,15 +1,24 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const { Server } = require('socket.io');
+const http = require('http');
+
+const { processMessageWithAI, extractEventFromText, draftBroadcastMessage } = require('./ai');
+const webhookAuth = require('./middleware/webhookAuth');
+const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/payments');
+const { webhookLimiter, extractLimiter, adminLimiter } = require('./middleware/rateLimits');
+const { createUssdHandler } = require('./lib/ussd');
+const { initializeUssdPaystackCheckout } = require('./lib/paystack');
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-const express = require('express');
-const cors = require('cors'); // Required for React frontend communication
-const { processMessageWithAI, extractEventFromText } = require('./ai');
-const multer = require('multer');
-const pdfParse = require('pdf-parse');
 
 // Handles the Magic Auto-Fill upload. Files are kept in memory only
 // (never written to disk) and capped so a huge upload can't hang the server.
@@ -17,7 +26,6 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024, files: 5 } // 5MB per file, 5 files max
 });
-
 
 const credentials = {
     apiKey: process.env.AT_API_KEY,
@@ -27,12 +35,44 @@ const AfricasTalking = require('africastalking')(credentials);
 const sms = AfricasTalking.SMS;
 const voice = AfricasTalking.VOICE;
 
+// ... (existing imports)
 const app = express();
-app.use(cors()); 
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    },
+    transports: ['websocket', 'polling']
+});
+
+// Handle Socket connections for targeted alerts
+io.on('connection', (socket) => {
+    console.log('🔌 New Socket Connection:', socket.id);
+
+    socket.on('join_event_room', (eventId) => {
+        socket.join(`event_${eventId}`);
+        console.log(`🏠 Socket ${socket.id} joined room: event_${eventId}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔌 Socket disconnected:', socket.id);
+    });
+});
+
+// ... (rest of the middleware/app setup)
+
+
+// If you deploy behind a proxy (Render, Vercel, etc.), this makes
+// express-rate-limit key off the real client IP instead of the proxy's.
+app.set('trust proxy', 1);
+
+app.use(cors());
 app.use(express.json({ limit: '2mb' })); // raised from Express's 100kb default so uploaded knowledge-base text fits
 app.use(express.urlencoded({ extended: true }));
 
-
+app.use('/api/admin', adminLimiter, adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 let tasks = [
     { id: 1, description: "Check main lobby sound system", completed: false },
@@ -46,17 +86,90 @@ const EVENT_TZ = process.env.EVENT_TIMEZONE || 'Africa/Nairobi';
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-KE', { timeZone: EVENT_TZ, dateStyle: 'medium', timeStyle: 'short' }) : 'TBD';
 const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-KE', { timeZone: EVENT_TZ, timeStyle: 'short' }) : 'TBD';
 const MAX_DOC_CHARS = 15000; // keeps the prompt within what small/local models can handle
+// Temporary in-memory session tracker: maps phone number to active event ID.
+const activeEventSessions = new Map();
+
+const handleUssd = createUssdHandler({
+    listEvents: async () => {
+        const { data, error } = await supabase
+            .from('events')
+            .select('*')
+            .in('status', ['upcoming', 'ongoing'])
+            .order('start_date', { ascending: true });
+        if (error) throw error;
+        return Promise.all((data || []).map(async (event) => {
+            if (event.capacity == null) return event;
+            const { data: attendeeCount, error: countError } = await supabase.rpc('attendee_count', { eid: event.id });
+            if (countError) throw countError;
+            return { ...event, is_full: Number(attendeeCount || 0) >= Number(event.capacity) };
+        }));
+    },
+    findRegistration: async (eventId, phoneNumber) => {
+        const { data, error } = await supabase
+            .from('attendees')
+            .select('id, event_id, full_name, phone_number, payment_status, status')
+            .eq('event_id', eventId)
+            .eq('phone_number', phoneNumber)
+            .limit(1)
+            .maybeSingle();
+        if (error) throw error;
+        return data;
+    },
+    createRegistration: async (row) => {
+        const { data, error } = await supabase
+            .from('attendees')
+            .insert(row)
+            .select('id, event_id, full_name, phone_number, payment_status, status')
+            .single();
+        if (error) throw error;
+        return data;
+    },
+    startPayment: (attendee, event, phoneNumber, callbackUrl) =>
+        initializeUssdPaystackCheckout({
+            supabase,
+            attendee,
+            event,
+            phone: phoneNumber,
+            callbackUrl,
+        }),
+    sendSms: (phoneNumber, message) => sms.send({ to: [phoneNumber], message }),
+});
+
+function paystackCallbackUrl(req) {
+    const baseUrl = process.env.PUBLIC_API_URL || `${req.protocol}://${req.get('host')}`;
+    return new URL('/api/payments/paystack/callback', baseUrl).toString();
+}
+
+// Chunk organizer documents and rank paragraphs by keyword matches to the SMS.
+function getRelevantChunks(text, query, maxChunks = 3) {
+    if (!text) return 'None uploaded.';
+
+    const stopWords = new Set(['what', 'where', 'when', 'how', 'who', 'is', 'are', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'my', 'i', 'can']);
+    const keywords = query.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(word => word.length > 2 && !stopWords.has(word));
+    const chunks = text.split(/\n\n+/).map(chunk => chunk.trim()).filter(Boolean);
+
+    if (keywords.length === 0) return chunks.slice(0, maxChunks).join('\n\n');
+
+    const scored = chunks.map(chunk => {
+        const lowerChunk = chunk.toLowerCase();
+        const score = keywords.reduce((total, word) => total + (lowerChunk.includes(word) ? 1 : 0), 0);
+        return { chunk, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, maxChunks).map(item => item.chunk).join('\n\n...\n\n');
+}
 
 app.get('/', (req, res) => {
-    res.status(200).json({ 
-        status: 'online', 
-        message: 'Operations Engine API is running smoothly!' 
+    res.status(200).json({
+        status: 'online',
+        message: 'Operations Engine API is running smoothly!'
     });
 });
 
 // Magic Auto-Fill: takes raw text from an uploaded file (frontend reads the
 // file itself) and asks the AI to pull out structured event form fields.
-app.post('/api/extract-event', upload.array('files', 5), async (req, res) => {
+app.post('/api/extract-event', extractLimiter, upload.array('files', 5), async (req, res) => {
     const files = req.files || [];
     if (!files.length) {
         return res.status(400).json({ error: 'No files uploaded.' });
@@ -107,55 +220,66 @@ app.post('/api/extract-event', upload.array('files', 5), async (req, res) => {
     }
 });
 
+// Proactive AI Broadcast Endpoint
+app.post('/api/broadcast-update', async (req, res) => {
+    const { eventId, eventName, updateType, changeDetails } = req.body;
+
+    if (!eventId || !eventName) {
+        return res.status(400).json({ error: 'Missing event details' });
+    }
+
+    try {
+        const { data: attendees, error } = await supabase
+            .from('attendees')
+            .select('phone_number')
+            .eq('event_id', eventId);
+
+        if (error) throw error;
+        if (!attendees || attendees.length === 0) {
+            return res.json({ message: 'No attendees to notify.' });
+        }
+
+        const message = await draftBroadcastMessage(eventName, updateType, changeDetails);
+        console.log(`📢 Broadcasting AI update for ${eventName}: "${message}"`);
+
+        const phoneNumbers = [...new Set(attendees.map(attendee => attendee.phone_number).filter(Boolean))];
+        if (phoneNumbers.length === 0) {
+            return res.json({ message: 'No attendees to notify.' });
+        }
+
+        if (process.env.AT_USERNAME === 'sandbox') {
+            console.log(`📱 [SANDBOX] Simulated broadcast to ${phoneNumbers.length} attendees.`);
+        } else {
+            await sms.send({ to: phoneNumbers, message });
+        }
+
+        res.json({ success: true, message: 'Broadcast sent successfully', draftedText: message });
+    } catch (err) {
+        console.error('❌ Broadcast Error:', err);
+        res.status(500).json({ error: 'Failed to send broadcast' });
+    }
+});
+
 app.get('/webhook/incoming', (req, res) => {
     res.status(200).send('Webhook is active!');
 });
 
-// USSD Interactive Menu Endpoint
-app.post('/ussd', (req, res) => {
-    const { sessionId, serviceCode, phoneNumber, text } = req.body;
-    let responseMessage = "";
-    const arr = text.split('*');
-    const level = arr.length;
-    const userChoice = arr[0];
-
-    if (text === "") {
-        responseMessage = `CON Welcome to Women in Tech Help Desk
-1. Register for Event
-2. Check Schedule
-3. Find a Location
-4. Emergency Help`;
-    } else if (level === 1) {
-        if (userChoice === "1") {
-            responseMessage = `END Successfully registered for the Women in Tech Hackathon!`;
-        } else if (userChoice === "2") {
-            responseMessage = `END Schedule: Registration (Main Lobby) | Lunch: 1:00 PM (Courtyard)`;
-        } else if (userChoice === "3") {
-            responseMessage = `CON Select location:
-1. Registration / Lobby
-2. Hall B
-3. Courtyard`;
-        } else if (userChoice === "4") {
-            responseMessage = `END EMERGENCY: Security has been alerted and a voice call escalation has been triggered.`;
-        } else {
-            responseMessage = `END Invalid choice.`;
-        }
-    } else if (level === 2 && userChoice === "3") {
-        const subChoice = arr[1];
-        if (subChoice === "1") responseMessage = `END Registration is at the Main Lobby.`;
-        else if (subChoice === "2") responseMessage = `END Hall B is on the 2nd floor.`;
-        else if (subChoice === "3") responseMessage = `END Lunch is in the Courtyard.`;
-        else responseMessage = `END Invalid location.`;
-    } else {
-        responseMessage = `END Invalid session input.`;
+// USSD event registration endpoint
+app.post('/ussd', webhookAuth, webhookLimiter, async (req, res) => {
+    try {
+        const responseMessage = await handleUssd({
+            ...req.body,
+            callbackUrl: paystackCallbackUrl(req),
+        });
+        res.type('text/plain').send(responseMessage);
+    } catch (error) {
+        console.error('USSD request failed:', error.message);
+        res.type('text/plain').send('END Service temporarily unavailable. Please try again later.');
     }
-
-    res.set('Content-Type', 'text/plain');
-    res.send(responseMessage);
 });
 
 // SMS & Emergency Escalation Webhook with Debug Logging
-app.post('/webhook/incoming', async (req, res) => {
+app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
     res.sendStatus(200);
 
     console.log("📥 Raw SMS Webhook Payload Received:", req.body);
@@ -200,81 +324,181 @@ app.post('/webhook/incoming', async (req, res) => {
         return;
     }
 
-    // 3. AI Processing & Emergency Call Escalation
-    const { data: attendee } = await supabase
+    // 3. Remove this sender's messages older than 30 minutes.
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { error: cleanupError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('attendee_phone', from)
+        .lt('created_at', thirtyMinsAgo);
+    if (cleanupError) {
+        console.error('❌ Chat history cleanup failed:', cleanupError.message);
+    }
+
+    // Fetch the latest six messages, then restore chronological order for the model.
+    const { data: historyData, error: historyError } = await supabase
+        .from('chat_messages')
+        .select('role, content:message')
+        .eq('attendee_phone', from)
+        .order('created_at', { ascending: false })
+        .limit(6);
+    if (historyError) {
+        console.error('❌ Chat history lookup failed:', historyError.message);
+    }
+    const chatHistory = (historyData || []).reverse();
+
+    // 4. Fetch attendee records for this phone number.
+    const { data: attendeeRecords, error: attendeeError } = await supabase
         .from('attendees')
         .select('*')
-        .eq('phone_number', from)
-        .order('registered_at', { ascending: false })
-        .limit(1)
-        .single();
+        .eq('phone_number', from);
+    if (attendeeError) {
+        console.error('❌ Attendee lookup failed:', attendeeError.message);
+    }
 
-    // Use the name given at registration (column name may differ, so check the common ones)
-    const fullName = attendee?.name || attendee?.attendee_name || attendee?.full_name || null;
+    if (!attendeeRecords || attendeeRecords.length === 0) {
+        await sms.send({ to: [from], message: 'You are not registered for any active events in our system.' });
+        return;
+    }
+
+    const latestRecord = attendeeRecords && attendeeRecords.length > 0
+        ? attendeeRecords.sort((a, b) => new Date(b.registered_at) - new Date(a.registered_at))[0]
+        : null;
+    const fullName = latestRecord?.name || latestRecord?.attendee_name || latestRecord?.full_name || null;
     const attendeeName = fullName ? fullName.trim().split(' ')[0] : null;
 
-    let knowledgeBase = "No event information available.";
+    const eventIds = [...new Set(attendeeRecords.map(record => record.event_id).filter(Boolean))];
+    if (eventIds.length === 0) {
+        await sms.send({ to: [from], message: 'No active events are available for your registration.' });
+        return;
+    }
 
-    if (attendee?.event_id) {
-        const { data: eventData } = await supabase
-            .from('events')
-            .select('*')
-            .eq('id', attendee.event_id)
-            .single();
+    const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .in('id', eventIds);
+    if (eventsError) {
+        console.error('❌ Event lookup failed:', eventsError.message);
+    }
 
-        const { data: scheduleData } = await supabase
-            .from('schedule_items')
-            .select('title, speaker, location, start_time, end_time')
-            .eq('event_id', attendee.event_id)
-            .order('start_time', { ascending: true });
+    if (!eventsData || eventsData.length === 0) {
+        await sms.send({ to: [from], message: 'No active events are available for your registration.' });
+        return;
+    }
 
-        const { data: venueData } = await supabase
-            .from('venue_locations')
-            .select('label, description')
-            .eq('event_id', attendee.event_id);
+    const registeredEventIds = new Set(eventIds.map(id => String(id)));
+    let activeEventId = activeEventSessions.get(from);
+    if (activeEventId && !registeredEventIds.has(String(activeEventId))) {
+        activeEventSessions.delete(from);
+        activeEventId = undefined;
+    }
 
-        const scheduleText = (scheduleData || [])
-            .map(s => `- ${s.title}${s.speaker ? ` by ${s.speaker}` : ''} at ${fmtTime(s.start_time)}${s.location ? ` in ${s.location}` : ''}`)
-            .join('\n');
+    const lowerText = cleanText.toLowerCase();
+    const mentionedEvent = eventsData.find(event =>
+        event.name && lowerText.includes(event.name.toLowerCase())
+    );
 
-        const venueText = (venueData || [])
-            .map(v => `- ${v.label}: ${v.description || 'No additional details'}`)
-            .join('\n');
+    if (mentionedEvent) {
+        activeEventId = mentionedEvent.id;
+        activeEventSessions.set(from, activeEventId);
+        console.log(`🔄 Switched active event session for ${from} to: ${mentionedEvent.name}`);
+    }
 
-        const docText = (eventData?.knowledge_text || '').slice(0, MAX_DOC_CHARS);
-        const priceText = eventData?.is_paid ? `Paid event, ticket price ${eventData?.ticket_price ?? 'TBD'}` : 'Free event';
+    if (!activeEventId && eventsData.length > 1) {
+        const eventNames = eventsData.map(event => event.name).filter(Boolean).join(', ');
+        const promptMsg = `You're registered for multiple events (${eventNames}). Which event are you asking about today?`;
 
-        knowledgeBase = `
-Event: ${eventData?.name || 'Unknown'}
-About: ${eventData?.description || 'No description provided.'}
-Venue: ${eventData?.venue_name || 'TBD'}${eventData?.venue_address ? `, ${eventData.venue_address}` : ''}
-Starts: ${fmtDateTime(eventData?.start_date)}
-Ends: ${fmtDateTime(eventData?.end_date)}
-Registration deadline: ${eventData?.registration_deadline ? fmtDateTime(eventData.registration_deadline) : 'None stated'}
-Capacity: ${eventData?.capacity ?? 'Not stated'}
+        await sms.send({ to: [from], message: promptMsg });
+        const { error: selectionHistoryError } = await supabase.from('chat_messages').insert([
+            { attendee_phone: from, role: 'user', sender: 'attendee', message: cleanText },
+            { attendee_phone: from, role: 'assistant', sender: 'ai', message: promptMsg }
+        ]);
+
+        if (selectionHistoryError) {
+            console.error('❌ Saving event selection prompt failed:', selectionHistoryError.message);
+        }
+        return;
+    }
+
+    if (!activeEventId && eventsData.length === 1) {
+        activeEventId = eventsData[0].id;
+        activeEventSessions.set(from, activeEventId);
+    }
+
+    if (!activeEventId) {
+        activeEventId = eventsData[0].id;
+        activeEventSessions.set(from, activeEventId);
+    }
+
+    const targetEvent = eventsData.find(event => String(event.id) === String(activeEventId)) || eventsData[0];
+    const { data: scheduleData, error: scheduleError } = await supabase
+        .from('schedule_items')
+        .select('title, speaker, location, start_time, end_time')
+        .eq('event_id', targetEvent.id)
+        .order('start_time', { ascending: true });
+    const { data: venueData, error: venueError } = await supabase
+        .from('venue_locations')
+        .select('label, description')
+        .eq('event_id', targetEvent.id);
+
+    if (scheduleError) console.error('❌ Schedule lookup failed:', scheduleError.message);
+    if (venueError) console.error('❌ Venue lookup failed:', venueError.message);
+
+    const eventSchedule = (scheduleData || [])
+        .map(item => `- ${item.title}${item.speaker ? ` by ${item.speaker}` : ''} at ${fmtTime(item.start_time)}${item.location ? ` in ${item.location}` : ''}`)
+        .join('\n');
+    const eventVenues = (venueData || [])
+        .map(venue => `- ${venue.label}: ${venue.description || 'No additional details'}`)
+        .join('\n');
+    const priceText = targetEvent.is_paid ? `Paid event, ticket price ${targetEvent.ticket_price ?? 'TBD'}` : 'Free event';
+    const relevantDocs = getRelevantChunks(
+        (targetEvent.knowledge_text || '').slice(0, MAX_DOC_CHARS),
+        cleanText,
+    );
+
+    const knowledgeBase = `
+Event: ${targetEvent.name || 'Unknown'}
+About: ${targetEvent.description || 'No description provided.'}
+Venue: ${targetEvent.venue_name || 'TBD'}${targetEvent.venue_address ? `, ${targetEvent.venue_address}` : ''}
+Starts: ${fmtDateTime(targetEvent.start_date)}
+Ends: ${fmtDateTime(targetEvent.end_date)}
 Tickets: ${priceText}
 
 Schedule:
-${scheduleText || 'No schedule items yet.'}
+${eventSchedule || 'No schedule items yet.'}
 
 Venue Locations:
-${venueText || 'No venue locations added yet.'}
+${eventVenues || 'No venue locations added yet.'}
 
-Organizer's uploaded documents (agenda, FAQ, rules, etc.):
-${docText || 'None uploaded.'}
+Organizer Documents (Relevant Excerpts):
+${relevantDocs}
 `.trim();
-    }
 
     console.log("🧠 Knowledge base sent to AI:\n", knowledgeBase);
-    const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName);
+    const liveContext = {
+        supabase,
+        tasks,
+        eventId: targetEvent.id,
+        attendeePhone: from
+    };
+    const aiResult = await processMessageWithAI(cleanText, knowledgeBase, attendeeName, chatHistory, liveContext);
+
+    if (aiResult.insight) {
+        console.log("🌟 GHOST ORGANIZER INSIGHT:", aiResult.insight);
+        // Emit only to the room for this specific event
+        io.to(`event_${targetEvent.id}`).emit('operational_insight', {
+            ...aiResult.insight,
+            eventId: targetEvent.id,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+
     let replyMessage = aiResult.reply;
 
     if (aiResult.isEmergency) {
-        console.log(`🚨 EMERGENCY DETECTED! Triggering voice call escalation...`);
-        
-        // Check if running in Sandbox mode to prevent voice DNS resolution errors
+        console.log('🚨 EMERGENCY DETECTED! Triggering voice call escalation...');
         if (process.env.AT_USERNAME === 'sandbox') {
-            console.log(`📞 [SANDBOX SIMULATION] Voice calls are restricted in the AT Sandbox environment.`);
             console.log(`📞 [SANDBOX SIMULATION] Outbound emergency call to ${process.env.EMERGENCY_CONTACT_PHONE || 'configured contact'} successfully simulated.`);
         } else {
             try {
@@ -282,28 +506,30 @@ ${docText || 'None uploaded.'}
                     callFrom: process.env.AT_VIRTUAL_NUMBER,
                     callTo: process.env.EMERGENCY_CONTACT_PHONE
                 });
-                console.log(`📞 OUTBOUND VOICE CALL DISPATCHED successfully.`);
             } catch (callError) {
-                console.error(`❌ Voice Call Failed:`, callError.message);
+                console.error('❌ Voice Call Failed:', callError.message);
             }
         }
-
         replyMessage = `🚨 EMERGENCY LOGGED${attendeeName ? `, ${attendeeName}` : ''}: Floor security has been dispatched via phone call and SMS alert.`;
+    } else {
+        const { error: saveHistoryError } = await supabase.from('chat_messages').insert([
+            { attendee_phone: from, role: 'user', sender: 'attendee', message: cleanText },
+            { attendee_phone: from, role: 'assistant', sender: 'ai', message: replyMessage }
+        ]);
+        if (saveHistoryError) {
+            console.error('❌ Saving chat history failed:', saveHistoryError.message);
+        }
     }
 
     try {
-        console.log(`📤 Sending AI reply to ${from}: "${replyMessage}"`);
-        const sendResult = await sms.send({
-            to: [from],
-            message: replyMessage
-        });
-        console.log("✅ SMS API Success Response:", sendResult);
+        await sms.send({ to: [from], message: replyMessage });
+        console.log(`📤 Sent AI reply to ${from}`);
     } catch (error) {
-        console.error(`❌ Failed to send SMS reply via API:`, error);
+        console.error('❌ Failed to send SMS reply via API:', error);
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Operations Engine Server running on port ${PORT}`);
 });

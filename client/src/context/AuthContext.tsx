@@ -1,31 +1,8 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import type { User } from "@supabase/supabase-js"
 import { supabase } from "../lib/supabase"
-
-export type Role = "admin" | "organizer" | "attendee" | "floor_manager"
-
-interface SignUpInput {
-  email: string
-  password: string
-  fullName: string
-  role: "admin" | "organizer" | "attendee"
-  phone?: string
-  inviteCode?: string
-}
-
-interface AuthContextType {
-  user: User | null
-  role: Role | null
-  loading: boolean
-  isAdmin: boolean
-  isStaff: boolean // admin or organizer
-  signUp: (input: SignUpInput) => Promise<{ error: string | null; needsConfirmation?: boolean }>
-  signIn: (email: string, password: string, allowedRoles?: Role[]) => Promise<{ error: string | null }>
-  signOut: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+import { AuthContext, type Role, type SignUpInput } from "./auth-context"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -34,6 +11,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     uid: null,
     role: null,
   })
+
+  const userId = user?.id ?? null
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -49,22 +28,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!user) return
+    if (!userId) return
     let cancelled = false
     supabase
       .from("profiles")
       .select("role")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled) setRoleState({ uid: user.id, role: (data?.role as Role) ?? null })
+        if (!cancelled) setRoleState({ uid: userId, role: (data?.role as Role) ?? null })
       })
     return () => {
       cancelled = true
     }
-  }, [user?.id])
+  }, [userId])
 
-  const roleLoading = !!user && roleState.uid !== user.id
+  const roleLoading = !!userId && roleState.uid !== userId
   const loading = authLoading || roleLoading
   const role = user && roleState.uid === user.id ? roleState.role : null
 
@@ -96,20 +75,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
 
-    if (allowedRoles && data.user) {
+    if (data.user) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, suspended")
         .eq("id", data.user.id)
         .maybeSingle()
+
       const userRole = profile?.role as Role | undefined
 
-      if (!userRole || !allowedRoles.includes(userRole)) {
+      if (profile?.suspended) {
         await supabase.auth.signOut()
-        return {
-          error: userRole
-            ? `This is a ${userRole} account. Please use the ${userRole} login.`
-            : "No profile found for this account.",
+        return { error: "This account has been suspended. Contact an administrator." }
+      }
+
+      if (allowedRoles) {
+        if (!userRole || !allowedRoles.includes(userRole)) {
+          await supabase.auth.signOut()
+          return {
+            error: userRole
+              ? `This is a ${userRole} account. Please use the ${userRole} login.`
+              : "No profile found for this account.",
+          }
         }
       }
     }
@@ -118,6 +105,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut()
+  }
+
+  async function requestPasswordReset(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    return { error: error?.message ?? null }
+  }
+
+  async function updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    return { error: error?.message ?? null }
   }
 
   return (
@@ -131,15 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signIn,
         signOut,
+        requestPasswordReset,
+        updatePassword,
       }}
     >
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) throw new Error("useAuth must be used within AuthProvider")
-  return context
 }

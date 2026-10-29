@@ -1,15 +1,18 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { motion } from "framer-motion";
 import { User, Phone, Mail, Lock, Loader2, Save } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 import { supabase } from "../lib/supabase";
 import { formatPhoneNumber } from "../utils/phone";
 import { Field, ErrorBanner, InfoBanner } from "../components/auth/AuthUI";
+import PageHeader from "../components/layout/PageHeader";
 
 const BTN =
-  "flex items-center justify-center gap-2 h-11 px-4 rounded-lg text-sm font-semibold text-text-on-dark bg-brand hover:bg-brand-hover disabled:opacity-60 disabled:cursor-not-allowed transition-colors";
+  "flex items-center justify-center gap-2 h-11 px-4 rounded-lg text-sm font-semibold text-text-on-dark bg-linear-to-r from-brand to-tag-violet shadow-md shadow-shadow-brand/30 hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed transition-all";
 
 export default function Profile() {
   const { user, role } = useAuth();
+  const userId = user?.id ?? null;
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,22 +28,22 @@ export default function Profile() {
   const [passwordInfo, setPasswordInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     supabase
       .from("profiles")
       .select("full_name, phone_number")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle()
       .then(({ data }) => {
         setFullName(data?.full_name ?? "");
         setPhone(data?.phone_number ?? "");
         setLoadingProfile(false);
       });
-  }, [user?.id]);
+  }, [userId]);
 
   async function handleProfileSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    if (!userId) return;
     setProfileError(null);
     setProfileInfo(null);
     setSavingProfile(true);
@@ -51,7 +54,7 @@ export default function Profile() {
         full_name: fullName.trim(),
         phone_number: phone ? formatPhoneNumber(phone) : null,
       })
-      .eq("id", user.id);
+      .eq("id", userId);
 
     setSavingProfile(false);
     if (error) return setProfileError(error.message);
@@ -85,14 +88,19 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-xl mx-auto px-4 sm:px-6 pt-24 pb-16">
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-text tracking-tight">
-            My Profile
-          </h1>
-          {roleLabel && <p className="text-sm text-text-soft mt-1">{roleLabel} account</p>}
-        </div>
+        <PageHeader
+          eyebrow="Account"
+          icon={User}
+          title="My Profile"
+          subtitle={roleLabel ? `${roleLabel} account` : undefined}
+        />
 
-        <div className="bg-surface-muted border border-border rounded-xl shadow-sm p-6 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="bg-surface border border-border rounded-2xl shadow-sm p-6 mb-6"
+        >
           <h2 className="font-heading text-lg font-semibold text-text mb-4">Account details</h2>
 
           {loadingProfile ? (
@@ -134,9 +142,14 @@ export default function Profile() {
               </button>
             </form>
           )}
-        </div>
+        </motion.div>
 
-        <div className="bg-surface-muted border border-border rounded-xl shadow-sm p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08 }}
+          className="bg-surface border border-border rounded-2xl shadow-sm p-6"
+        >
           <h2 className="font-heading text-lg font-semibold text-text mb-4">Change password</h2>
 
           <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4">
@@ -167,7 +180,7 @@ export default function Profile() {
               {savingPassword ? "Updating…" : "Update password"}
             </button>
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

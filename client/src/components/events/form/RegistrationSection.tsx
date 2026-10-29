@@ -1,6 +1,11 @@
+import { Ticket, Wallet, Info } from "lucide-react";
+import { motion } from "framer-motion";
+import type { EventFormData, EventFormUpdater } from "../../../types/event";
+import QuestionBuilder from "./QuestionBuilder";
+
 interface Props {
-  data: any;
-  updateData: (field: string, value: any) => void;
+  data: EventFormData;
+  updateData: EventFormUpdater;
   inputCls: string;
   isEdit?: boolean;
 }
@@ -9,6 +14,9 @@ function toLocalInput(date: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+const CHECKBOX =
+  "w-4 h-4 rounded border-border text-brand focus:ring-focus accent-brand";
 
 export default function RegistrationSection({
   data,
@@ -19,8 +27,13 @@ export default function RegistrationSection({
   const minDeadline = isEdit ? undefined : toLocalInput(new Date());
 
   return (
-    <div className="bg-(--color-surface) p-6 rounded-xl shadow-sm border border-(--color-border) flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-(--color-text)">
+    <div className="relative overflow-hidden bg-surface p-6 pt-7 rounded-2xl shadow-md shadow-shadow-soft border border-border flex flex-col gap-4">
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-tag-sky to-brand" />
+
+      <h3 className="font-heading text-lg font-semibold text-text flex items-center gap-3">
+        <span className="inline-flex p-2 rounded-lg bg-tag-sky-bg text-tag-sky">
+          <Ticket className="w-5 h-5" />
+        </span>
         Tickets & Registration
       </h3>
 
@@ -59,7 +72,7 @@ export default function RegistrationSection({
             type="checkbox"
             checked={data.requiresApproval}
             onChange={(e) => updateData("requiresApproval", e.target.checked)}
-            className="w-4 h-4 rounded border-(--color-border) text-(--color-brand) focus:ring-(--color-focus)"
+            className={CHECKBOX}
           />
           Require organizer approval to register
         </label>
@@ -69,29 +82,86 @@ export default function RegistrationSection({
             type="checkbox"
             checked={data.isPaid}
             onChange={(e) => updateData("isPaid", e.target.checked)}
-            className="w-4 h-4 rounded border-(--color-border) text-(--color-brand) focus:ring-(--color-focus)"
+            className={CHECKBOX}
           />
           This is a paid event
         </label>
       </div>
 
       {data.isPaid && (
-        <div className="mt-2 animate-in fade-in slide-in-from-top-2">
-          <label className="block text-sm font-medium text-text-muted mb-1">
-            Ticket Price (KES)
-          </label>
-          <input
-            type="number"
-            placeholder="e.g. 1500"
-            value={data.ticketPrice}
-            onChange={(e) => updateData("ticketPrice", e.target.value)}
-            min="0"
-            step="0.01"
-            required={data.isPaid}
-            className={`w-full md:w-1/2 ${inputCls}`}
-          />
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-2 flex flex-col gap-4"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-text-muted mb-1">
+                Ticket Price (KES)
+              </label>
+              <input
+                type="number"
+                placeholder="e.g. 1500"
+                value={data.ticketPrice}
+                onChange={(e) => updateData("ticketPrice", e.target.value)}
+                min="0"
+                step="0.01"
+                required={data.isPaid}
+                className={`w-full ${inputCls}`}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-muted mb-1">
+                Payout Method
+              </label>
+              <select
+                value={data.payoutMethod || ""}
+                onChange={(e) => updateData("payoutMethod", e.target.value)}
+                className={`w-full ${inputCls}`}
+              >
+                <option value="" disabled>Select settlement method...</option>
+                <option value="mpesa_till">M-Pesa Buy Goods (Till)</option>
+                <option value="mpesa_paybill">M-Pesa Paybill</option>
+                <option value="bank_account">Bank Account</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-muted mb-1">
+              Account / Till / Paybill Number
+              <span className="text-text-soft font-normal text-xs ml-1">
+                (optional)
+              </span>
+            </label>
+            <div className="relative">
+              <Wallet className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-soft pointer-events-none" />
+              <input
+                type="text"
+                placeholder={data.payoutMethod === "bank_account" ? "Enter Bank Account Number" : "e.g., 522533 or Till No."}
+                value={data.payoutAccount || ""}
+                onChange={(e) => updateData("payoutAccount", e.target.value)}
+                className={`w-full !pl-9 ${inputCls}`}
+              />
+            </div>
+          </div>
+
+          <p className="flex items-start gap-2 text-xs text-text-soft leading-relaxed">
+            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-tag-sky" />
+            <span>
+              Attendees can pay securely via Card or Mobile Money through Paystack. Funds will be routed according to your selected payout details.
+            </span>
+          </p>
+        </motion.div>
       )}
+
+      <QuestionBuilder
+        data={data}
+        updateData={updateData}
+        inputCls={inputCls}
+      />
     </div>
   );
 }

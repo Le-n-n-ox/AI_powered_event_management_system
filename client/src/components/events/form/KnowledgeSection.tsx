@@ -1,11 +1,12 @@
 ﻿import { Sparkles, Trash2 } from "lucide-react";
+import type { EventFormUpdater } from "../../../types/event";
 
 // Keep in sync with MAX_DOC_CHARS in the backend.
 const MAX_CHARS = 15000;
 
 interface Props {
   data: { knowledgeText: string };
-  updateData: (field: string, value: any) => void;
+  updateData: EventFormUpdater;
   inputCls: string;
 }
 

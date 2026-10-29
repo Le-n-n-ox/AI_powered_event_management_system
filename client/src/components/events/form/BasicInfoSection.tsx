@@ -1,8 +1,10 @@
-import type { Event } from "../../../types/event";
+import { FileText } from "lucide-react";
+import type { Event, EventFormData, EventFormUpdater } from "../../../types/event";
+import { EVENT_CATEGORIES } from "../../../lib/events";
 
 interface Props {
-  data: any;
-  updateData: (field: string, value: any) => void;
+  data: EventFormData;
+  updateData: EventFormUpdater;
   isEdit: boolean;
   inputCls: string;
 }
@@ -14,13 +16,18 @@ export default function BasicInfoSection({
   inputCls,
 }: Props) {
   return (
-    <div className="bg-[var(--color-surface)] p-6 rounded-xl shadow-sm border border-[var(--color-border)] flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+    <div className="relative overflow-hidden bg-surface p-6 pt-7 rounded-2xl shadow-md shadow-shadow-soft border border-border flex flex-col gap-4">
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-brand to-tag-violet" />
+
+      <h3 className="font-heading text-lg font-semibold text-text flex items-center gap-3">
+        <span className="inline-flex p-2 rounded-lg bg-brand-soft text-brand-strong">
+          <FileText className="w-5 h-5" />
+        </span>
         Basic Information
       </h3>
 
       <div>
-        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+        <label className="block text-sm font-medium text-text-muted mb-1">
           Event Name
         </label>
         <input
@@ -34,7 +41,29 @@ export default function BasicInfoSection({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+        <label className="block text-sm font-medium text-text-muted mb-1">
+          Niche / Category
+        </label>
+        <input
+          type="text"
+          list="event-categories"
+          placeholder="e.g., Technology"
+          value={data.category ?? ""}
+          onChange={(e) => updateData("category", e.target.value)}
+          className={`w-full ${inputCls}`}
+        />
+        <datalist id="event-categories">
+          {EVENT_CATEGORIES.map((category) => (
+            <option key={category} value={category} />
+          ))}
+        </datalist>
+        <p className="text-xs text-text-soft mt-1">
+          Attendees filter events by niche, so pick the closest match.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-text-muted mb-1">
           Description
         </label>
         <textarea
@@ -48,7 +77,7 @@ export default function BasicInfoSection({
 
       {isEdit && (
         <div>
-          <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
+          <label className="block text-sm font-medium text-text-muted mb-1">
             Status
           </label>
           <select
@@ -56,7 +85,7 @@ export default function BasicInfoSection({
             onChange={(e) =>
               updateData("status", e.target.value as Event["status"])
             }
-            className={`w-full bg-[var(--color-surface)] ${inputCls}`}
+            className={`w-full bg-surface ${inputCls}`}
           >
             <option value="upcoming">Upcoming</option>
             <option value="ongoing">Ongoing</option>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Search,
   MoreVertical,
@@ -14,13 +14,14 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase";
+import { apiFetch } from "../../lib/api";
 
 interface Profile {
   id: string;
-  name: string;
-  email: string;
-  role: "admin" | "organizer" | "attendee";
-  status: "active" | "suspended";
+  full_name: string | null;
+  email: string | null;
+  role: "admin" | "organizer" | "attendee" | "floor_manager";
+  suspended: boolean;
   created_at: string;
 }
 
@@ -57,8 +58,10 @@ const FIELD =
 const FOCUS =
   "outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 function initials(user: Profile) {
-  const source = (user.name || user.email || "?").trim();
+  const source = (user.full_name || user.email || "?").trim();
   const parts = source.split(/\s+/);
   const letters =
     parts.length > 1 ? parts[0][0] + parts[1][0] : source.slice(0, 2);
@@ -73,17 +76,10 @@ export default function UserManagement() {
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: dbError } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error: dbError } = await supabase.rpc("admin_list_users");
 
     if (dbError) {
       setError(dbError.message);
@@ -91,26 +87,80 @@ export default function UserManagement() {
       setUsers(data);
     }
     setLoading(false);
-  }
+  }, []);
 
-  async function toggleUserStatus(id: string, current: Profile["status"]) {
-    const next: Profile["status"] =
-      current === "active" ? "suspended" : "active";
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      // Yield first so the effect never sets state synchronously.
+      await Promise.resolve();
+      if (cancelled) return;
+      await fetchUsers();
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchUsers]);
+
+  async function toggleUserStatus(id: string, currentlySuspended: boolean) {
+    const next = !currentlySuspended;
 
     setPendingId(id);
     setError(null);
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: next } : u)));
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, suspended: next } : u)));
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ status: next })
-      .eq("id", id);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (updateError) {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/users/${id}/suspend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ suspended: next }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Request failed");
+      }
+    } catch {
       setUsers((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, status: current } : u)),
+        prev.map((u) => (u.id === id ? { ...u, suspended: currentlySuspended } : u)),
       );
       setError("Failed to update user status. Please try again.");
+    }
+    setPendingId(null);
+  }
+
+  async function changeRole(id: string, role: Profile["role"]) {
+    const previous = users.find((u) => u.id === id);
+    if (!previous || previous.role === role) return;
+
+    setPendingId(id);
+    setError(null);
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+
+    try {
+      await apiFetch(`/api/admin/users/${id}/role`, {
+        method: "POST",
+        body: JSON.stringify({ role }),
+      });
+    } catch (err) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, role: previous.role } : u)),
+      );
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to change that user's role.",
+      );
     }
     setPendingId(null);
   }
@@ -119,7 +169,7 @@ export default function UserManagement() {
     const q = search.trim().toLowerCase();
     return users.filter((user) => {
       const matchesSearch =
-        (user.name?.toLowerCase() || "").includes(q) ||
+        (user.full_name?.toLowerCase() || "").includes(q) ||
         (user.email?.toLowerCase() || "").includes(q);
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
       return matchesSearch && matchesRole;
@@ -198,7 +248,7 @@ export default function UserManagement() {
               filteredUsers.map((user) => {
                 const role = ROLE_STYLES[user.role] ?? FALLBACK_ROLE;
                 const RoleIcon = role.icon;
-                const active = user.status === "active";
+                const active = !user.suspended;
                 const busy = pendingId === user.id;
                 return (
                   <tr
@@ -215,7 +265,7 @@ export default function UserManagement() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium text-text truncate">
-                            {user.name || "Unnamed user"}
+                            {user.full_name || "Unnamed user"}
                           </div>
                           <div className="text-text-soft text-xs mt-0.5 truncate">
                             {user.email}
@@ -247,11 +297,25 @@ export default function UserManagement() {
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <select
+                          aria-label={`Role for ${user.full_name || user.email}`}
+                          value={user.role}
+                          disabled={busy}
+                          onChange={(e) =>
+                            changeRole(user.id, e.target.value as Profile["role"])
+                          }
+                          className={`h-8 rounded-md border border-border bg-surface px-2 text-xs text-text cursor-pointer focus:outline-none focus:ring-2 focus:ring-focus-soft disabled:opacity-60 disabled:cursor-not-allowed ${FOCUS}`}
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="organizer">Organizer</option>
+                          <option value="attendee">Attendee</option>
+                          <option value="floor_manager">Floor manager</option>
+                        </select>
                         {user.role !== "admin" && (
                           <button
                             type="button"
                             disabled={busy}
-                            onClick={() => toggleUserStatus(user.id, user.status)}
+                            onClick={() => toggleUserStatus(user.id, user.suspended)}
                             className={`min-w-20 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${FOCUS} ${
                               active
                                 ? "text-danger bg-danger-bg hover:bg-danger-hover"
@@ -269,7 +333,7 @@ export default function UserManagement() {
                         )}
                         <button
                           type="button"
-                          aria-label={`More actions for ${user.name || user.email}`}
+                          aria-label={`More actions for ${user.full_name || user.email}`}
                           className={`p-1.5 text-text-soft hover:text-text hover:bg-surface-strong rounded-md transition-colors ${FOCUS}`}
                         >
                           <MoreVertical className="w-4 h-4" />
