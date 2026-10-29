@@ -394,9 +394,15 @@ app.post('/webhook/incoming', webhookAuth, webhookLimiter, async (req, res) => {
     }
 
     const lowerText = cleanText.toLowerCase();
-    const mentionedEvent = eventsData.find(event =>
-        event.name && lowerText.includes(event.name.toLowerCase())
-    );
+    const mentionedEvent = eventsData.find(event => {
+        if (!event.name) return false;
+        const en = event.name.toLowerCase();
+        return lowerText.includes(en) || en.includes(lowerText);
+    }) || (function () {
+        const n = parseInt(cleanText, 10);
+        if (!isNaN(n) && n >= 1 && n <= eventsData.length) return eventsData[n - 1];
+        return null;
+    })();
 
     if (mentionedEvent) {
         activeEventId = mentionedEvent.id;
